@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Campeonato Baloncesto - Cucuta 2026",
-  description: "Campeonato de Baloncesto de Cucuta - Temporada 2026. Posiciones, fixture, estadisticas y mas.",
+  title: "Billar 3 Bandas - Club Tennis Cucuta",
+  description: "Campeonato de Billar a Tres Bandas - Club Tennis Cucuta. Grupos, resultados, eliminacion y ranking.",
 };
 
 export default function RootLayout({
@@ -37,7 +37,7 @@ export default function RootLayout({
         </main>
         <footer className="py-5 text-center border-t border-border-subtle">
           <div className="text-[11px] text-text-muted/60 tracking-[0.25em] uppercase">
-            Campeonato · Baloncesto · Cucuta 2026
+            Billar 3 Bandas · Club Tennis · Cucuta
           </div>
         </footer>
       </body>

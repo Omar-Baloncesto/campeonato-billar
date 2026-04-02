@@ -23,7 +23,7 @@ export default function Navigation() {
                 relative px-3 py-2.5 text-[13px] whitespace-nowrap rounded-t-lg
                 flex items-center gap-1.5 transition-all duration-200
                 ${isActive
-                  ? 'text-gold font-semibold'
+                  ? 'text-emerald font-semibold'
                   : 'text-text-muted hover:text-text-primary hover:bg-white/[0.03]'
                 }
               `}
@@ -31,9 +31,8 @@ export default function Navigation() {
             >
               <span className="text-xs">{item.icon}</span>
               {item.label}
-              {/* Active indicator bar */}
               {isActive && (
-                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-gold/0 via-gold to-gold/0 rounded-full" />
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-emerald/0 via-emerald to-emerald/0 rounded-full" />
               )}
             </Link>
           );

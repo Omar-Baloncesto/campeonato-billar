@@ -9,7 +9,6 @@ export default function LoadingState({ message = 'Cargando...', variant = 'spinn
     return (
       <div className="animate-fade-in" role="status" aria-busy="true" aria-label={message}>
         <div className="bg-bg-secondary rounded-xl overflow-hidden border border-border-light">
-          {/* Header skeleton */}
           <div className="bg-bg-header px-5 py-3.5 flex gap-6">
             <div className="skeleton h-3.5 w-10" />
             <div className="skeleton h-3.5 w-24" />
@@ -17,7 +16,6 @@ export default function LoadingState({ message = 'Cargando...', variant = 'spinn
             <div className="skeleton h-3.5 w-12" />
             <div className="skeleton h-3.5 w-12" />
           </div>
-          {/* Row skeletons */}
           {Array.from({ length: rows }).map((_, i) => (
             <div
               key={i}
@@ -46,7 +44,7 @@ export default function LoadingState({ message = 'Cargando...', variant = 'spinn
     >
       <div className="relative">
         <div className="spinner" />
-        <div className="absolute inset-0 rounded-full bg-gold/5 animate-ping" style={{ animationDuration: '1.5s' }} />
+        <div className="absolute inset-0 rounded-full bg-emerald/5 animate-ping" style={{ animationDuration: '1.5s' }} />
       </div>
       <span className="text-text-muted text-sm tracking-wider uppercase">
         {message}
@@ -69,7 +67,7 @@ export function ErrorState({ message = 'No se pudieron cargar los datos', onRetr
       {onRetry && (
         <button
           onClick={onRetry}
-          className="px-4 py-2 rounded-lg bg-gold/10 text-gold text-sm font-medium border border-gold/20 hover:bg-gold/20 transition-colors"
+          className="px-4 py-2 rounded-lg bg-emerald/10 text-emerald text-sm font-medium border border-emerald/20 hover:bg-emerald/20 transition-colors"
         >
           Reintentar
         </button>

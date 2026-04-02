@@ -10,8 +10,7 @@ export default function FilterPills({ items, active, onChange, variant = 'solid'
     <div className="flex gap-2 flex-wrap" role="tablist" aria-label="Filtros">
       {items.map((item) => {
         const isActive = active === item.key;
-        const color = item.color || '#F5B800';
-        const isWhite = color === '#FFFFFF' || color === '#CCCCCC';
+        const color = item.color || '#10b981';
 
         if (variant === 'outline') {
           return (
@@ -22,9 +21,9 @@ export default function FilterPills({ items, active, onChange, variant = 'solid'
               aria-selected={isActive}
               className="px-3.5 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all duration-150"
               style={{
-                border: isActive ? `2px solid ${isWhite ? '#CCCCCC' : color}` : '2px solid transparent',
-                background: isActive ? (isWhite ? '#FFFFFF' : color + '20') : 'var(--color-bg-secondary)',
-                color: isActive ? (isWhite ? '#000000' : color) : 'var(--color-text-muted)',
+                border: isActive ? `2px solid ${color}` : '2px solid transparent',
+                background: isActive ? color + '20' : 'var(--color-bg-secondary)',
+                color: isActive ? color : 'var(--color-text-muted)',
               }}
             >
               {item.label}
@@ -42,8 +41,8 @@ export default function FilterPills({ items, active, onChange, variant = 'solid'
               px-3.5 py-1.5 rounded-full border-none text-xs font-medium cursor-pointer
               transition-all duration-150
               ${isActive
-                ? 'bg-gold text-bg-primary'
-                : 'bg-bg-secondary text-text-muted hover:text-gold/80'
+                ? 'bg-emerald text-bg-primary'
+                : 'bg-bg-secondary text-text-muted hover:text-emerald/80'
               }
             `}
           >

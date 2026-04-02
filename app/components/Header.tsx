@@ -5,21 +5,18 @@ import { APP_CONFIG } from '../lib/constants';
 
 export default function Header() {
   return (
-    <header className="relative overflow-hidden border-b-2 border-gold">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-r from-bg-secondary via-bg-secondary to-[#1a2848]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-gold/[0.03] to-transparent" />
+    <header className="relative overflow-hidden border-b-2 border-emerald">
+      <div className="absolute inset-0 bg-gradient-to-r from-bg-secondary via-bg-secondary to-[#1a3828]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-emerald/[0.03] to-transparent" />
 
       <div className="relative px-4 py-3 md:px-7 md:py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 no-underline group">
-          {/* Basketball SVG icon */}
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/30 transition-shadow">
+          {/* Billiard ball SVG icon */}
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/30 transition-shadow">
             <svg viewBox="0 0 24 24" className="w-6 h-6 md:w-7 md:h-7 text-white/90" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="12" cy="12" r="10" />
-              <path d="M12 2c0 10 0 10 0 20" />
-              <path d="M2 12h20" />
-              <path d="M4.5 4.5c3 3 5 5 5 7.5s-2 4.5-5 7.5" />
-              <path d="M19.5 4.5c-3 3-5 5-5 7.5s2 4.5 5 7.5" />
+              <ellipse cx="12" cy="10" rx="4" ry="3.5" />
+              <circle cx="12" cy="10" r="2" fill="currentColor" stroke="none" />
             </svg>
           </div>
           <div>
@@ -32,15 +29,12 @@ export default function Header() {
           </div>
         </Link>
 
-        {/* Live badge with pulse */}
         <div className="flex items-center gap-2">
           <div
-            className="live-pulse bg-live text-white text-[10px] md:text-[11px] font-bold px-3 py-1 rounded-full tracking-wider flex items-center gap-1.5"
+            className="bg-emerald/20 text-emerald text-[10px] md:text-[11px] font-bold px-3 py-1 rounded-full tracking-wider flex items-center gap-1.5 border border-emerald/30"
             role="status"
-            aria-label="Transmision en vivo"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            EN VIVO
+            FINALIZADO
           </div>
         </div>
       </div>

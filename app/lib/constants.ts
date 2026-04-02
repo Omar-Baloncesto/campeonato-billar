@@ -1,53 +1,37 @@
-export interface TeamConfig {
-  id: string;
-  name: string;
-  abbr: string;
+export interface CityConfig {
   color: string;
-  safeColor: string; // safe for display on dark backgrounds
+  safeColor: string;
 }
 
-export const TEAMS: Record<string, TeamConfig> = {
-  '1': { id: '1', name: 'Miami Heat',            abbr: 'MIA', color: '#FFFFFF', safeColor: '#CCCCCC' },
-  '2': { id: '2', name: 'Brooklyn Nets',         abbr: 'BKN', color: '#AAAAAA', safeColor: '#AAAAAA' },
-  '3': { id: '3', name: 'Boston Celtics',        abbr: 'BOS', color: '#22c55e', safeColor: '#22c55e' },
-  '4': { id: '4', name: 'Oklahoma City Thunder', abbr: 'OKC', color: '#00BFFF', safeColor: '#00BFFF' },
-  '5': { id: '5', name: 'Los Angeles Lakers',    abbr: 'LAL', color: '#FFD700', safeColor: '#FFD700' },
-  '6': { id: '6', name: 'Toronto Raptors',       abbr: 'TOR', color: '#FF0000', safeColor: '#FF0000' },
+export const CITIES: Record<string, CityConfig> = {
+  'CUCUTA-CAZADORES': { color: '#10b981', safeColor: '#34d399' },
+  'CUCUTA-TENNIS': { color: '#059669', safeColor: '#6ee7b7' },
+  'BUCARAMANGA': { color: '#f59e0b', safeColor: '#fbbf24' },
+  'MEDELLIN': { color: '#ef4444', safeColor: '#f87171' },
+  'BOGOTA': { color: '#3b82f6', safeColor: '#60a5fa' },
+  'VENECIA': { color: '#8b5cf6', safeColor: '#a78bfa' },
+  'MANIZALES': { color: '#ec4899', safeColor: '#f472b6' },
+  'IBAGUE': { color: '#14b8a6', safeColor: '#2dd4bf' },
+  'PEREIRA': { color: '#f97316', safeColor: '#fb923c' },
+  'OCAÑA': { color: '#06b6d4', safeColor: '#22d3ee' },
 };
 
-export const TEAM_BY_NAME: Record<string, TeamConfig> = Object.fromEntries(
-  Object.values(TEAMS).map(t => [t.name, t])
-);
-
-export function getTeamColor(nameOrId: string): string {
-  const team = TEAMS[nameOrId] || TEAM_BY_NAME[nameOrId];
-  return team?.safeColor || '#888888';
-}
-
-export function getTeamColorRaw(nameOrId: string): string {
-  const team = TEAMS[nameOrId] || TEAM_BY_NAME[nameOrId];
-  return team?.color || '#888888';
-}
-
-export function isWhiteTeam(nameOrId: string): boolean {
-  const team = TEAMS[nameOrId] || TEAM_BY_NAME[nameOrId];
-  return team?.color === '#FFFFFF';
+export function getCityColor(city: string): string {
+  return CITIES[city]?.safeColor || '#888888';
 }
 
 export const NAV_ITEMS = [
-  { label: 'Equipos',      href: '/',                    icon: '🏀' },
-  { label: 'Posiciones',   href: '/posiciones',          icon: '🏆' },
-  { label: 'Fixture',      href: '/fixture',             icon: '🗓' },
-  { label: 'Jugadores',    href: '/jugadores',           icon: '👤' },
-  { label: 'Estadísticas', href: '/estadisticas',        icon: '📊' },
-  { label: 'Est. Equipos', href: '/estadisticas-equipos', icon: '📊' },
-  { label: 'Asistencias',  href: '/asistencias',         icon: '📋' },
-  { label: 'Marcadores',   href: '/lista-equipos',       icon: '🏀' },
-  { label: 'Bracket',      href: '/bracket',             icon: '🏆' },
+  { label: 'Inicio', href: '/', icon: '🎱' },
+  { label: 'Jugadores', href: '/jugadores', icon: '👤' },
+  { label: 'Grupos', href: '/grupos', icon: '📋' },
+  { label: 'Resultados', href: '/resultados', icon: '📊' },
+  { label: 'Eliminacion', href: '/eliminacion', icon: '🏆' },
+  { label: 'Ranking', href: '/ranking', icon: '🥇' },
+  { label: 'Config', href: '/configuracion', icon: '⚙️' },
 ];
 
 export const APP_CONFIG = {
-  title: 'CAMPEONATO BALONCESTO',
-  subtitle: 'CÚCUTA · TEMPORADA 2026',
+  title: 'BILLAR 3 BANDAS',
+  subtitle: 'CLUB TENNIS · CUCUTA',
   year: 2026,
 };

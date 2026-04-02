@@ -1,134 +1,140 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { TEAMS } from './lib/constants';
-import { ErrorState } from './components/LoadingState';
 
-interface Equipo {
-  id: string;
-  nombre: string;
-  hexColor: string;
-}
+import Link from 'next/link';
+import { TOURNAMENT_CONFIG } from './data/config';
+import { PLAYERS } from './data/players';
+import { GROUP_RESULTS } from './data/groups';
+import { RANKING_FINAL } from './data/rankings';
+import { ELIMINATION_MATCHES } from './data/elimination';
+import { getPlayerCountByCity } from './data/helpers';
+import { CITIES } from './lib/constants';
 
 export default function Dashboard() {
-  const [equipos, setEquipos] = useState<Equipo[]>([]);
-  const [totalJugadores, setTotalJugadores] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const fetchData = () => {
-    setLoading(true);
-    setError(false);
-
-    Promise.all([
-      fetch('/api/sheets?sheet=EQUIPOS').then(r => r.json()),
-      fetch('/api/sheets?sheet=JUGADORES').then(r => r.json()),
-    ])
-      .then(([eqData, jugData]) => {
-        if (eqData.success && eqData.data.length > 1) {
-          const rows = eqData.data.slice(1).filter((r: string[]) => r[1]);
-          setEquipos(rows.map((r: string[]) => ({
-            id: r[0], nombre: r[1], hexColor: r[5] || '#888888',
-          })));
-        }
-        if (jugData.success && jugData.data.length > 1) {
-          setTotalJugadores(jugData.data.slice(1).filter((r: string[]) => r[1]).length);
-        }
-        if (!eqData.success && !jugData.success) setError(true);
-        setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
-  };
-
-  useEffect(() => { fetchData(); }, []);
-
-  const initiales = (nombre: string) =>
-    nombre.split(' ').slice(0, 2).map(w => w[0]).join('');
-
-  const badgeColor = (eq: Equipo) => TEAMS[eq.id]?.safeColor || eq.hexColor;
+  const champion = RANKING_FINAL[0];
+  const finalist = RANKING_FINAL[1];
+  const third = RANKING_FINAL[2];
+  const fourth = RANKING_FINAL[3];
+  const totalMatches = GROUP_RESULTS.length;
+  const eliminationMatches = ELIMINATION_MATCHES.filter(m => !m.isBye).length;
+  const cityCounts = getPlayerCountByCity();
+  const finalMatch = ELIMINATION_MATCHES.find(m => m.round === 6);
 
   const stats = [
-    { value: '6', label: 'Equipos', icon: '🏀' },
-    { value: '10', label: 'Partidos', icon: '🗓' },
-    { value: loading ? '...' : String(totalJugadores), label: 'Jugadores', icon: '👥' },
-    { value: '2', label: 'Rondas', icon: '🏆' },
+    { label: 'Jugadores', value: TOURNAMENT_CONFIG.totalPlayers, icon: '👤' },
+    { label: 'Grupos', value: TOURNAMENT_CONFIG.totalGroups, icon: '📋' },
+    { label: 'Partidos Grupo', value: totalMatches, icon: '🎱' },
+    { label: 'Partidos Elim.', value: eliminationMatches, icon: '🏆' },
   ];
 
   return (
     <div className="animate-fade-in">
-      {/* Stats bar with icons */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-bg-darkest border-b border-border-light">
-        {stats.map((s, i) => (
-          <div
-            key={s.label}
-            className="bg-bg-secondary px-4 py-4 md:px-5 md:py-5 text-center group hover:bg-bg-card transition-colors relative overflow-hidden"
-          >
-            {/* Subtle gradient accent */}
-            <div className="absolute inset-0 bg-gradient-to-b from-gold/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative">
-              <div className="text-lg mb-1 opacity-60">{s.icon}</div>
-              <div className="text-2xl md:text-3xl font-bold gradient-text count-up" style={{ animationDelay: `${i * 100}ms` }}>
-                {s.value}
-              </div>
-              <div className="text-[11px] text-text-muted uppercase tracking-wider mt-1">{s.label}</div>
+      {/* Stats bar */}
+      <div className="px-4 py-6 md:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto stagger-children">
+          {stats.map((s) => (
+            <div key={s.label} className="glass-card rounded-xl p-4 text-center glow-hover">
+              <div className="text-2xl mb-1">{s.icon}</div>
+              <div className="text-2xl md:text-3xl font-black text-emerald-400 count-up">{s.value}</div>
+              <div className="text-[11px] text-text-muted tracking-wider uppercase mt-1">{s.label}</div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Team cards */}
-      <section className="p-4 md:p-6" aria-label="Equipos participantes">
-        <div className="glass-card rounded-xl p-4 md:p-6">
-          <h2 className="text-sm text-text-muted uppercase tracking-widest mb-5 flex items-center gap-2">
-            <span className="w-1 h-4 bg-gold rounded-full" />
-            Equipos participantes
-          </h2>
-
-          {loading ? (
-            <div className="text-text-muted text-center py-12">
-              <div className="spinner mx-auto mb-4" />
-              <span className="text-sm tracking-wide">Cargando equipos...</span>
-            </div>
-          ) : error ? (
-            <ErrorState
-              message="No se pudieron cargar los equipos. Verifica tu conexion a internet."
-              onRetry={fetchData}
+      {/* Champion highlight */}
+      <div className="px-4 pb-6 md:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="relative overflow-hidden rounded-2xl p-6 md:p-8 text-center border border-[rgba(245,184,0,0.2)]"
+            style={{
+              background: 'linear-gradient(135deg, rgba(245,184,0,0.06), rgba(16,185,129,0.04))',
+              boxShadow: '0 0 60px rgba(245,184,0,0.05)',
+            }}
+          >
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: 'radial-gradient(circle at 50% 0%, rgba(245,184,0,0.1) 0%, transparent 70%)' }}
             />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 stagger-children">
-              {equipos.map(eq => {
-                const color = badgeColor(eq);
-                const isWhite = eq.hexColor === '#FFFFFF' || eq.hexColor === '#ffffff';
-                return (
-                  <div
-                    key={eq.id}
-                    className="bg-bg-primary/80 rounded-xl p-4 flex items-center gap-3.5 border border-border-light glow-hover cursor-pointer group"
-                  >
-                    <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 transition-transform group-hover:scale-105"
-                      style={{
-                        background: isWhite ? '#FFFFFF' : `linear-gradient(135deg, ${color}30, ${color}10)`,
-                        color: isWhite ? '#000000' : color,
-                        border: `1.5px solid ${color}50`,
-                        boxShadow: `0 2px 8px ${color}15`,
-                      }}
-                    >
-                      {initiales(eq.nombre)}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium group-hover:text-text-primary transition-colors">{eq.nombre}</div>
-                      <div className="text-[11px] text-text-muted mt-0.5">Cucuta</div>
-                    </div>
-                    {/* Chevron on hover */}
-                    <svg className="w-4 h-4 text-text-muted/0 group-hover:text-text-muted/50 ml-auto transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                );
-              })}
+            <div className="relative">
+              <div className="text-5xl mb-3">🏆</div>
+              <div className="text-[11px] tracking-[0.3em] text-text-muted uppercase mb-2 font-semibold">Campeon</div>
+              <div className="text-2xl md:text-3xl font-black tracking-wider text-[#F5B800] mb-3">
+                {champion.player}
+              </div>
+              {finalMatch && (
+                <div className="text-sm text-text-muted">
+                  Final: <span className="text-text-primary font-semibold">{finalMatch.carambolasA}</span>
+                  <span className="text-text-muted/50 mx-1">-</span>
+                  <span className="text-text-primary font-semibold">{finalMatch.carambolasB}</span>
+                  <span className="text-text-muted/50 ml-1">vs {finalist.player}</span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </section>
+      </div>
+
+      {/* Podium */}
+      <div className="px-4 pb-6 md:px-8">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase mb-4 px-1">Podio Final</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 stagger-children">
+            {[champion, finalist, third, fourth].map((p, i) => {
+              const medals = ['🥇', '🥈', '🥉', '4'];
+              const colors = ['#F5B800', '#C0C0C0', '#CD7F32', '#888888'];
+              return (
+                <div key={p.ranking} className="glass-card rounded-xl p-4 text-center glow-hover">
+                  <div className="text-3xl mb-2">{i < 3 ? medals[i] : ''}</div>
+                  <div className="text-sm font-bold" style={{ color: colors[i] }}>{p.player}</div>
+                  <div className="text-[11px] text-text-muted mt-1">Ronda {p.roundReached}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Cities breakdown */}
+      <div className="px-4 pb-8 md:px-8">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase mb-4 px-1">Jugadores por Ciudad</h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 stagger-children">
+            {Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).map(([city, count]) => (
+              <div key={city} className="glass-card rounded-lg p-3 flex items-center gap-2 glow-hover">
+                <div
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ background: CITIES[city]?.safeColor || '#888' }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] text-text-primary font-medium truncate">{city}</div>
+                </div>
+                <div className="text-sm font-bold text-emerald-400">{count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick links */}
+      <div className="px-4 pb-8 md:px-8">
+        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-3">
+          {[
+            { href: '/grupos', label: 'Ver Grupos', icon: '📋' },
+            { href: '/resultados', label: 'Resultados', icon: '📊' },
+            { href: '/eliminacion', label: 'Eliminacion', icon: '🏆' },
+            { href: '/ranking', label: 'Ranking Final', icon: '🥇' },
+            { href: '/jugadores', label: 'Jugadores', icon: '👤' },
+            { href: '/configuracion', label: 'Configuracion', icon: '⚙️' },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="glass-card rounded-xl p-4 text-center glow-hover no-underline"
+            >
+              <div className="text-2xl mb-1">{link.icon}</div>
+              <div className="text-xs font-semibold text-text-muted">{link.label}</div>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
