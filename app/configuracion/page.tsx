@@ -1,38 +1,45 @@
-'use client';
-
-import { TOURNAMENT_CONFIG } from '../data/config';
-import { getPlayerCountByCity } from '../data/helpers';
+import { fetchConfig, fetchPlayers } from '../lib/sheets';
 import { CITIES } from '../lib/constants';
 
-export default function ConfiguracionPage() {
-  const cityCounts = getPlayerCountByCity();
+export const revalidate = 60;
+
+export default async function ConfiguracionPage() {
+  const [config, players] = await Promise.all([
+    fetchConfig(),
+    fetchPlayers(),
+  ]);
+
+  const cityCounts: Record<string, number> = {};
+  for (const p of players) {
+    cityCounts[p.city] = (cityCounts[p.city] || 0) + 1;
+  }
 
   const sections = [
     {
       title: 'General',
       icon: '🎱',
       items: [
-        { label: 'Total Jugadores', value: TOURNAMENT_CONFIG.totalPlayers },
-        { label: 'Grupos', value: TOURNAMENT_CONFIG.totalGroups },
-        { label: 'Jugadores por Grupo', value: TOURNAMENT_CONFIG.playersPerGroup },
-        { label: 'Categoria', value: TOURNAMENT_CONFIG.category },
+        { label: 'Total Jugadores', value: config.totalPlayers },
+        { label: 'Grupos', value: config.totalGroups },
+        { label: 'Jugadores por Grupo', value: config.playersPerGroup },
+        { label: 'Categoria', value: config.category },
       ],
     },
     {
       title: 'Fase de Grupos',
       icon: '📋',
       items: [
-        { label: 'Carambolas por partido', value: TOURNAMENT_CONFIG.carambolasPreliminary },
-        { label: 'Limite de entradas', value: TOURNAMENT_CONFIG.entriesLimit },
-        { label: 'Tiempo por entrada', value: `${TOURNAMENT_CONFIG.timePerEntry}s` },
+        { label: 'Carambolas por partido', value: config.carambolasPreliminary },
+        { label: 'Limite de entradas', value: config.entriesLimit },
+        { label: 'Tiempo por entrada', value: `${config.timePerEntry}s` },
       ],
     },
     {
       title: 'Semifinal y Final',
       icon: '🏆',
       items: [
-        { label: 'Carambolas semifinal', value: TOURNAMENT_CONFIG.carambolasSemifinal },
-        { label: 'Carambolas final', value: TOURNAMENT_CONFIG.carambolasFinal },
+        { label: 'Carambolas semifinal', value: config.carambolasSemifinal },
+        { label: 'Carambolas final', value: config.carambolasFinal },
       ],
     },
     {
@@ -41,7 +48,7 @@ export default function ConfiguracionPage() {
       items: [
         { label: 'Tipo', value: 'Eliminacion Simple' },
         { label: 'Rondas', value: 6 },
-        { label: 'Jugadores clasificados', value: 42 },
+        { label: 'Jugadores clasificados', value: config.totalPlayers },
       ],
     },
   ];

@@ -1,27 +1,35 @@
-'use client';
-
 import Link from 'next/link';
-import { TOURNAMENT_CONFIG } from './data/config';
-import { PLAYERS } from './data/players';
-import { GROUP_RESULTS } from './data/groups';
-import { RANKING_FINAL } from './data/rankings';
+import { fetchConfig, fetchPlayers, fetchResults, fetchRankingFinal } from './lib/sheets';
 import { ELIMINATION_MATCHES } from './data/elimination';
-import { getPlayerCountByCity } from './data/helpers';
 import { CITIES } from './lib/constants';
 
-export default function Dashboard() {
-  const champion = RANKING_FINAL[0];
-  const finalist = RANKING_FINAL[1];
-  const third = RANKING_FINAL[2];
-  const fourth = RANKING_FINAL[3];
-  const totalMatches = GROUP_RESULTS.length;
+export const revalidate = 60;
+
+export default async function Dashboard() {
+  const [config, players, results, rankingFinal] = await Promise.all([
+    fetchConfig(),
+    fetchPlayers(),
+    fetchResults(),
+    fetchRankingFinal(),
+  ]);
+
+  const champion = rankingFinal[0];
+  const finalist = rankingFinal[1];
+  const third = rankingFinal[2];
+  const fourth = rankingFinal[3];
+  const totalMatches = results.length;
   const eliminationMatches = ELIMINATION_MATCHES.filter(m => !m.isBye).length;
-  const cityCounts = getPlayerCountByCity();
+
+  const cityCounts: Record<string, number> = {};
+  for (const p of players) {
+    cityCounts[p.city] = (cityCounts[p.city] || 0) + 1;
+  }
+
   const finalMatch = ELIMINATION_MATCHES.find(m => m.round === 6);
 
   const stats = [
-    { label: 'Jugadores', value: TOURNAMENT_CONFIG.totalPlayers, icon: '👤' },
-    { label: 'Grupos', value: TOURNAMENT_CONFIG.totalGroups, icon: '📋' },
+    { label: 'Jugadores', value: config.totalPlayers, icon: '👤' },
+    { label: 'Grupos', value: config.totalGroups, icon: '📋' },
     { label: 'Partidos Grupo', value: totalMatches, icon: '🎱' },
     { label: 'Partidos Elim.', value: eliminationMatches, icon: '🏆' },
   ];
@@ -42,55 +50,59 @@ export default function Dashboard() {
       </div>
 
       {/* Champion highlight */}
-      <div className="px-4 pb-6 md:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="relative overflow-hidden rounded-2xl p-6 md:p-8 text-center border border-[rgba(245,184,0,0.2)]"
-            style={{
-              background: 'linear-gradient(135deg, rgba(245,184,0,0.06), rgba(16,185,129,0.04))',
-              boxShadow: '0 0 60px rgba(245,184,0,0.05)',
-            }}
-          >
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ background: 'radial-gradient(circle at 50% 0%, rgba(245,184,0,0.1) 0%, transparent 70%)' }}
-            />
-            <div className="relative">
-              <div className="text-5xl mb-3">🏆</div>
-              <div className="text-[11px] tracking-[0.3em] text-text-muted uppercase mb-2 font-semibold">Campeon</div>
-              <div className="text-2xl md:text-3xl font-black tracking-wider text-[#F5B800] mb-3">
-                {champion.player}
-              </div>
-              {finalMatch && (
-                <div className="text-sm text-text-muted">
-                  Final: <span className="text-text-primary font-semibold">{finalMatch.carambolasA}</span>
-                  <span className="text-text-muted/50 mx-1">-</span>
-                  <span className="text-text-primary font-semibold">{finalMatch.carambolasB}</span>
-                  <span className="text-text-muted/50 ml-1">vs {finalist.player}</span>
+      {champion && (
+        <div className="px-4 pb-6 md:px-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="relative overflow-hidden rounded-2xl p-6 md:p-8 text-center border border-[rgba(245,184,0,0.2)]"
+              style={{
+                background: 'linear-gradient(135deg, rgba(245,184,0,0.06), rgba(16,185,129,0.04))',
+                boxShadow: '0 0 60px rgba(245,184,0,0.05)',
+              }}
+            >
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: 'radial-gradient(circle at 50% 0%, rgba(245,184,0,0.1) 0%, transparent 70%)' }}
+              />
+              <div className="relative">
+                <div className="text-5xl mb-3">🏆</div>
+                <div className="text-[11px] tracking-[0.3em] text-text-muted uppercase mb-2 font-semibold">Campeon</div>
+                <div className="text-2xl md:text-3xl font-black tracking-wider text-[#F5B800] mb-3">
+                  {champion.player}
                 </div>
-              )}
+                {finalMatch && finalist && (
+                  <div className="text-sm text-text-muted">
+                    Final: <span className="text-text-primary font-semibold">{finalMatch.carambolasA}</span>
+                    <span className="text-text-muted/50 mx-1">-</span>
+                    <span className="text-text-primary font-semibold">{finalMatch.carambolasB}</span>
+                    <span className="text-text-muted/50 ml-1">vs {finalist.player}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Podium */}
-      <div className="px-4 pb-6 md:px-8">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase mb-4 px-1">Podio Final</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 stagger-children">
-            {[champion, finalist, third, fourth].map((p, i) => {
-              const medals = ['🥇', '🥈', '🥉', '4'];
-              const colors = ['#F5B800', '#C0C0C0', '#CD7F32', '#888888'];
-              return (
-                <div key={p.ranking} className="glass-card rounded-xl p-4 text-center glow-hover">
-                  <div className="text-3xl mb-2">{i < 3 ? medals[i] : ''}</div>
-                  <div className="text-sm font-bold" style={{ color: colors[i] }}>{p.player}</div>
-                  <div className="text-[11px] text-text-muted mt-1">Ronda {p.roundReached}</div>
-                </div>
-              );
-            })}
+      {champion && finalist && third && fourth && (
+        <div className="px-4 pb-6 md:px-8">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase mb-4 px-1">Podio Final</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 stagger-children">
+              {[champion, finalist, third, fourth].map((p, i) => {
+                const medals = ['🥇', '🥈', '🥉', '4'];
+                const colors = ['#F5B800', '#C0C0C0', '#CD7F32', '#888888'];
+                return (
+                  <div key={p.ranking} className="glass-card rounded-xl p-4 text-center glow-hover">
+                    <div className="text-3xl mb-2">{i < 3 ? medals[i] : ''}</div>
+                    <div className="text-sm font-bold" style={{ color: colors[i] }}>{p.player}</div>
+                    <div className="text-[11px] text-text-muted mt-1">Ronda {p.roundReached}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Cities breakdown */}
       <div className="px-4 pb-8 md:px-8">
