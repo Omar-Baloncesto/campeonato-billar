@@ -23,8 +23,8 @@ export function getCityColor(city: string): string {
 export const NAV_ITEMS = [
   { label: 'Inicio', href: '/', icon: '🎱' },
   { label: 'Jugadores', href: '/jugadores', icon: '👤' },
-  { label: 'Grupos', href: '/grupos', icon: '📋' },
   { label: 'Resultados', href: '/resultados', icon: '📊' },
+  { label: 'Grupos', href: '/grupos', icon: '📋' },
   { label: 'Eliminacion', href: '/eliminacion', icon: '🏆' },
   { label: 'Ranking', href: '/ranking', icon: '🥇' },
   { label: 'Config', href: '/configuracion', icon: '⚙️' },

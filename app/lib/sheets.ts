@@ -110,9 +110,11 @@ export async function fetchResults() {
   }));
 }
 
-export async function fetchGroupStandings() {
+import type { GroupStanding, GroupData } from '../data/types';
+
+export async function fetchGroupStandings(): Promise<GroupData[]> {
   const rows = await fetchSheet('GRUPOS', 'A1:Q200');
-  const groups: { number: number; standings: Record<string, unknown>[] }[] = [];
+  const groups: GroupData[] = [];
   let currentGroup = 0;
 
   for (let i = 0; i < rows.length; i++) {
