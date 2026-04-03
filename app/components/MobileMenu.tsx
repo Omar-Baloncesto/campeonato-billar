@@ -40,7 +40,7 @@ export default function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProp
       role="dialog"
       aria-modal="true"
       aria-label="Menu de navegacion"
-      className="fixed inset-0 z-50"
+      className="fixed inset-0 z-[9999]"
     >
       {/* Overlay */}
       <div

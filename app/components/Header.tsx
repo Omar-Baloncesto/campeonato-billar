@@ -23,13 +23,15 @@ export default function Header({ isMenuOpen = false, onMenuToggle }: HeaderProps
   return (
     <header
       className={`
-        sticky top-0 z-50 relative overflow-hidden border-b-2 border-emerald
+        sticky top-0 z-40 relative border-b-2 border-emerald
         transition-shadow duration-300
         ${scrolled ? 'shadow-lg shadow-black/20' : ''}
       `}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-bg-secondary via-bg-secondary to-[#1a3828]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-emerald/[0.03] to-transparent" />
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-bg-secondary via-bg-secondary to-[#1a3828]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald/[0.03] to-transparent" />
+      </div>
 
       <div className="relative px-3 py-2 md:px-7 md:py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 md:gap-3 no-underline group">
