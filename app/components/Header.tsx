@@ -23,7 +23,7 @@ export default function Header({ isMenuOpen = false, onMenuToggle }: HeaderProps
   return (
     <header
       className={`
-        sticky top-0 z-40 relative border-b-2 border-emerald
+        relative border-b-2 border-emerald
         transition-shadow duration-300
         ${scrolled ? 'shadow-lg shadow-black/20' : ''}
       `}
@@ -54,13 +54,6 @@ export default function Header({ isMenuOpen = false, onMenuToggle }: HeaderProps
         </Link>
 
         <div className="flex items-center gap-2">
-          <div
-            className="bg-emerald/20 text-emerald text-[10px] md:text-[11px] font-bold px-2 md:px-3 py-1 rounded-full tracking-wider flex items-center gap-1.5 border border-emerald/30"
-            role="status"
-          >
-            FINALIZADO
-          </div>
-
           {/* Hamburger button - mobile only */}
           {onMenuToggle && (
             <button

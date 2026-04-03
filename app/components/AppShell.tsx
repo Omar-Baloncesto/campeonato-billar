@@ -13,11 +13,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Header
-        isMenuOpen={isMenuOpen}
-        onMenuToggle={() => setIsMenuOpen((prev) => !prev)}
-      />
-      <Navigation />
+      <div className="sticky top-0 z-40">
+        <Header
+          isMenuOpen={isMenuOpen}
+          onMenuToggle={() => setIsMenuOpen((prev) => !prev)}
+        />
+        <Navigation />
+      </div>
       <MobileMenu
         isOpen={isMenuOpen}
         onClose={() => setIsMenuOpen(false)}

@@ -38,9 +38,8 @@ body::before {
   z-index: 0;
 }
 
-body > *:not([role="dialog"]) {
-  position: relative;
-  z-index: 1;
+body > * {
+  isolation: isolate;
 }
 
 /* Focus visible for accessibility */
