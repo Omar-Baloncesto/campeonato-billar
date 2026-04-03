@@ -45,8 +45,18 @@ body > * {
 
 /* Focus visible for accessibility */
 :focus-visible {
-  outline: 2px solid var(--color-emerald);
+  outline: 2px solid #10b981;
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Smooth transitions for interactive elements */
@@ -85,12 +95,12 @@ a, button {
 
 /* Fade in animation */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.35s ease-out forwards;
+  animation: fadeIn 0.25s ease-out forwards;
 }
 
 /* Staggered fade in for children */
@@ -104,15 +114,12 @@ a, button {
   animation: fadeInUp 0.4s ease-out forwards;
 }
 .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
-.stagger-children > *:nth-child(9) { animation-delay: 400ms; }
-.stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 30ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 90ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(n+7) { animation-delay: 180ms; }
 
 /* Spinner animation */
 @keyframes spin {
@@ -139,10 +146,18 @@ a, button {
 .glow-hover {
   transition: all 0.2s ease;
 }
-.glow-hover:hover {
-  border-color: rgba(16, 185, 129, 0.2);
-  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06), 0 0 0 1px rgba(16, 185, 129, 0.08);
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .glow-hover:hover {
+    border-color: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06), 0 0 0 1px rgba(16, 185, 129, 0.08);
+    transform: translateY(-2px);
+  }
+}
+@media (hover: none) {
+  .glow-hover:active {
+    transform: scale(0.98);
+    transition: transform 100ms;
+  }
 }
 
 /* Medal badges */
@@ -185,4 +200,48 @@ a, button {
 
 .count-up {
   animation: countUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Hamburger menu animation */
+.hamburger-line {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: currentColor;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+  border-radius: 1px;
+}
+.hamburger-open .hamburger-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger-open .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-open .hamburger-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile menu animations */
+.mobile-menu-overlay {
+  animation: overlayFadeIn 200ms ease-out;
+}
+.mobile-menu-panel {
+  animation: slideInRight 250ms ease-out;
+}
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

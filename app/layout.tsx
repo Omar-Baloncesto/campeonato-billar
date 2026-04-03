@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
-import Header from "./components/Header";
-import Navigation from "./components/Navigation";
+import AppShell from "./components/AppShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,12 +30,21 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Header />
-        <Navigation />
-        <main className="flex-1">
-          {children}
-        </main>
-        <footer className="py-5 text-center border-t border-border-subtle">
+        <AppShell>
+          <main className="flex-1">
+            {children}
+          </main>
+        </AppShell>
+        <footer className="py-6 text-center border-t border-emerald-500/10">
+          <nav className="flex justify-center gap-3 mb-3" aria-label="Enlaces rapidos">
+            <Link href="/grupos" className="text-xs text-text-muted hover:text-emerald-400 transition">Grupos</Link>
+            <span className="text-text-muted/40 text-xs">·</span>
+            <Link href="/resultados" className="text-xs text-text-muted hover:text-emerald-400 transition">Resultados</Link>
+            <span className="text-text-muted/40 text-xs">·</span>
+            <Link href="/eliminacion" className="text-xs text-text-muted hover:text-emerald-400 transition">Eliminacion</Link>
+            <span className="text-text-muted/40 text-xs">·</span>
+            <Link href="/ranking" className="text-xs text-text-muted hover:text-emerald-400 transition">Ranking</Link>
+          </nav>
           <div className="text-[11px] text-text-muted/60 tracking-[0.25em] uppercase">
             Billar 3 Bandas · Club Tennis · Cucuta
           </div>

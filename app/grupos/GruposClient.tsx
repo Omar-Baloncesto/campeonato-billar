@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import FilterPills from '../components/FilterPills';
 import GroupStandingsTable from '../components/GroupStandingsTable';
+import EmptyState from '../components/EmptyState';
 
 interface GroupData {
   number: number;
@@ -32,11 +33,18 @@ export default function GruposClient({ groups }: { groups: GroupData[] }) {
           <FilterPills items={groupItems} active={groupFilter} onChange={setGroupFilter} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 stagger-children">
-          {filtered.map((group) => (
-            <GroupStandingsTable key={group.number} group={group as never} />
-          ))}
-        </div>
+        {filtered.length === 0 ? (
+          <EmptyState
+            message="No se encontraron grupos con el filtro seleccionado."
+            onReset={() => setGroupFilter('all')}
+          />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 stagger-children">
+            {filtered.map((group) => (
+              <GroupStandingsTable key={group.number} group={group as never} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

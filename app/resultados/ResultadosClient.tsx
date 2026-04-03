@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import FilterPills from '../components/FilterPills';
 import MatchResultCard from '../components/MatchResultCard';
+import EmptyState from '../components/EmptyState';
 
 interface GroupResult {
   group: number;
@@ -46,11 +47,18 @@ export default function ResultadosClient({ results }: { results: GroupResult[] }
           <FilterPills items={groupItems} active={groupFilter} onChange={setGroupFilter} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 stagger-children">
-          {filtered.map((result) => (
-            <MatchResultCard key={`${result.group}-${result.match}`} result={result} />
-          ))}
-        </div>
+        {filtered.length === 0 ? (
+          <EmptyState
+            message="No se encontraron resultados para el grupo seleccionado."
+            onReset={() => setGroupFilter('all')}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 stagger-children">
+            {filtered.map((result) => (
+              <MatchResultCard key={`${result.group}-${result.match}`} result={result} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
