@@ -6,7 +6,7 @@ import type { EliminationMatch } from '../data/types';
 /*  Layout constants (compact – 32 entries is tall)                    */
 /* ------------------------------------------------------------------ */
 const MH  = 40;   // match card height
-const MW  = 175;   // match card width
+const MW  = 180;   // match card width
 const VG  = 4;    // vertical gap between adjacent R1 entries
 const HG  = 36;   // horizontal gap for connector lines
 const LW  = 2;    // line width
@@ -14,8 +14,8 @@ const LC  = 'rgba(255,255,255,0.15)';
 
 /* ------------------------------------------------------------------ */
 /*  Build bracket-ordered entries                                      */
-/*  R2 match i → playerA came from one R1 entry, playerB from another */
-/*  Visual order: for each R2 match, show both feeder R1 entries.     */
+/*  For each R2 match, find the two R1 entries that feed into it.     */
+/*  Visual order: top feeder, bottom feeder, for each R2 match.       */
 /* ------------------------------------------------------------------ */
 
 function buildBracketOrder(
@@ -49,30 +49,40 @@ function CompactCard({
   const isWinnerB = match.winner === match.playerB;
   const rowH = MH / 2;
 
+  // ---- BYE entry: player advances automatically ----
   if (match.isBye) {
     return (
       <div
-        className="rounded border border-white/5 overflow-hidden opacity-40"
+        className="rounded border border-emerald-500/20 overflow-hidden"
         style={{ width, height: MH }}
       >
+        {/* Player name - clearly visible */}
         <div
-          className="flex items-center px-2 border-b border-white/5"
-          style={{ height: rowH, background: 'rgba(255,255,255,0.02)' }}
+          className="flex items-center px-2 gap-1 border-b border-emerald-500/10"
+          style={{ height: rowH, background: 'rgba(16, 185, 129, 0.06)' }}
         >
-          <span className="text-[10px] text-text-muted truncate flex-1">
+          <span className="flex-1 text-[10px] text-white font-semibold truncate">
             {match.playerA}
           </span>
+          {/* BYE badge */}
+          <span className="text-[7px] font-black bg-emerald-500/25 text-emerald-400 px-1.5 py-0.5 rounded-sm tracking-wider">
+            BYE
+          </span>
         </div>
+        {/* Empty opponent slot */}
         <div
           className="flex items-center px-2"
           style={{ height: rowH, background: 'rgba(255,255,255,0.01)' }}
         >
-          <span className="text-[9px] text-text-muted/30 italic">BYE</span>
+          <span className="text-[9px] text-text-muted/30 italic">
+            sin rival — avanza directo
+          </span>
         </div>
       </div>
     );
   }
 
+  // ---- Real match ----
   const hasResult = match.carambolasA > 0 || match.carambolasB > 0;
 
   return (
@@ -169,8 +179,8 @@ function RondasConnectors({
     );
   }
 
-  // Arrow to "Octavos" on the right
-  const arrowX = col1X + MW + 8;
+  // Dashed arrows to "Octavos" on the right
+  const arrowX = col1X + MW + 10;
   for (let i = 0; i < r2Centers.length; i++) {
     lines.push(
       <line
@@ -179,7 +189,7 @@ function RondasConnectors({
         y1={r2Centers[i]}
         x2={arrowX}
         y2={r2Centers[i]}
-        stroke={LC}
+        stroke="rgba(16,185,129,0.25)"
         strokeWidth={LW}
         strokeDasharray="4 3"
       />,
@@ -216,6 +226,10 @@ export default function RondasBracket({
   const numR1 = r1Entries.length; // 32
   const numR2 = r2Matches.length; // 16
 
+  // Count BYEs and real matches for summary
+  const byeCount = r1Entries.filter((m) => m.isBye).length;
+  const realCount = r1Entries.filter((m) => !m.isBye).length;
+
   // Y positions for R1 entries
   const r1Tops = Array.from({ length: numR1 }, (_, i) => i * (MH + VG));
   const r1Centers = r1Tops.map((t) => t + MH / 2);
@@ -229,93 +243,107 @@ export default function RondasBracket({
   const totalH = numR1 * MH + (numR1 - 1) * VG;
   const col0X = 0;
   const col1X = MW + HG;
-  const totalW = 2 * MW + HG + 20; // 20px extra for dashed arrows
+  const arrowEnd = col1X + MW + 16;
+  const totalW = arrowEnd + 80;
   const LABEL_H = 28;
 
-  const labels = ['Primera Ronda', 'Segunda Ronda', '→ Octavos'];
-  const labelXs = [col0X, col1X, col1X + MW + 4];
-  const labelWs = [MW, MW, 80];
-
   return (
-    <div className="overflow-x-auto overflow-y-auto pb-4 -mx-4 px-4" style={{ maxHeight: '80vh' }}>
-      <div
-        className="relative"
-        style={{
-          width: totalW + 80,
-          height: totalH + LABEL_H * 2,
-          minWidth: totalW,
-        }}
-      >
-        {/* Top labels */}
-        {labels.map((label, i) => (
-          <div
-            key={`tl-${i}`}
-            className="absolute"
-            style={{ left: labelXs[i], top: 0, width: labelWs[i] }}
-          >
-            <span
-              className={`text-[9px] tracking-[0.1em] uppercase font-bold ${
-                i === 2 ? 'text-emerald-400/50' : 'text-text-muted/50'
-              }`}
-            >
-              {label}
-            </span>
-          </div>
-        ))}
+    <div>
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 mb-4 text-[11px]">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-3 h-3 rounded-sm border border-emerald-500/30 bg-emerald-500/10" />
+          <span className="text-text-muted">
+            BYE — avanza sin jugar ({byeCount} jugadores)
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-3 h-3 rounded-sm border border-white/20 bg-white/5" />
+          <span className="text-text-muted">
+            Partido jugado ({realCount / 2} partidos, {realCount} jugadores)
+          </span>
+        </div>
+      </div>
 
-        {/* Bottom labels */}
-        {labels.slice(0, 2).map((label, i) => (
-          <div
-            key={`bl-${i}`}
-            className="absolute"
-            style={{ left: labelXs[i], top: totalH + LABEL_H + 4, width: labelWs[i] }}
-          >
-            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/50">
-              {label}
-            </span>
-          </div>
-        ))}
-
-        {/* Bracket area */}
+      <div className="overflow-x-auto overflow-y-auto pb-4 -mx-4 px-4" style={{ maxHeight: '80vh' }}>
         <div
-          className="absolute"
-          style={{ left: 0, top: LABEL_H, width: totalW + 80, height: totalH }}
+          className="relative"
+          style={{
+            width: totalW,
+            height: totalH + LABEL_H * 2,
+            minWidth: totalW,
+          }}
         >
-          {/* SVG connectors */}
-          <svg
-            className="absolute inset-0 pointer-events-none"
-            width={totalW + 80}
-            height={totalH}
+          {/* Top labels */}
+          <div className="absolute" style={{ left: col0X, top: 0, width: MW }}>
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+              Primera Ronda
+            </span>
+          </div>
+          <div className="absolute" style={{ left: col1X, top: 0, width: MW }}>
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+              Segunda Ronda
+            </span>
+          </div>
+          <div className="absolute" style={{ left: arrowEnd - 6, top: 0, width: 90 }}>
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-emerald-400/50">
+              → Octavos
+            </span>
+          </div>
+
+          {/* Bottom labels */}
+          <div className="absolute" style={{ left: col0X, top: totalH + LABEL_H + 4, width: MW }}>
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+              Primera Ronda
+            </span>
+          </div>
+          <div className="absolute" style={{ left: col1X, top: totalH + LABEL_H + 4, width: MW }}>
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+              Segunda Ronda
+            </span>
+          </div>
+
+          {/* Bracket area */}
+          <div
+            className="absolute"
+            style={{ left: 0, top: LABEL_H, width: totalW, height: totalH }}
           >
-            <RondasConnectors
-              r1Centers={r1Centers}
-              r2Centers={r2Centers}
-              col0X={col0X}
-              col1X={col1X}
-            />
-          </svg>
-
-          {/* R1 entries */}
-          {r1Entries.map((m, i) => (
-            <div
-              key={`r1-${i}`}
-              className="absolute"
-              style={{ left: col0X, top: r1Tops[i] }}
+            {/* SVG connectors */}
+            <svg
+              className="absolute inset-0 pointer-events-none"
+              width={totalW}
+              height={totalH}
             >
-              <CompactCard match={m} width={MW} />
-            </div>
-          ))}
+              <RondasConnectors
+                r1Centers={r1Centers}
+                r2Centers={r2Centers}
+                col0X={col0X}
+                col1X={col1X}
+              />
+            </svg>
 
-          {/* R2 matches */}
-          {r2Matches.map((m, i) => (
-            <div
-              key={`r2-${m.match}`}
-              className="absolute"
-              style={{ left: col1X, top: r2Tops[i] }}
-            >
-              <CompactCard match={m} width={MW} />
-            </div>
-          ))}
+            {/* R1 entries */}
+            {r1Entries.map((m, i) => (
+              <div
+                key={`r1-${i}`}
+                className="absolute"
+                style={{ left: col0X, top: r1Tops[i] }}
+              >
+                <CompactCard match={m} width={MW} />
+              </div>
+            ))}
+
+            {/* R2 matches */}
+            {r2Matches.map((m, i) => (
+              <div
+                key={`r2-${m.match}`}
+                className="absolute"
+                style={{ left: col1X, top: r2Tops[i] }}
+              >
+                <CompactCard match={m} width={MW} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
