@@ -14,10 +14,14 @@ import RondasBracket from '../components/RondasBracket';
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-// Check if there are pre-octavos rounds (rounds 1 and 2)
 const hasPreOctavos = ELIMINATION_MATCHES.some(
   (m) => m.round <= 2 && !m.isBye,
 );
+
+// Get BYE players sorted by match number (= ranking position)
+const byePlayers = ELIMINATION_MATCHES
+  .filter((m) => m.round === 1 && m.isBye)
+  .sort((a, b) => a.match - b.match);
 
 type ViewMode = 'lista' | 'rondas' | 'cuadro';
 
@@ -126,11 +130,67 @@ function MatchBox({ match }: { match: (typeof ELIMINATION_MATCHES)[0] }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  BYE Players Panel - always visible                                 */
+/* ------------------------------------------------------------------ */
+
+function ByePlayersPanel() {
+  if (byePlayers.length === 0) return null;
+
+  return (
+    <div
+      className="rounded-xl border border-emerald-500/20 overflow-hidden mb-6"
+      style={{ background: 'rgba(16, 185, 129, 0.04)' }}
+    >
+      <div className="px-4 py-3 border-b border-emerald-500/15 flex items-center justify-between"
+        style={{ background: 'rgba(16, 185, 129, 0.06)' }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[8px] font-black bg-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded tracking-wider">
+            BYE
+          </span>
+          <h3 className="text-sm font-bold text-white">
+            {byePlayers.length} Jugadores Avanzan Directo a 2da Ronda
+          </h3>
+        </div>
+        <span className="text-[10px] text-text-muted hidden sm:block">
+          Top {byePlayers.length} de la fase de grupos — no juegan 1ra ronda
+        </span>
+      </div>
+      <div className="p-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          {byePlayers.map((m) => (
+            <div
+              key={m.match}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/10"
+              style={{ background: 'rgba(16, 185, 129, 0.05)' }}
+            >
+              <span className="text-[10px] font-mono text-emerald-400/60 w-5 shrink-0">
+                #{m.match}
+              </span>
+              <span className="text-xs text-white font-semibold truncate">
+                {m.playerA}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-text-muted/60 mt-3 px-1">
+          Estos jugadores quedaron entre los primeros {byePlayers.length} en la
+          clasificacion general de grupos. Por su buen rendimiento, avanzan
+          directamente a la Segunda Ronda sin necesidad de jugar la Primera
+          Ronda de eliminacion. Los demas ({42 - byePlayers.length} jugadores)
+          deben jugar la Primera Ronda para clasificar.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
 export default function EliminacionPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>('cuadro');
+  const [viewMode, setViewMode] = useState<ViewMode>('lista');
   const [roundFilter, setRoundFilter] = useState('all');
   const rounds = [1, 2, 3, 4, 5, 6];
 
@@ -179,6 +239,9 @@ export default function EliminacionPage() {
           </div>
         </div>
 
+        {/* ============ BYE PANEL - ALWAYS VISIBLE ============ */}
+        <ByePlayersPanel />
+
         {/* ============ LISTA VIEW ============ */}
         {viewMode === 'lista' && (
           <>
@@ -218,7 +281,11 @@ export default function EliminacionPage() {
               (round) => {
                 const matches = getMatchesByRound(round);
                 const actualMatches = matches.filter((m) => !m.isBye);
-                const byeMatches = matches.filter((m) => m.isBye);
+
+                if (actualMatches.length === 0 && round === 1) {
+                  // Round 1 only has BYEs that are shown in the panel above
+                  return null;
+                }
 
                 return (
                   <div key={round} className="mb-8">
@@ -229,8 +296,6 @@ export default function EliminacionPage() {
                       <span className="text-[11px] text-text-muted">
                         {actualMatches.length} partido
                         {actualMatches.length !== 1 ? 's' : ''}
-                        {byeMatches.length > 0 &&
-                          ` + ${byeMatches.length} BYE`}
                       </span>
                     </div>
 
@@ -243,26 +308,6 @@ export default function EliminacionPage() {
                           />
                         ))}
                       </div>
-                    )}
-
-                    {byeMatches.length > 0 && (
-                      <details className="mt-2">
-                        <summary className="text-[11px] text-text-muted cursor-pointer hover:text-emerald-400 transition-colors">
-                          {byeMatches.length} jugadores avanzaron por BYE
-                        </summary>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                          {byeMatches.map((m) => (
-                            <div
-                              key={`${m.round}-${m.match}`}
-                              className="glass-card rounded-lg px-3 py-2 opacity-60"
-                            >
-                              <div className="text-xs text-text-primary truncate">
-                                {m.playerA}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
                     )}
                   </div>
                 );
