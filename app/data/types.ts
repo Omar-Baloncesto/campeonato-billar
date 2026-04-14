@@ -89,3 +89,17 @@ export interface RankingGroup {
   average: number;
   points: number;
 }
+
+export interface ScheduleMatch {
+  date: string;       // e.g. "2026-04-10"
+  time: string;       // e.g. "10:00"
+  table: number;      // mesa number
+  round: string;      // e.g. "Grupos", "Octavos", "Cuartos"
+  group?: number;     // group number if group stage
+  playerA: string;
+  playerB: string;
+  scoreA?: number;
+  scoreB?: number;
+  winner?: string;
+  status: 'scheduled' | 'live' | 'ended';
+}

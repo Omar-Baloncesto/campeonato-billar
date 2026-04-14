@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import FilterPills from '../components/FilterPills';
 import GroupStandingsTable from '../components/GroupStandingsTable';
+import CuadroPrincipal from '../components/CuadroPrincipal';
 import EmptyState from '../components/EmptyState';
 import type { GroupStanding, GroupData } from '../data/types';
 
@@ -18,8 +19,9 @@ export default function GruposClient({ groups }: { groups: GroupData[] }) {
   const [groupFilter, setGroupFilter] = useState('all');
 
   const viewItems = [
-    { key: 'groups', label: 'Fase de Grupos' },
-    { key: 'ranking', label: 'Ranking Jugadores' },
+    { key: 'cuadro', label: 'Cuadro Principal' },
+    { key: 'groups', label: 'Tablas de Grupo' },
+    { key: 'ranking', label: 'Ranking General' },
   ];
 
   const groupItems = [
@@ -59,6 +61,10 @@ export default function GruposClient({ groups }: { groups: GroupData[] }) {
         <div className="mb-4">
           <FilterPills items={viewItems} active={view} onChange={setView} />
         </div>
+
+        {view === 'cuadro' && (
+          <CuadroPrincipal groups={groups} />
+        )}
 
         {view === 'groups' && (
           <>
