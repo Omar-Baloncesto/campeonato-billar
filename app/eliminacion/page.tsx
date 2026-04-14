@@ -8,6 +8,22 @@ import {
 } from '../data/elimination';
 import FilterPills from '../components/FilterPills';
 import TournamentBracket from '../components/TournamentBracket';
+import RondasBracket from '../components/RondasBracket';
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+// Check if there are pre-octavos rounds (rounds 1 and 2)
+const hasPreOctavos = ELIMINATION_MATCHES.some(
+  (m) => m.round <= 2 && !m.isBye,
+);
+
+type ViewMode = 'lista' | 'rondas' | 'cuadro';
+
+/* ------------------------------------------------------------------ */
+/*  List view components                                               */
+/* ------------------------------------------------------------------ */
 
 function PlayerSlotList({
   name,
@@ -59,11 +75,7 @@ function PlayerSlotList({
   );
 }
 
-function MatchBox({
-  match,
-}: {
-  match: (typeof ELIMINATION_MATCHES)[0];
-}) {
+function MatchBox({ match }: { match: (typeof ELIMINATION_MATCHES)[0] }) {
   const isWinnerA = match.winner === match.playerA;
   const isWinnerB = match.winner === match.playerB;
 
@@ -86,7 +98,6 @@ function MatchBox({
         <span className="text-[10px] text-text-muted/60 tracking-wider uppercase">
           Partido {match.match}
         </span>
-        {/* Column headers */}
         <div className="flex gap-2 text-[9px] text-text-muted/40 font-medium">
           <span className="w-6 text-center">Car</span>
           <span className="w-6 text-center">Ent</span>
@@ -114,8 +125,12 @@ function MatchBox({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Main page                                                          */
+/* ------------------------------------------------------------------ */
+
 export default function EliminacionPage() {
-  const [viewMode, setViewMode] = useState<'bracket' | 'list'>('bracket');
+  const [viewMode, setViewMode] = useState<ViewMode>('cuadro');
   const [roundFilter, setRoundFilter] = useState('all');
   const rounds = [1, 2, 3, 4, 5, 6];
 
@@ -126,152 +141,71 @@ export default function EliminacionPage() {
 
   const champion = ELIMINATION_MATCHES.find((m) => m.round === 6)?.winner;
   const finalMatch = ELIMINATION_MATCHES.find((m) => m.round === 6);
+  const totalReal = ELIMINATION_MATCHES.filter((m) => !m.isBye).length;
 
   return (
     <div className="animate-fade-in px-4 py-6 md:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-start justify-between mb-2">
+        <div className="flex items-start justify-between mb-6 gap-4">
           <div>
             <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text">
               Eliminación Directa
             </h2>
             <p className="text-sm text-text-muted mt-1">
-              42 jugadores · 6 rondas · Eliminación directa
+              42 jugadores · {totalReal} partidos · 6 rondas
             </p>
           </div>
 
-          {/* View toggle */}
-          <div className="flex gap-1 p-1 rounded-lg bg-white/5 border border-white/10">
-            <button
-              onClick={() => setViewMode('bracket')}
-              className={`px-3 py-1.5 rounded text-[11px] font-semibold transition-all ${
-                viewMode === 'bracket'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'text-text-muted hover:text-text-primary border border-transparent'
-              }`}
-            >
-              <span className="hidden sm:inline">Cuadro</span>
-              <svg
-                className="w-4 h-4 sm:hidden"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path d="M4 6h4v4H4zM4 14h4v4H4zM14 10h4v4h-4zM20 10h0" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 rounded text-[11px] font-semibold transition-all ${
-                viewMode === 'list'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'text-text-muted hover:text-text-primary border border-transparent'
-              }`}
-            >
-              <span className="hidden sm:inline">Lista</span>
-              <svg
-                className="w-4 h-4 sm:hidden"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+          {/* View toggle - top right */}
+          <div className="flex gap-1 p-1 rounded-lg bg-white/5 border border-white/10 shrink-0">
+            <ViewButton
+              active={viewMode === 'lista'}
+              onClick={() => setViewMode('lista')}
+              label="Lista"
+            />
+            {hasPreOctavos && (
+              <ViewButton
+                active={viewMode === 'rondas'}
+                onClick={() => setViewMode('rondas')}
+                label="Rondas"
+              />
+            )}
+            <ViewButton
+              active={viewMode === 'cuadro'}
+              onClick={() => setViewMode('cuadro')}
+              label="Cuadro"
+            />
           </div>
         </div>
 
-        {/* Champion box */}
-        {champion && viewMode === 'list' && (
-          <div
-            className="relative overflow-hidden rounded-2xl p-6 text-center mb-6 border border-[rgba(245,184,0,0.2)]"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(245,184,0,0.06), rgba(16,185,129,0.04))',
-            }}
-          >
-            <div className="relative">
-              <svg
-                width="56"
-                height="56"
-                viewBox="0 0 80 80"
-                fill="none"
-                className="mx-auto mb-2 drop-shadow-lg"
-              >
-                <circle
-                  cx="40"
-                  cy="40"
-                  r="38"
-                  stroke="url(#chGold)"
-                  strokeWidth="3"
-                  fill="none"
-                />
-                <circle cx="40" cy="40" r="34" fill="rgba(245,184,0,0.1)" />
-                <path
-                  d="M30 28h20v4c0 6-4 11-10 13-6-2-10-7-10-13v-4z"
-                  fill="none"
-                  stroke="#F5B800"
-                  strokeWidth="2"
-                />
-                <rect
-                  x="37"
-                  y="45"
-                  width="6"
-                  height="4"
-                  rx="1"
-                  fill="#F5B800"
-                />
-                <rect
-                  x="33"
-                  y="49"
-                  width="14"
-                  height="3"
-                  rx="1.5"
-                  fill="#F5B800"
-                />
-                <defs>
-                  <linearGradient
-                    id="chGold"
-                    x1="0"
-                    y1="0"
-                    x2="80"
-                    y2="80"
-                  >
-                    <stop offset="0%" stopColor="#F5B800" />
-                    <stop offset="50%" stopColor="#FFD700" />
-                    <stop offset="100%" stopColor="#B8860B" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="text-[10px] tracking-[0.24em] text-text-muted uppercase mb-2 font-bold">
-                Campeón
-              </div>
-              <div className="text-xl font-black text-[#F5B800]">
-                {champion}
-              </div>
-              {finalMatch && (
-                <div className="text-xs text-text-muted mt-2">
-                  Final: {finalMatch.carambolasA} - {finalMatch.carambolasB} (
-                  {finalMatch.entriesA} entradas)
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Bracket View */}
-        {viewMode === 'bracket' && (
-          <div className="mt-6">
-            <TournamentBracket matches={ELIMINATION_MATCHES} />
-          </div>
-        )}
-
-        {/* List View */}
-        {viewMode === 'list' && (
+        {/* ============ LISTA VIEW ============ */}
+        {viewMode === 'lista' && (
           <>
+            {/* Champion box */}
+            {champion && (
+              <div
+                className="relative overflow-hidden rounded-2xl p-5 text-center mb-6 border border-[rgba(245,184,0,0.2)]"
+                style={{
+                  background:
+                    'linear-gradient(135deg, rgba(245,184,0,0.06), rgba(16,185,129,0.04))',
+                }}
+              >
+                <div className="text-[10px] tracking-[0.24em] text-text-muted uppercase mb-1 font-bold">
+                  Campeón
+                </div>
+                <div className="text-xl font-black text-[#F5B800]">
+                  {champion}
+                </div>
+                {finalMatch && (
+                  <div className="text-xs text-text-muted mt-2">
+                    Final: {finalMatch.carambolasA} -{' '}
+                    {finalMatch.carambolasB} ({finalMatch.entriesA} entradas)
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mb-6">
               <FilterPills
                 items={roundItems}
@@ -332,11 +266,61 @@ export default function EliminacionPage() {
                     )}
                   </div>
                 );
-              }
+              },
             )}
           </>
         )}
+
+        {/* ============ RONDAS VIEW ============ */}
+        {viewMode === 'rondas' && (
+          <div className="mt-2">
+            <div className="mb-4">
+              <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase">
+                Rondas Previas a Octavos de Final
+              </h3>
+              <p className="text-[11px] text-text-muted mt-1">
+                Primera Ronda (22 BYE + 10 partidos) → Segunda Ronda (16
+                partidos) → Octavos
+              </p>
+            </div>
+            <RondasBracket matches={ELIMINATION_MATCHES} />
+          </div>
+        )}
+
+        {/* ============ CUADRO VIEW ============ */}
+        {viewMode === 'cuadro' && (
+          <div className="mt-2">
+            <TournamentBracket matches={ELIMINATION_MATCHES} />
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  View toggle button                                                 */
+/* ------------------------------------------------------------------ */
+
+function ViewButton({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded text-[11px] font-semibold transition-all ${
+        active
+          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+          : 'text-text-muted hover:text-text-primary border border-transparent'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
