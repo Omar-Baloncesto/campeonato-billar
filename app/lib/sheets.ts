@@ -214,30 +214,34 @@ export interface ProgramacionDay {
 }
 
 function parseTime24(timeStr: string): string {
-  // Convert "9:00 a. m." or "2:00 p. m." or "12:00 m." to 24h format "09:00", "14:00"
+  // Convert various time formats to 24h:
+  //   "9:00 a. m.", "2:00 p. m.", "12:00 m."
+  //   "9:00 AM", "2:00 PM", "9:00:00 AM"
+  //   "9:00 a.m.", "2:00 p.m."
   const clean = timeStr.replace(/\s+/g, ' ').trim().toLowerCase();
-  const match = clean.match(/^(\d{1,2}):(\d{2})\s*(a\.\s*m\.|p\.\s*m\.|m\.)?$/);
+  const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?|m\.?)?$/);
   if (!match) return '00:00';
   let hours = parseInt(match[1]);
   const minutes = match[2];
-  const period = match[3] || '';
+  const period = (match[3] || '').replace(/[\s.]/g, '');
 
   if (period.startsWith('p') && hours < 12) hours += 12;
   if (period.startsWith('a') && hours === 12) hours = 0;
-  // "12:00 m." means noon
-  if (period === 'm.' || period === 'm') hours = 12;
+  if (period === 'm') hours = 12;
 
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 }
 
 function extractIsoDate(title: string): string {
-  // Extract date from title like "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026"
+  // Extract date from titles like:
+  //   "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026"
+  //   "PROGRAMACIÓN 2DA CATEGORIA SÁBADO 31 DE ENERO DEL 2026"
   const months: Record<string, string> = {
     'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
     'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
     'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12',
   };
-  const match = title.match(/(\d{1,2})\s+(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\s+(?:DEL?\s+)?(\d{4})/i);
+  const match = title.match(/(\d{1,2})\s+(?:DE\s+)?(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\s+(?:DEL?\s+)?(\d{4})/i);
   if (!match) return '2026-01-01';
   const day = match[1].padStart(2, '0');
   const month = months[match[2].toLowerCase()] || '01';

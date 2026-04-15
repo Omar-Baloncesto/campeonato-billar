@@ -17,14 +17,14 @@ import {
 
 function parseTime24(timeStr: string): string {
   const clean = timeStr.replace(/\s+/g, ' ').trim().toLowerCase();
-  const match = clean.match(/^(\d{1,2}):(\d{2})\s*(a\.\s*m\.|p\.\s*m\.|m\.)?$/);
+  const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?|m\.?)?$/);
   if (!match) return '00:00';
   let hours = parseInt(match[1]);
   const minutes = match[2];
-  const period = match[3] || '';
+  const period = (match[3] || '').replace(/[\s.]/g, '');
   if (period.startsWith('p') && hours < 12) hours += 12;
   if (period.startsWith('a') && hours === 12) hours = 0;
-  if (period === 'm.' || period === 'm') hours = 12;
+  if (period === 'm') hours = 12;
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 }
 
