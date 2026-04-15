@@ -4,7 +4,7 @@
 /*  Design tokens (dark theme default)                                 */
 /* ================================================================== */
 
-@theme inline {
+@theme {
   --color-bg-primary: #111318;
   --color-bg-secondary: #1a1d25;
   --color-bg-header: #0d1017;
@@ -14,7 +14,7 @@
   --color-emerald-dim: rgba(16, 185, 129, 0.19);
   --color-live: #10b981;
   --color-text-primary: #e6eaf0;
-  --color-text-muted: #828a96;
+  --color-text-muted: #8b95a5;
   --color-positive: #4ade80;
   --color-negative: #f87171;
   --color-border-subtle: rgba(255, 255, 255, 0.05);
@@ -34,8 +34,8 @@
   --color-bg-header: #ffffff;
   --color-bg-darkest: #e8ecf2;
   --color-bg-card: #ffffff;
-  --color-text-primary: #1a1f28;
-  --color-text-muted: #5c6677;
+  --color-text-primary: #111827;
+  --color-text-muted: #4b5563;
   --color-emerald-dim: rgba(16, 185, 129, 0.12);
   --color-positive: #16a34a;
   --color-negative: #dc2626;
