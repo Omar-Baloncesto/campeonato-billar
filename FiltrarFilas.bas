@@ -24,6 +24,7 @@ Sub FiltrarFilasPorBusqueda()
     Dim celda As String
     Dim nombreEncontrados As String
     Dim nombreNoEncontrados As String
+    Dim alturaEstandar As Double
 
     ' --- Pedir al usuario el texto a buscar ---
     textoBuscar = InputBox( _
@@ -41,9 +42,10 @@ Sub FiltrarFilasPorBusqueda()
     ' --- Referencia a la hoja activa (origen) ---
     Set hojaOrigen = ActiveSheet
 
-    ' Determinar el rango de datos
-    ultimaFila = hojaOrigen.Cells(hojaOrigen.Rows.Count, 1).End(xlUp).Row
-    ultimaColumna = hojaOrigen.Cells(1, hojaOrigen.Columns.Count).End(xlToLeft).Column
+    ' Determinar el rango REAL de datos usando UsedRange
+    ' Esto garantiza que se capturen TODAS las columnas y filas con datos
+    ultimaFila = hojaOrigen.UsedRange.Row + hojaOrigen.UsedRange.Rows.Count - 1
+    ultimaColumna = hojaOrigen.UsedRange.Column + hojaOrigen.UsedRange.Columns.Count - 1
 
     ' Validar que haya datos
     If ultimaFila < 2 Then
@@ -72,11 +74,25 @@ Sub FiltrarFilasPorBusqueda()
     Set hojaNoEncontrados = ThisWorkbook.Sheets.Add(After:=hojaEncontrados)
     hojaNoEncontrados.Name = nombreNoEncontrados
 
-    ' --- Copiar los titulos (fila 1) a ambas hojas ---
-    hojaOrigen.Rows(1).Resize(1, ultimaColumna).Copy _
-        Destination:=hojaEncontrados.Cells(1, 1)
-    hojaOrigen.Rows(1).Resize(1, ultimaColumna).Copy _
-        Destination:=hojaNoEncontrados.Cells(1, 1)
+    ' --- Copiar anchos de columna del origen a ambas hojas ---
+    For j = 1 To ultimaColumna
+        hojaEncontrados.Columns(j).ColumnWidth = hojaOrigen.Columns(j).ColumnWidth
+        hojaNoEncontrados.Columns(j).ColumnWidth = hojaOrigen.Columns(j).ColumnWidth
+    Next j
+
+    ' --- Copiar los titulos (fila 1) solo valores y formato ---
+    hojaOrigen.Range(hojaOrigen.Cells(1, 1), hojaOrigen.Cells(1, ultimaColumna)).Copy
+    hojaEncontrados.Cells(1, 1).PasteSpecial xlPasteAll
+    hojaOrigen.Range(hojaOrigen.Cells(1, 1), hojaOrigen.Cells(1, ultimaColumna)).Copy
+    hojaNoEncontrados.Cells(1, 1).PasteSpecial xlPasteAll
+    Application.CutCopyMode = False
+
+    ' Altura estandar para las filas de datos (15 puntos es el estandar de Excel)
+    alturaEstandar = 15
+
+    ' Ajustar altura de la fila de titulos igual en ambas hojas
+    hojaEncontrados.Rows(1).RowHeight = hojaOrigen.Rows(1).RowHeight
+    hojaNoEncontrados.Rows(1).RowHeight = hojaOrigen.Rows(1).RowHeight
 
     ' Contadores de filas en las hojas destino (empiezan en 2 por los titulos)
     filaEncontrados = 2
@@ -90,7 +106,7 @@ Sub FiltrarFilasPorBusqueda()
     For i = 2 To ultimaFila
         encontrado = False
 
-        ' Revisar cada celda de la fila
+        ' Revisar cada celda de la fila en TODAS las columnas
         For j = 1 To ultimaColumna
             celda = CStr(hojaOrigen.Cells(i, j).Value)
 
@@ -101,21 +117,23 @@ Sub FiltrarFilasPorBusqueda()
             End If
         Next j
 
-        ' Copiar la fila completa a la hoja correspondiente
+        ' Copiar la fila completa (todas las columnas) a la hoja correspondiente
         If encontrado Then
-            hojaOrigen.Rows(i).Resize(1, ultimaColumna).Copy _
-                Destination:=hojaEncontrados.Cells(filaEncontrados, 1)
+            hojaOrigen.Range(hojaOrigen.Cells(i, 1), hojaOrigen.Cells(i, ultimaColumna)).Copy
+            hojaEncontrados.Cells(filaEncontrados, 1).PasteSpecial xlPasteValues
+            hojaEncontrados.Cells(filaEncontrados, 1).PasteSpecial xlPasteFormats
+            hojaEncontrados.Rows(filaEncontrados).RowHeight = alturaEstandar
             filaEncontrados = filaEncontrados + 1
         Else
-            hojaOrigen.Rows(i).Resize(1, ultimaColumna).Copy _
-                Destination:=hojaNoEncontrados.Cells(filaNoEncontrados, 1)
+            hojaOrigen.Range(hojaOrigen.Cells(i, 1), hojaOrigen.Cells(i, ultimaColumna)).Copy
+            hojaNoEncontrados.Cells(filaNoEncontrados, 1).PasteSpecial xlPasteValues
+            hojaNoEncontrados.Cells(filaNoEncontrados, 1).PasteSpecial xlPasteFormats
+            hojaNoEncontrados.Rows(filaNoEncontrados).RowHeight = alturaEstandar
             filaNoEncontrados = filaNoEncontrados + 1
         End If
     Next i
 
-    ' --- Ajustar ancho de columnas en ambas hojas ---
-    hojaEncontrados.Columns.AutoFit
-    hojaNoEncontrados.Columns.AutoFit
+    Application.CutCopyMode = False
 
     ' --- Restaurar configuracion ---
     Application.Calculation = xlCalculationAutomatic
