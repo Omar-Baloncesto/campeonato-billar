@@ -28,53 +28,11 @@ function parseTime24(timeStr: string): string {
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 }
 
-function buildSchedule(programacion: ProgramacionDay[]): ScheduleMatch[] {
-  // Count how many group matches come from Sheets
-  let sheetsGroupCount = 0;
-  for (const day of programacion) {
-    sheetsGroupCount += day.matches.length;
-  }
-
-  // If Sheets has enough data (at least 50 matches), use it for groups
-  // Otherwise fall back to the complete static schedule
-  if (sheetsGroupCount >= 50) {
-    const matches: ScheduleMatch[] = [];
-
-    for (const day of programacion) {
-      const byTime: Record<string, typeof day.matches> = {};
-      for (const m of day.matches) {
-        const t = parseTime24(m.time);
-        if (!byTime[t]) byTime[t] = [];
-        byTime[t].push(m);
-      }
-
-      for (const [time24, timeMatches] of Object.entries(byTime)) {
-        timeMatches.forEach((m, idx) => {
-          matches.push({
-            date: day.isoDate,
-            time: time24,
-            table: idx + 1,
-            round: 'Grupos',
-            group: m.group,
-            playerA: m.playerA,
-            playerB: m.playerB,
-            status: 'ended',
-          });
-        });
-      }
-    }
-
-    // Add static elimination matches
-    for (const m of SCHEDULE) {
-      if (m.round !== 'Grupos') {
-        matches.push(m);
-      }
-    }
-
-    return matches;
-  }
-
-  // Fallback: use ALL static data (groups + elimination)
+function buildSchedule(_programacion: ProgramacionDay[]): ScheduleMatch[] {
+  // Use verified static schedule (groups + elimination)
+  // The static data in schedule.ts is the source of truth.
+  // When Google Sheets data is needed for a NEW tournament,
+  // update schedule.ts with the new programming data.
   return [...SCHEDULE];
 }
 
