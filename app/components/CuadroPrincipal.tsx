@@ -80,7 +80,7 @@ function GroupCard({ group, index }: { group: GroupData; index: number }) {
       {/* Players */}
       <div
         style={{
-          background: 'rgba(15, 26, 20, 0.8)',
+          background: 'var(--color-bg-secondary)',
         }}
       >
         {group.standings
