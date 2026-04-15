@@ -1,12 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { ProgramacionDay } from '../lib/sheets';
 import type { ScheduleMatch } from '../data/types';
 import {
   SCHEDULE,
-  getScheduleDates,
-  getMatchesByDate,
   formatDate,
   formatDateFull,
 } from '../data/schedule';
@@ -15,26 +12,7 @@ import {
 /*  Merge dynamic programming (Sheets) + static elimination schedule   */
 /* ------------------------------------------------------------------ */
 
-function parseTime24(timeStr: string): string {
-  const clean = timeStr.replace(/\s+/g, ' ').trim().toLowerCase();
-  const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?|m\.?)?$/);
-  if (!match) return '00:00';
-  let hours = parseInt(match[1]);
-  const minutes = match[2];
-  const period = (match[3] || '').replace(/[\s.]/g, '');
-  if (period.startsWith('p') && hours < 12) hours += 12;
-  if (period.startsWith('a') && hours === 12) hours = 0;
-  if (period === 'm') hours = 12;
-  return `${hours.toString().padStart(2, '0')}:${minutes}`;
-}
-
-function buildSchedule(_programacion: ProgramacionDay[]): ScheduleMatch[] {
-  // Use verified static schedule (groups + elimination)
-  // The static data in schedule.ts is the source of truth.
-  // When Google Sheets data is needed for a NEW tournament,
-  // update schedule.ts with the new programming data.
-  return [...SCHEDULE];
-}
+/* Use static schedule data directly — verified and complete */
 
 /* ------------------------------------------------------------------ */
 /*  Components                                                         */
@@ -146,12 +124,8 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
 /*  Main client component                                              */
 /* ------------------------------------------------------------------ */
 
-export default function CalendarioClient({
-  programacion,
-}: {
-  programacion: ProgramacionDay[];
-}) {
-  const allMatches = useMemo(() => buildSchedule(programacion), [programacion]);
+export default function CalendarioClient() {
+  const allMatches = SCHEDULE;
 
   const dates = useMemo(() => {
     return [...new Set(allMatches.map(m => m.date))].sort();

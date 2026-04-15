@@ -1,14 +1,7 @@
-import { fetchProgramacion } from '../lib/sheets';
 import CalendarioClient from './CalendarioClient';
 
-export const revalidate = 60;
+export const revalidate = 0; // No cache — always fresh
 
 export default async function CalendarioPage() {
-  let programacion;
-  try {
-    programacion = await fetchProgramacion();
-  } catch {
-    programacion = [];
-  }
-  return <CalendarioClient programacion={programacion} />;
+  return <CalendarioClient />;
 }
