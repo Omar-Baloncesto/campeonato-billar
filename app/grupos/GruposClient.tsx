@@ -94,7 +94,7 @@ export default function GruposClient({ groups }: { groups: GroupData[] }) {
                 Ranking General de Jugadores
               </h3>
               <p className="text-[11px] text-text-muted mt-1">
-                {totalPlayers} jugadores · Los primeros {byeCount} quedan en BYE (no juegan 1ra ronda de eliminacion)
+                {totalPlayers} jugadores · Los primeros {byeCount} quedan en BYE (no juegan 1ra ronda de eliminación)
               </p>
             </div>
             <div className="overflow-x-auto scrollbar-hide">
