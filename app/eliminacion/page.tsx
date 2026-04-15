@@ -59,15 +59,15 @@ function PlayerSlotList({
       </span>
       <span
         className={`font-mono text-xs w-6 text-center font-bold ${
-          isWinner ? 'text-emerald-400' : 'text-text-muted/60'
+          isWinner ? 'text-emerald-400' : 'text-text-muted'
         }`}
       >
         {carambolas}
       </span>
-      <span className="font-mono text-text-muted/40 w-6 text-center text-[10px]">
+      <span className="font-mono text-text-muted/80 w-6 text-center text-[10px]">
         {entries}
       </span>
-      <span className="font-mono text-text-muted/40 w-10 text-right text-[10px]">
+      <span className="font-mono text-text-muted/80 w-10 text-right text-[10px]">
         {average.toFixed(3)}
       </span>
       {isWinner && (
@@ -99,10 +99,10 @@ function MatchBox({ match }: { match: (typeof ELIMINATION_MATCHES)[0] }) {
   return (
     <div className="glass-card rounded-xl p-3.5 glow-hover">
       <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[10px] text-text-muted/60 tracking-wider uppercase">
+        <span className="text-[10px] text-text-muted tracking-wider uppercase">
           Partido {match.match}
         </span>
-        <div className="flex gap-2 text-[9px] text-text-muted/40 font-medium">
+        <div className="flex gap-2 text-[9px] text-text-muted/80 font-medium">
           <span className="w-6 text-center">Car</span>
           <span className="w-6 text-center">Ent</span>
           <span className="w-10 text-right">Prom</span>

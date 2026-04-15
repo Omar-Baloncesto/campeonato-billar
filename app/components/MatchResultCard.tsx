@@ -58,15 +58,15 @@ function PlayerRow({
       <div className="flex items-center gap-2 text-xs font-mono shrink-0">
         <span
           className={`w-8 text-center font-bold ${
-            isWinner ? 'text-emerald-400' : 'text-text-muted/60'
+            isWinner ? 'text-emerald-400' : 'text-text-muted'
           }`}
         >
           {isWalkover && entries === 0 ? '-' : carambolas}
         </span>
-        <span className="text-text-muted/40 w-8 text-center">
+        <span className="text-text-muted/80 w-8 text-center">
           {isWalkover && entries === 0 ? '-' : entries}
         </span>
-        <span className="text-text-muted/40 w-12 text-center">
+        <span className="text-text-muted/80 w-12 text-center">
           {isWalkover && entries === 0 ? '-' : average.toFixed(3)}
         </span>
       </div>
@@ -115,7 +115,7 @@ export default function MatchResultCard({ result }: { result: GroupResult }) {
             </span>
           )}
           {!isEmpate && !isWO && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400/70 font-semibold">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">
               Finalizado
             </span>
           )}
@@ -123,7 +123,7 @@ export default function MatchResultCard({ result }: { result: GroupResult }) {
       </div>
 
       {/* Column headers */}
-      <div className="flex gap-2 text-[9px] text-text-muted/40 mb-1.5 px-3 font-medium uppercase tracking-wider">
+      <div className="flex gap-2 text-[9px] text-text-muted/80 mb-1.5 px-3 font-medium uppercase tracking-wider">
         <span className="flex-1">Jugador</span>
         <span className="w-8 text-center">Car</span>
         <span className="w-8 text-center">Ent</span>
