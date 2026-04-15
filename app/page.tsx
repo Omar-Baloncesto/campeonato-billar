@@ -80,35 +80,37 @@ export default async function Dashboard() {
       {champion && (
         <div className="px-4 pb-6 md:px-8">
           <div className="max-w-4xl mx-auto">
-            <div className="relative overflow-hidden rounded-2xl p-6 md:p-10 text-center border border-[rgba(245,184,0,0.2)]"
+            <div className="relative overflow-hidden rounded-2xl p-8 md:p-12 text-center border-2 border-[#F5B800]/40"
               style={{
-                background: 'linear-gradient(135deg, rgba(245,184,0,0.06), rgba(16,185,129,0.04))',
-                boxShadow: '0 0 80px rgba(245,184,0,0.04)',
+                background: 'linear-gradient(160deg, rgba(245,184,0,0.12) 0%, rgba(255,215,0,0.06) 40%, rgba(16,185,129,0.04) 100%)',
+                boxShadow: '0 0 60px rgba(245,184,0,0.1), 0 8px 32px rgba(0,0,0,0.08)',
               }}
             >
               <div className="absolute inset-0 pointer-events-none"
-                style={{ background: 'radial-gradient(circle at 50% 0%, rgba(245,184,0,0.08) 0%, transparent 60%)' }}
+                style={{ background: 'radial-gradient(circle at 50% 0%, rgba(245,184,0,0.15) 0%, transparent 55%)' }}
               />
               <div className="relative">
-                <div className="flex justify-center mb-4">
-                  <TrophyBadge size={100} />
+                <div className="flex justify-center mb-5">
+                  <TrophyBadge size={130} />
                 </div>
-                <div className="text-[11px] tracking-[0.3em] text-[#F5B800]/70 uppercase mb-2 font-bold">
+                <div className="text-xs tracking-[0.35em] text-[#B8860B] uppercase mb-2 font-black">
                   Campeón
                 </div>
-                <div className="text-2xl md:text-4xl font-black tracking-wider text-[#F5B800] mb-3">
+                <div className="text-3xl md:text-5xl font-black tracking-wider text-[#C8960A] mb-4"
+                  style={{ textShadow: '0 2px 12px rgba(245,184,0,0.25)' }}
+                >
                   {champion.player}
                 </div>
                 {finalMatch && finalist && (
-                  <div className="text-sm text-text-muted">
-                    Final: <span className="text-emerald-400 font-bold">{finalMatch.carambolasA}</span>
+                  <div className="text-sm text-text-muted font-medium">
+                    Final: <span className="text-emerald-400 font-black text-base">{finalMatch.carambolasA}</span>
                     <span className="text-text-muted/50 mx-2">vs</span>
-                    <span className="text-text-primary font-semibold">{finalMatch.carambolasB}</span>
-                    <span className="text-text-muted/50 ml-2">contra {finalist.player}</span>
+                    <span className="text-text-primary font-bold text-base">{finalMatch.carambolasB}</span>
+                    <span className="text-text-muted/60 ml-2">contra {finalist.player}</span>
                   </div>
                 )}
                 {finalMatch && (
-                  <div className="text-xs text-text-muted/60 mt-1">
+                  <div className="text-xs text-text-muted/60 mt-2">
                     {finalMatch.entriesA} entradas · Promedio: {finalMatch.averageA.toFixed(3)}
                   </div>
                 )}
