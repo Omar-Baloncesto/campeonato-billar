@@ -53,21 +53,21 @@ export default function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProp
         className="absolute top-0 right-0 h-full w-[85vw] max-w-[320px] bg-bg-secondary border-l border-border-light mobile-menu-panel flex flex-col"
       >
         {/* Close area / header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
-          <span className="text-sm font-semibold text-text-muted tracking-wider uppercase">Menu</span>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-border-subtle">
+          <span className="text-base font-bold text-text-primary tracking-wider uppercase">Menú</span>
           <button
             onClick={onClose}
             className="p-2 text-text-muted hover:text-text-primary transition-colors"
-            aria-label="Cerrar menu"
+            aria-label="Cerrar menú"
           >
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Nav items */}
-        <div className="flex-1 overflow-y-auto py-2">
+        <div className="flex-1 overflow-y-auto py-3">
           {NAV_ITEMS.map((item, index) => {
             const isActive = pathname === item.href;
             return (
@@ -76,16 +76,16 @@ export default function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProp
                   href={item.href}
                   onClick={onClose}
                   className={`
-                    flex items-center gap-4 px-6 py-4 text-sm transition-colors duration-150 no-underline
+                    flex items-center gap-4 px-6 py-5 transition-colors duration-150 no-underline
                     ${isActive
-                      ? 'bg-emerald-500/10 text-emerald-400 border-l-[3px] border-emerald-400'
-                      : 'text-text-primary hover:bg-text-muted/10 border-l-[3px] border-transparent'
+                      ? 'bg-emerald-500/10 text-emerald-400 border-l-4 border-emerald-400'
+                      : 'text-text-primary hover:bg-text-muted/10 border-l-4 border-transparent'
                     }
                   `}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  <span className="text-lg">{item.icon}</span>
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-2xl">{item.icon}</span>
+                  <span className={`text-base ${isActive ? 'font-bold' : 'font-semibold'}`}>{item.label}</span>
                 </Link>
                 {index < NAV_ITEMS.length - 1 && (
                   <div className="border-b border-border-subtle" />
