@@ -13,7 +13,7 @@ export function TrophyBadge({ size = 80 }: { size?: number }) {
         cy="60"
         r="57"
         stroke="url(#trophy-grad-outer)"
-        strokeWidth="2"
+        strokeWidth="2.5"
       />
       <circle
         cx="60"
@@ -123,9 +123,9 @@ export function TrophyBadge({ size = 80 }: { size?: number }) {
           x2="110"
           y2="110"
         >
-          <stop offset="0%" stopColor="rgba(245,184,0,0.12)" />
-          <stop offset="50%" stopColor="rgba(255,215,0,0.08)" />
-          <stop offset="100%" stopColor="rgba(184,134,11,0.12)" />
+          <stop offset="0%" stopColor="rgba(245,184,0,0.2)" />
+          <stop offset="50%" stopColor="rgba(255,215,0,0.14)" />
+          <stop offset="100%" stopColor="rgba(184,134,11,0.2)" />
         </linearGradient>
         <linearGradient
           id="trophy-grad-cup"
@@ -134,8 +134,8 @@ export function TrophyBadge({ size = 80 }: { size?: number }) {
           x2="76"
           y2="63"
         >
-          <stop offset="0%" stopColor="rgba(245,184,0,0.3)" />
-          <stop offset="100%" stopColor="rgba(245,184,0,0.1)" />
+          <stop offset="0%" stopColor="rgba(245,184,0,0.5)" />
+          <stop offset="100%" stopColor="rgba(245,184,0,0.2)" />
         </linearGradient>
         <linearGradient
           id="trophy-grad-leaf"
