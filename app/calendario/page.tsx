@@ -4,6 +4,11 @@ import CalendarioClient from './CalendarioClient';
 export const revalidate = 60;
 
 export default async function CalendarioPage() {
-  const programacion = await fetchProgramacion();
+  let programacion;
+  try {
+    programacion = await fetchProgramacion();
+  } catch {
+    programacion = [];
+  }
   return <CalendarioClient programacion={programacion} />;
 }
