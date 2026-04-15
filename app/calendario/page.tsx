@@ -69,7 +69,7 @@ function ScheduleCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
             </svg>
           </div>
-          <span className={`flex-1 text-sm font-semibold truncate ${isWinnerA ? 'text-white' : 'text-text-muted'}`}>
+          <span className={`flex-1 text-sm font-semibold truncate ${isWinnerA ? 'text-text-primary' : 'text-text-muted'}`}>
             {match.playerA}
           </span>
           {isEnded && (
@@ -93,7 +93,7 @@ function ScheduleCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
             </svg>
           </div>
-          <span className={`flex-1 text-sm font-semibold truncate ${isWinnerB ? 'text-white' : 'text-text-muted'}`}>
+          <span className={`flex-1 text-sm font-semibold truncate ${isWinnerB ? 'text-text-primary' : 'text-text-muted'}`}>
             {match.playerB}
           </span>
           {isEnded && (

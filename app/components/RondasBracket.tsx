@@ -61,7 +61,7 @@ function CompactCard({
           className="flex items-center px-2 gap-1 border-b border-emerald-500/10"
           style={{ height: rowH, background: 'rgba(16, 185, 129, 0.06)' }}
         >
-          <span className="flex-1 text-[10px] text-white font-semibold truncate">
+          <span className="flex-1 text-[10px] text-text-primary font-semibold truncate">
             {match.playerA}
           </span>
           {/* BYE badge */}
@@ -101,7 +101,7 @@ function CompactCard({
       >
         <span
           className={`flex-1 text-[10px] truncate ${
-            isWinnerA ? 'text-white font-bold' : 'text-text-muted'
+            isWinnerA ? 'text-text-primary font-bold' : 'text-text-muted'
           }`}
         >
           {match.playerA}
@@ -126,7 +126,7 @@ function CompactCard({
       >
         <span
           className={`flex-1 text-[10px] truncate ${
-            isWinnerB ? 'text-white font-bold' : 'text-text-muted'
+            isWinnerB ? 'text-text-primary font-bold' : 'text-text-muted'
           }`}
         >
           {match.playerB}

@@ -37,7 +37,7 @@ function PlayerRow({
       <div className="flex-1 min-w-0">
         <div
           className={`text-sm font-bold truncate uppercase tracking-wide ${
-            isQualified ? 'text-white' : 'text-text-muted'
+            isQualified ? 'text-text-primary' : 'text-text-muted'
           }`}
         >
           {name.split(' ').slice(-1)[0]}
@@ -68,7 +68,7 @@ function GroupCard({ group, index }: { group: GroupData; index: number }) {
           <span className="text-lg font-black text-emerald-400">{letter}</span>
         </div>
         <div>
-          <span className="text-xs font-bold text-white tracking-wider uppercase">
+          <span className="text-xs font-bold text-text-primary tracking-wider uppercase">
             Grupo {group.number}
           </span>
           <span className="text-[10px] text-text-muted/60 ml-2">
@@ -102,7 +102,7 @@ export default function CuadroPrincipal({ groups }: { groups: GroupData[] }) {
   return (
     <div>
       <div className="text-center mb-6">
-        <h3 className="text-lg font-black tracking-[0.2em] text-white uppercase">
+        <h3 className="text-lg font-black tracking-[0.2em] text-text-primary uppercase">
           Cuadro Principal
         </h3>
         <p className="text-[11px] text-text-muted mt-1">

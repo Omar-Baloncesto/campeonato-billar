@@ -29,19 +29,19 @@
 /* ================================================================== */
 
 [data-theme="light"] {
-  --color-bg-primary: #f5f7fa;
-  --color-bg-secondary: #ffffff;
-  --color-bg-header: #ffffff;
-  --color-bg-darkest: #e8ecf2;
-  --color-bg-card: #ffffff;
-  --color-text-primary: #111827;
-  --color-text-muted: #4b5563;
-  --color-emerald-dim: rgba(16, 185, 129, 0.12);
-  --color-positive: #16a34a;
-  --color-negative: #dc2626;
-  --color-border-subtle: rgba(0, 0, 0, 0.05);
-  --color-border-light: rgba(0, 0, 0, 0.08);
-  --color-border-glow: rgba(5, 150, 105, 0.2);
+  --color-bg-primary: #f5f7fa !important;
+  --color-bg-secondary: #ffffff !important;
+  --color-bg-header: #ffffff !important;
+  --color-bg-darkest: #e8ecf2 !important;
+  --color-bg-card: #ffffff !important;
+  --color-text-primary: #111827 !important;
+  --color-text-muted: #4b5563 !important;
+  --color-emerald-dim: rgba(16, 185, 129, 0.12) !important;
+  --color-positive: #16a34a !important;
+  --color-negative: #dc2626 !important;
+  --color-border-subtle: rgba(0, 0, 0, 0.05) !important;
+  --color-border-light: rgba(0, 0, 0, 0.08) !important;
+  --color-border-glow: rgba(5, 150, 105, 0.2) !important;
   color-scheme: light;
 }
 
@@ -335,40 +335,25 @@ a, button {
 /*  Light theme: Tailwind utility overrides                            */
 /* ================================================================== */
 
-/* White text → dark text in light mode (headings, names, etc.) */
-[data-theme="light"] .text-white {
-  color: var(--color-text-primary);
-}
-
-/* Keep white text on colored backgrounds */
-[data-theme="light"] .bg-emerald-500 .text-white,
-[data-theme="light"] .bg-emerald-400 .text-white {
-  color: white;
-}
-
 /* White-based borders → dark-based borders */
 [data-theme="light"] [class*="border-white\/"] {
-  border-color: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.1) !important;
 }
 
 /* White-based low-opacity backgrounds → dark-based */
 [data-theme="light"] [class*="bg-white\/"] {
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: rgba(0, 0, 0, 0.03) !important;
 }
 
 /* Emerald-400 text → darker for contrast on light bg */
-[data-theme="light"] .text-emerald-400 {
-  color: #059669;
-}
-
-/* Emerald-400/80 text */
+[data-theme="light"] .text-emerald-400,
 [data-theme="light"] [class*="text-emerald-400"] {
-  color: #059669;
+  color: #059669 !important;
 }
 
 /* Fix shadow on light backgrounds */
 [data-theme="light"] [class*="shadow-black"] {
-  --tw-shadow-color: rgba(0, 0, 0, 0.06);
+  --tw-shadow-color: rgba(0, 0, 0, 0.06) !important;
 }
 
 /* SVG bracket connector lines – flip from white to dark */
@@ -376,22 +361,9 @@ a, button {
   stroke: rgba(0, 0, 0, 0.18);
 }
 
-/* Hardcoded dark hex backgrounds → use theme variable */
-[data-theme="light"] [class*="bg-\[#0"] {
-  background-color: var(--color-bg-header) !important;
-}
-[data-theme="light"] [class*="bg-\[#1a2e23\]"] {
-  background-color: var(--color-bg-secondary) !important;
-}
-
 /* Override inline rgba(255,255,255,...) backgrounds on cards/rows */
 [data-theme="light"] [style*="rgba(255,255,255,0.03)"],
 [data-theme="light"] [style*="rgba(255, 255, 255, 0.03)"],
 [data-theme="light"] [style*="rgba(255,255,255,0.01)"] {
   background-color: transparent !important;
-}
-
-/* Bracket card borders in light mode */
-[data-theme="light"] [class*="border-emerald-500\/"] {
-  border-color: rgba(5, 150, 105, 0.25);
 }
