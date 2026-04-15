@@ -116,8 +116,8 @@ function ScheduleCard({
 
 export default function CalendarioPage() {
   const dates = getScheduleDates();
-  const [selectedDate, setSelectedDate] = useState(dates[dates.length - 1] || dates[0]);
-  const [viewTab, setViewTab] = useState<'schedule' | 'results'>('results');
+  const [selectedDate, setSelectedDate] = useState(dates[0]);
+  const [viewTab, setViewTab] = useState<'schedule' | 'results'>('schedule');
 
   const dayMatches = getMatchesByDate(selectedDate);
   const filteredMatches =
