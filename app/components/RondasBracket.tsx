@@ -74,7 +74,7 @@ function CompactCard({
           className="flex items-center px-2"
           style={{ height: rowH, background: 'rgba(255,255,255,0.01)' }}
         >
-          <span className="text-[9px] text-text-muted/30 italic">
+          <span className="text-[9px] text-text-muted/70 italic">
             sin rival — avanza directo
           </span>
         </div>
@@ -106,10 +106,10 @@ function CompactCard({
         >
           {match.playerA}
         </span>
-        <span className="text-text-muted/30 text-[9px]">-</span>
+        <span className="text-text-muted/60 text-[9px]">-</span>
         <span
           className={`text-[10px] font-mono font-bold min-w-[16px] text-right ${
-            isWinnerA ? 'text-emerald-400' : 'text-text-muted/50'
+            isWinnerA ? 'text-emerald-400' : 'text-text-muted'
           }`}
         >
           {hasResult ? match.carambolasA : ''}
@@ -131,10 +131,10 @@ function CompactCard({
         >
           {match.playerB}
         </span>
-        <span className="text-text-muted/30 text-[9px]">-</span>
+        <span className="text-text-muted/60 text-[9px]">-</span>
         <span
           className={`text-[10px] font-mono font-bold min-w-[16px] text-right ${
-            isWinnerB ? 'text-emerald-400' : 'text-text-muted/50'
+            isWinnerB ? 'text-emerald-400' : 'text-text-muted'
           }`}
         >
           {hasResult ? match.carambolasB : ''}
@@ -215,7 +215,7 @@ export default function RondasBracket({
     return (
       <div className="text-center py-16 text-text-muted">
         <p className="text-sm">No hay rondas previas a Octavos de Final.</p>
-        <p className="text-xs mt-1 text-text-muted/60">
+        <p className="text-xs mt-1 text-text-muted">
           Los grupos clasifican directamente a Octavos.
         </p>
       </div>
@@ -276,12 +276,12 @@ export default function RondasBracket({
         >
           {/* Top labels */}
           <div className="absolute" style={{ left: col0X, top: 0, width: MW }}>
-            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted">
               Primera Ronda
             </span>
           </div>
           <div className="absolute" style={{ left: col1X, top: 0, width: MW }}>
-            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted">
               Segunda Ronda
             </span>
           </div>
@@ -293,12 +293,12 @@ export default function RondasBracket({
 
           {/* Bottom labels */}
           <div className="absolute" style={{ left: col0X, top: totalH + LABEL_H + 4, width: MW }}>
-            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted">
               Primera Ronda
             </span>
           </div>
           <div className="absolute" style={{ left: col1X, top: totalH + LABEL_H + 4, width: MW }}>
-            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted/60">
+            <span className="text-[9px] tracking-[0.1em] uppercase font-bold text-text-muted">
               Segunda Ronda
             </span>
           </div>

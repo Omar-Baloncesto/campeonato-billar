@@ -50,11 +50,11 @@ function ScheduleCard({
           <StatusBadge status={match.status} />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-text-muted/60 tracking-wider uppercase">
+          <span className="text-[10px] text-text-muted tracking-wider uppercase">
             {match.round}
             {match.group ? ` · G${match.group}` : ''}
           </span>
-          <span className="text-[10px] text-text-muted/40 bg-white/5 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] text-text-muted/80 bg-white/5 px-1.5 py-0.5 rounded">
             Mesa {match.table}
           </span>
         </div>
@@ -65,7 +65,7 @@ function ScheduleCard({
         {/* Player A */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="w-4 h-4 text-text-muted/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
             </svg>
           </div>
@@ -74,7 +74,7 @@ function ScheduleCard({
           </span>
           {isEnded && (
             <div className="flex items-center gap-2">
-              <span className={`text-lg font-black ${isWinnerA ? 'text-emerald-400' : 'text-text-muted/50'}`}>
+              <span className={`text-lg font-black ${isWinnerA ? 'text-emerald-400' : 'text-text-muted'}`}>
                 {match.scoreA}
               </span>
               {isWinnerA && (
@@ -89,7 +89,7 @@ function ScheduleCard({
         {/* Player B */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 text-text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="w-4 h-4 text-text-muted/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
             </svg>
           </div>
@@ -98,7 +98,7 @@ function ScheduleCard({
           </span>
           {isEnded && (
             <div className="flex items-center gap-2">
-              <span className={`text-lg font-black ${isWinnerB ? 'text-emerald-400' : 'text-text-muted/50'}`}>
+              <span className={`text-lg font-black ${isWinnerB ? 'text-emerald-400' : 'text-text-muted'}`}>
                 {match.scoreB}
               </span>
               {isWinnerB && (
@@ -188,7 +188,7 @@ export default function CalendarioPage() {
                 }`}
               >
                 <span className="text-xs">{formatDate(date)}</span>
-                <span className={`ml-1.5 text-[10px] ${isActive ? 'text-emerald-400/60' : 'text-text-muted/40'}`}>
+                <span className={`ml-1.5 text-[10px] ${isActive ? 'text-emerald-400/60' : 'text-text-muted/70'}`}>
                   ({matchCount})
                 </span>
               </button>
@@ -202,7 +202,7 @@ export default function CalendarioPage() {
         </div>
 
         {/* Time notice */}
-        <div className="flex items-center gap-2 text-[11px] text-text-muted/50 mb-4 px-1">
+        <div className="flex items-center gap-2 text-[11px] text-text-muted mb-4 px-1">
           <div className="w-2 h-2 rounded-full bg-text-muted/30" />
           Todos los horarios son hora local
         </div>
@@ -210,7 +210,7 @@ export default function CalendarioPage() {
         {/* Matches grouped by time */}
         {Object.keys(byTime).length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-text-muted/40 text-sm">
+            <div className="text-text-muted/70 text-sm">
               No hay partidos {viewTab === 'results' ? 'finalizados' : ''} para esta fecha
             </div>
           </div>

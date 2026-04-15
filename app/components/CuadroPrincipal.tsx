@@ -27,7 +27,7 @@ function PlayerRow({
         className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
           isQualified
             ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30'
-            : 'bg-white/5 text-text-muted/60'
+            : 'bg-white/5 text-text-muted'
         }`}
       >
         {position}
@@ -42,7 +42,7 @@ function PlayerRow({
         >
           {name.split(' ').slice(-1)[0]}
         </div>
-        <div className="text-[10px] text-text-muted/60 truncate">
+        <div className="text-[10px] text-text-muted truncate">
           {name.split(' ').slice(0, -1).join(' ')}
         </div>
       </div>
@@ -71,7 +71,7 @@ function GroupCard({ group, index }: { group: GroupData; index: number }) {
           <span className="text-xs font-bold text-text-primary tracking-wider uppercase">
             Grupo {group.number}
           </span>
-          <span className="text-[10px] text-text-muted/60 ml-2">
+          <span className="text-[10px] text-text-muted ml-2">
             {group.standings.length} jugadores
           </span>
         </div>

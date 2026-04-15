@@ -87,12 +87,12 @@ export default function ResultadosClient({ results }: { results: GroupResult[] }
           <div className="glass-card rounded-lg p-3 text-center">
             <div className="text-lg font-black text-[#F5B800]">{tournamentStats.bestAvg.toFixed(3)}</div>
             <div className="text-[10px] text-text-muted uppercase tracking-wider">Mejor Promedio</div>
-            <div className="text-[9px] text-text-muted/60 truncate">{tournamentStats.bestAvgPlayer}</div>
+            <div className="text-[9px] text-text-muted truncate">{tournamentStats.bestAvgPlayer}</div>
           </div>
           <div className="glass-card rounded-lg p-3 text-center">
             <div className="text-lg font-black text-[#F5B800]">{tournamentStats.bestScore}</div>
             <div className="text-[10px] text-text-muted uppercase tracking-wider">Mayor Carambolas</div>
-            <div className="text-[9px] text-text-muted/60 truncate">{tournamentStats.bestScorePlayer}</div>
+            <div className="text-[9px] text-text-muted truncate">{tournamentStats.bestScorePlayer}</div>
           </div>
         </div>
 

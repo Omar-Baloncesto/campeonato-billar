@@ -90,10 +90,10 @@ function BracketMatchCard({
         >
           {match.playerA}
         </span>
-        <span className="text-text-muted/30 text-[10px] mx-0.5">-</span>
+        <span className="text-text-muted/60 text-[10px] mx-0.5">-</span>
         <span
           className={`text-[11px] font-mono font-bold min-w-[20px] text-right ${
-            isWinnerA ? 'text-emerald-400' : 'text-text-muted/50'
+            isWinnerA ? 'text-emerald-400' : 'text-text-muted'
           }`}
         >
           {hasResult ? match.carambolasA : ''}
@@ -115,10 +115,10 @@ function BracketMatchCard({
         >
           {match.playerB}
         </span>
-        <span className="text-text-muted/30 text-[10px] mx-0.5">-</span>
+        <span className="text-text-muted/60 text-[10px] mx-0.5">-</span>
         <span
           className={`text-[11px] font-mono font-bold min-w-[20px] text-right ${
-            isWinnerB ? 'text-emerald-400' : 'text-text-muted/50'
+            isWinnerB ? 'text-emerald-400' : 'text-text-muted'
           }`}
         >
           {hasResult ? match.carambolasB : ''}
@@ -275,7 +275,7 @@ function RoundLabels({ yOffset }: { yOffset: number }) {
         >
           <span
             className={`text-[10px] tracking-[0.12em] uppercase font-bold ${
-              i === 4 ? 'text-[#F5B800]/60' : 'text-text-muted/50'
+              i === 4 ? 'text-[#F5B800]/60' : 'text-text-muted'
             }`}
           >
             {label}

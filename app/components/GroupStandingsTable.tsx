@@ -85,7 +85,7 @@ export default function GroupStandingsTable({ group }: { group: GroupData }) {
         <div className="overflow-x-auto scrollbar-hide px-2 pb-3">
           <table className="w-full text-[11px]">
             <thead>
-              <tr className="text-text-muted/60">
+              <tr className="text-text-muted/80">
                 <th className="px-2 py-1.5 text-left">Jugador</th>
                 <th className="px-1.5 py-1.5 text-center">CA1</th>
                 <th className="px-1.5 py-1.5 text-center">CA2</th>
