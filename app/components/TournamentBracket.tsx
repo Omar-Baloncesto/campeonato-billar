@@ -85,7 +85,7 @@ function BracketMatchCard({
       >
         <span
           className={`flex-1 text-[11px] truncate ${
-            isWinnerA ? 'text-white font-bold' : 'text-text-muted'
+            isWinnerA ? 'text-text-primary font-bold' : 'text-text-muted'
           }`}
         >
           {match.playerA}
@@ -110,7 +110,7 @@ function BracketMatchCard({
       >
         <span
           className={`flex-1 text-[11px] truncate ${
-            isWinnerB ? 'text-white font-bold' : 'text-text-muted'
+            isWinnerB ? 'text-text-primary font-bold' : 'text-text-muted'
           }`}
         >
           {match.playerB}

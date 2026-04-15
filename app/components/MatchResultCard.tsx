@@ -48,7 +48,7 @@ function PlayerRow({
       {/* Player name */}
       <div
         className={`flex-1 text-sm font-semibold truncate ${
-          isWinner ? 'text-white' : 'text-text-muted'
+          isWinner ? 'text-text-primary' : 'text-text-muted'
         }`}
       >
         {name}

@@ -66,7 +66,7 @@ export default function Header({ isMenuOpen = false, onMenuToggle }: HeaderProps
           </div>
 
           <div>
-            <h1 className="text-lg md:text-2xl font-black tracking-[0.15em] text-white uppercase">
+            <h1 className="text-lg md:text-2xl font-black tracking-[0.15em] text-text-primary uppercase">
               {APP_CONFIG.title}
             </h1>
             <div className="flex items-center gap-2">

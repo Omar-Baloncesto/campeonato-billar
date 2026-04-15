@@ -52,7 +52,7 @@ function PlayerSlotList({
     >
       <span
         className={`flex-1 text-xs font-semibold truncate ${
-          isWinner ? 'text-white' : 'text-text-muted'
+          isWinner ? 'text-text-primary' : 'text-text-muted'
         }`}
       >
         {name}
@@ -148,7 +148,7 @@ function ByePlayersPanel() {
           <span className="text-[8px] font-black bg-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded tracking-wider">
             BYE
           </span>
-          <h3 className="text-sm font-bold text-white">
+          <h3 className="text-sm font-bold text-text-primary">
             {byePlayers.length} Jugadores Avanzan Directo a 2da Ronda
           </h3>
         </div>
@@ -167,7 +167,7 @@ function ByePlayersPanel() {
               <span className="text-[10px] font-mono text-emerald-400/60 w-5 shrink-0">
                 #{m.match}
               </span>
-              <span className="text-xs text-white font-semibold truncate">
+              <span className="text-xs text-text-primary font-semibold truncate">
                 {m.playerA}
               </span>
             </div>
