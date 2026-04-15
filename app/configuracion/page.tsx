@@ -43,10 +43,10 @@ export default async function ConfiguracionPage() {
       ],
     },
     {
-      title: 'Formato Eliminacion',
+      title: 'Formato Eliminación',
       icon: '⚡',
       items: [
-        { label: 'Tipo', value: 'Eliminacion Simple' },
+        { label: 'Tipo', value: 'Eliminación Simple' },
         { label: 'Rondas', value: 6 },
         { label: 'Jugadores clasificados', value: config.totalPlayers },
       ],

@@ -177,7 +177,7 @@ function ByePlayersPanel() {
           Estos jugadores quedaron entre los primeros {byePlayers.length} en la
           clasificacion general de grupos. Por su buen rendimiento, avanzan
           directamente a la Segunda Ronda sin necesidad de jugar la Primera
-          Ronda de eliminacion. Los demas ({42 - byePlayers.length} jugadores)
+          Ronda de eliminación. Los demás ({42 - byePlayers.length} jugadores)
           deben jugar la Primera Ronda para clasificar.
         </p>
       </div>
@@ -239,8 +239,8 @@ export default function EliminacionPage() {
           </div>
         </div>
 
-        {/* ============ BYE PANEL - ALWAYS VISIBLE ============ */}
-        <ByePlayersPanel />
+        {/* ============ BYE PANEL - visible in lista & rondas ============ */}
+        {viewMode !== 'cuadro' && <ByePlayersPanel />}
 
         {/* ============ LISTA VIEW ============ */}
         {viewMode === 'lista' && (

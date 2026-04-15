@@ -5,7 +5,7 @@ import AppShell from "./components/AppShell";
 
 export const metadata: Metadata = {
   title: "Billar 3 Bandas - Club Tennis Cucuta",
-  description: "Campeonato de Billar a Tres Bandas - Club Tennis Cucuta. Grupos, resultados, eliminacion y ranking.",
+  description: "Campeonato de Billar a Tres Bandas - Club Tennis Cucuta. Grupos, resultados, eliminación y ranking.",
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
             <span className="text-text-muted/40 text-xs">·</span>
             <Link href="/resultados" className="text-xs text-text-muted hover:text-emerald-400 transition">Resultados</Link>
             <span className="text-text-muted/40 text-xs">·</span>
-            <Link href="/eliminacion" className="text-xs text-text-muted hover:text-emerald-400 transition">Eliminacion</Link>
+            <Link href="/eliminacion" className="text-xs text-text-muted hover:text-emerald-400 transition">Eliminación</Link>
             <span className="text-text-muted/40 text-xs">·</span>
             <Link href="/ranking" className="text-xs text-text-muted hover:text-emerald-400 transition">Ranking</Link>
           </nav>

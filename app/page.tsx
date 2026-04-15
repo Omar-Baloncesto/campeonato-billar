@@ -182,7 +182,7 @@ export default async function Dashboard() {
               { href: '/calendario', label: 'Calendario', desc: 'Programacion por jornada', icon: 'grid' },
               { href: '/grupos', label: 'Cuadro Principal', desc: 'Grupos y clasificacion', icon: 'grid' },
               { href: '/resultados', label: 'Resultados', desc: 'Partidos fase de grupos', icon: 'results' },
-              { href: '/eliminacion', label: 'Eliminacion', desc: 'Cuadro eliminatorio', icon: 'bracket' },
+              { href: '/eliminacion', label: 'Eliminación', desc: 'Cuadro eliminatorio', icon: 'bracket' },
               { href: '/ranking', label: 'Ranking Final', desc: 'Clasificacion general', icon: 'ranking' },
               { href: '/jugadores', label: 'Jugadores', desc: 'Plantel de jugadores', icon: 'players' },
             ].map((link) => (
