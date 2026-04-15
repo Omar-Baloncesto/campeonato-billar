@@ -10,7 +10,7 @@ export default function Navigation() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="hidden md:flex bg-[#0d1f16]/90 backdrop-blur-md border-b border-white/5 overflow-x-auto"
+      className="hidden md:flex bg-bg-header/95 backdrop-blur-md border-b border-border-light overflow-x-auto"
     >
       <div className="flex gap-0 px-3 md:px-5 min-w-max">
         {NAV_ITEMS.map((item) => {
@@ -24,7 +24,7 @@ export default function Navigation() {
                 flex items-center gap-2 transition-all duration-200
                 ${isActive
                   ? 'text-emerald-400 font-bold'
-                  : 'text-text-muted/80 hover:text-text-primary hover:bg-white/[0.03]'
+                  : 'text-text-muted/80 hover:text-text-primary hover:bg-text-muted/[0.08]'
                 }
               `}
               aria-current={isActive ? 'page' : undefined}

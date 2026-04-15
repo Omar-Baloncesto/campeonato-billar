@@ -1,24 +1,53 @@
 @import "tailwindcss";
 
+/* ================================================================== */
+/*  Design tokens (dark theme default)                                 */
+/* ================================================================== */
+
 @theme inline {
-  --color-bg-primary: #0f1a14;
-  --color-bg-secondary: #1a2e23;
-  --color-bg-header: #0d3320;
-  --color-bg-darkest: #080f0a;
-  --color-bg-card: #1a3028;
+  --color-bg-primary: #111318;
+  --color-bg-secondary: #1a1d25;
+  --color-bg-header: #0d1017;
+  --color-bg-darkest: #0a0c10;
+  --color-bg-card: #1c2028;
   --color-emerald: #10b981;
   --color-emerald-dim: rgba(16, 185, 129, 0.19);
   --color-live: #10b981;
-  --color-text-primary: #f0ece3;
-  --color-text-muted: #9a9aaa;
+  --color-text-primary: #e6eaf0;
+  --color-text-muted: #828a96;
   --color-positive: #4ade80;
   --color-negative: #f87171;
-  --color-border-subtle: rgba(255, 255, 255, 0.03);
-  --color-border-light: rgba(255, 255, 255, 0.06);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-light: rgba(255, 255, 255, 0.08);
   --color-border-glow: rgba(16, 185, 129, 0.15);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace;
 }
+
+/* ================================================================== */
+/*  Light theme overrides                                              */
+/* ================================================================== */
+
+[data-theme="light"] {
+  --color-bg-primary: #f5f7fa;
+  --color-bg-secondary: #ffffff;
+  --color-bg-header: #ffffff;
+  --color-bg-darkest: #e8ecf2;
+  --color-bg-card: #ffffff;
+  --color-text-primary: #1a1f28;
+  --color-text-muted: #5c6677;
+  --color-emerald-dim: rgba(16, 185, 129, 0.12);
+  --color-positive: #16a34a;
+  --color-negative: #dc2626;
+  --color-border-subtle: rgba(0, 0, 0, 0.05);
+  --color-border-light: rgba(0, 0, 0, 0.08);
+  --color-border-glow: rgba(5, 150, 105, 0.2);
+  color-scheme: light;
+}
+
+/* ================================================================== */
+/*  Base styles                                                        */
+/* ================================================================== */
 
 body {
   background: var(--color-bg-primary);
@@ -36,6 +65,12 @@ body::before {
     radial-gradient(ellipse at 85% 95%, rgba(5, 150, 105, 0.03) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
+}
+
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse at 15% 5%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 95%, rgba(5, 150, 105, 0.04) 0%, transparent 50%);
 }
 
 body > * {
@@ -63,7 +98,10 @@ a, button {
   transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Scrollbar styling for dark theme */
+/* ================================================================== */
+/*  Scrollbar                                                          */
+/* ================================================================== */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -79,7 +117,17 @@ a, button {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Loading skeleton animation */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ================================================================== */
+/*  Animations                                                         */
+/* ================================================================== */
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -92,7 +140,11 @@ a, button {
   border-radius: 6px;
 }
 
-/* Fade in animation */
+[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
@@ -102,7 +154,6 @@ a, button {
   animation: fadeIn 0.25s ease-out forwards;
 }
 
-/* Staggered fade in for children */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
@@ -120,7 +171,6 @@ a, button {
 .stagger-children > *:nth-child(6) { animation-delay: 150ms; }
 .stagger-children > *:nth-child(n+7) { animation-delay: 180ms; }
 
-/* Spinner animation */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -134,11 +184,26 @@ a, button {
   animation: spin 0.8s linear infinite;
 }
 
-/* Glassmorphism card effect */
+[data-theme="light"] .spinner {
+  border-color: rgba(0, 0, 0, 0.08);
+  border-top-color: var(--color-emerald);
+}
+
+/* ================================================================== */
+/*  Component utility classes                                          */
+/* ================================================================== */
+
+/* Glassmorphism card */
 .glass-card {
-  background: rgba(26, 46, 35, 0.7);
+  background: rgba(26, 29, 37, 0.75);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 /* Glow effect on hover */
@@ -150,6 +215,10 @@ a, button {
     border-color: rgba(16, 185, 129, 0.2);
     box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06), 0 0 0 1px rgba(16, 185, 129, 0.08);
     transform: translateY(-2px);
+  }
+  [data-theme="light"] .glow-hover:hover {
+    border-color: rgba(5, 150, 105, 0.3);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08), 0 0 0 1px rgba(5, 150, 105, 0.12);
   }
 }
 @media (hover: none) {
@@ -164,6 +233,10 @@ a, button {
 .medal-silver { color: #C0C0C0; text-shadow: 0 0 8px rgba(192, 192, 192, 0.3); }
 .medal-bronze { color: #CD7F32; text-shadow: 0 0 8px rgba(205, 127, 50, 0.3); }
 
+[data-theme="light"] .medal-gold { color: #b45309; text-shadow: none; }
+[data-theme="light"] .medal-silver { color: #6b7280; text-shadow: none; }
+[data-theme="light"] .medal-bronze { color: #92400e; text-shadow: none; }
+
 /* Table row hover glow */
 .table-row-hover {
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
@@ -173,9 +246,20 @@ a, button {
   box-shadow: inset 3px 0 0 var(--color-emerald);
 }
 
+[data-theme="light"] .table-row-hover:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
 /* Gradient text */
 .gradient-text {
   background: linear-gradient(135deg, #10b981, #059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="light"] .gradient-text {
+  background: linear-gradient(135deg, #059669, #047857);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -201,7 +285,10 @@ a, button {
   animation: countUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Hamburger menu animation */
+/* ================================================================== */
+/*  Mobile menu                                                        */
+/* ================================================================== */
+
 .hamburger-line {
   display: block;
   width: 20px;
@@ -220,7 +307,6 @@ a, button {
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* Mobile menu animations */
 .mobile-menu-overlay {
   animation: overlayFadeIn 200ms ease-out;
 }
@@ -243,4 +329,69 @@ a, button {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ================================================================== */
+/*  Light theme: Tailwind utility overrides                            */
+/* ================================================================== */
+
+/* White text → dark text in light mode (headings, names, etc.) */
+[data-theme="light"] .text-white {
+  color: var(--color-text-primary);
+}
+
+/* Keep white text on colored backgrounds */
+[data-theme="light"] .bg-emerald-500 .text-white,
+[data-theme="light"] .bg-emerald-400 .text-white {
+  color: white;
+}
+
+/* White-based borders → dark-based borders */
+[data-theme="light"] [class*="border-white\/"] {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* White-based low-opacity backgrounds → dark-based */
+[data-theme="light"] [class*="bg-white\/"] {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Emerald-400 text → darker for contrast on light bg */
+[data-theme="light"] .text-emerald-400 {
+  color: #059669;
+}
+
+/* Emerald-400/80 text */
+[data-theme="light"] [class*="text-emerald-400"] {
+  color: #059669;
+}
+
+/* Fix shadow on light backgrounds */
+[data-theme="light"] [class*="shadow-black"] {
+  --tw-shadow-color: rgba(0, 0, 0, 0.06);
+}
+
+/* SVG bracket connector lines – flip from white to dark */
+[data-theme="light"] line[stroke="rgba(255,255,255,0.15)"] {
+  stroke: rgba(0, 0, 0, 0.18);
+}
+
+/* Hardcoded dark hex backgrounds → use theme variable */
+[data-theme="light"] [class*="bg-\[#0"] {
+  background-color: var(--color-bg-header) !important;
+}
+[data-theme="light"] [class*="bg-\[#1a2e23\]"] {
+  background-color: var(--color-bg-secondary) !important;
+}
+
+/* Override inline rgba(255,255,255,...) backgrounds on cards/rows */
+[data-theme="light"] [style*="rgba(255,255,255,0.03)"],
+[data-theme="light"] [style*="rgba(255, 255, 255, 0.03)"],
+[data-theme="light"] [style*="rgba(255,255,255,0.01)"] {
+  background-color: transparent !important;
+}
+
+/* Bracket card borders in light mode */
+[data-theme="light"] [class*="border-emerald-500\/"] {
+  border-color: rgba(5, 150, 105, 0.25);
 }

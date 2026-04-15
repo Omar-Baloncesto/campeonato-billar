@@ -39,10 +39,10 @@ function PlayerRow({
       style={{
         background: isWinner
           ? 'rgba(16, 185, 129, 0.08)'
-          : 'rgba(255,255,255,0.02)',
+          : 'var(--row-bg, rgba(255,255,255,0.02))',
         border: isWinner
           ? '1px solid rgba(16, 185, 129, 0.2)'
-          : '1px solid rgba(255,255,255,0.05)',
+          : '1px solid var(--color-border-light)',
       }}
     >
       {/* Player name */}

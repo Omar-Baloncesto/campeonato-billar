@@ -44,14 +44,13 @@ export default function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProp
     >
       {/* Overlay */}
       <div
-        className="absolute inset-0 mobile-menu-overlay"
-        style={{ background: 'rgba(8, 15, 10, 0.85)', backdropFilter: 'blur(8px)' }}
+        className="absolute inset-0 mobile-menu-overlay bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Panel */}
       <nav
-        className="absolute top-0 right-0 h-full w-[85vw] max-w-[320px] bg-[#1a2e23] border-l border-emerald-500/20 mobile-menu-panel flex flex-col"
+        className="absolute top-0 right-0 h-full w-[85vw] max-w-[320px] bg-bg-secondary border-l border-border-light mobile-menu-panel flex flex-col"
       >
         {/* Close area / header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
@@ -80,7 +79,7 @@ export default function MobileMenu({ isOpen, onClose, pathname }: MobileMenuProp
                     flex items-center gap-4 px-6 py-4 text-sm transition-colors duration-150 no-underline
                     ${isActive
                       ? 'bg-emerald-500/10 text-emerald-400 border-l-[3px] border-emerald-400'
-                      : 'text-text-primary hover:bg-white/5 border-l-[3px] border-transparent'
+                      : 'text-text-primary hover:bg-text-muted/10 border-l-[3px] border-transparent'
                     }
                   `}
                   aria-current={isActive ? 'page' : undefined}

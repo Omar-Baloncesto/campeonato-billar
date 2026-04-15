@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { APP_CONFIG } from '../lib/constants';
+import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
   isMenuOpen?: boolean;
@@ -29,7 +30,7 @@ export default function Header({ isMenuOpen = false, onMenuToggle }: HeaderProps
       `}
     >
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a1f15] via-bg-secondary to-[#0a1f15]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-bg-darkest via-bg-secondary to-bg-darkest" />
         <div className="absolute inset-0 bg-gradient-to-b from-emerald/[0.04] to-transparent" />
       </div>
 
@@ -78,7 +79,10 @@ export default function Header({ isMenuOpen = false, onMenuToggle }: HeaderProps
           </div>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Theme toggle */}
+          <ThemeToggle />
+
           {/* Year badge */}
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald/20 bg-emerald/5">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

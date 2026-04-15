@@ -39,7 +39,7 @@ export default function GroupStandingsTable({ group }: { group: GroupData }) {
       </div>
       <div className="relative">
         {showRightFade && (
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#1a3028] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-card to-transparent z-10 pointer-events-none" />
         )}
         <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
           <table className="w-full text-xs">
