@@ -197,3 +197,100 @@ export async function fetchEliminationMatches() {
   // for elimination is different. We'll parse the results for group stage.
   return null;
 }
+
+export interface ProgramacionMatch {
+  group: number;
+  playerA: string;
+  playerB: string;
+  date: string;     // "viernes", "sábado", etc.
+  time: string;     // "9:00 a. m.", "10:00 a. m.", etc.
+}
+
+export interface ProgramacionDay {
+  title: string;           // Full header like "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026"
+  dateLabel: string;       // "viernes", "sábado"
+  isoDate: string;         // "2026-01-30"
+  matches: ProgramacionMatch[];
+}
+
+function parseTime24(timeStr: string): string {
+  // Convert "9:00 a. m." or "2:00 p. m." or "12:00 m." to 24h format "09:00", "14:00"
+  const clean = timeStr.replace(/\s+/g, ' ').trim().toLowerCase();
+  const match = clean.match(/^(\d{1,2}):(\d{2})\s*(a\.\s*m\.|p\.\s*m\.|m\.)?$/);
+  if (!match) return '00:00';
+  let hours = parseInt(match[1]);
+  const minutes = match[2];
+  const period = match[3] || '';
+
+  if (period.startsWith('p') && hours < 12) hours += 12;
+  if (period.startsWith('a') && hours === 12) hours = 0;
+  // "12:00 m." means noon
+  if (period === 'm.' || period === 'm') hours = 12;
+
+  return `${hours.toString().padStart(2, '0')}:${minutes}`;
+}
+
+function extractIsoDate(title: string): string {
+  // Extract date from title like "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026"
+  const months: Record<string, string> = {
+    'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
+    'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
+    'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12',
+  };
+  const match = title.match(/(\d{1,2})\s+(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\s+(?:DEL?\s+)?(\d{4})/i);
+  if (!match) return '2026-01-01';
+  const day = match[1].padStart(2, '0');
+  const month = months[match[2].toLowerCase()] || '01';
+  const year = match[3];
+  return `${year}-${month}-${day}`;
+}
+
+function parseDaySection(rows: string[][], colOffset: number): ProgramacionDay | null {
+  // Row 0 = title row, Row 1 = headers (Grupo, Jugador A, Jugador B, fecha, horario)
+  // Row 2+ = data
+  const title = (rows[0]?.[colOffset] || '').trim();
+  if (!title || !title.includes('PROGRAMACIÓN')) return null;
+
+  const isoDate = extractIsoDate(title);
+  const matches: ProgramacionMatch[] = [];
+
+  for (let i = 2; i < rows.length; i++) {
+    const grupo = rows[i]?.[colOffset]?.trim();
+    const playerA = rows[i]?.[colOffset + 1]?.trim();
+    const playerB = rows[i]?.[colOffset + 2]?.trim();
+    const date = rows[i]?.[colOffset + 3]?.trim();
+    const time = rows[i]?.[colOffset + 4]?.trim();
+
+    if (!grupo || !playerA || !playerB || !time) continue;
+    const groupNum = parseInt(grupo);
+    if (isNaN(groupNum)) continue;
+
+    matches.push({
+      group: groupNum,
+      playerA,
+      playerB,
+      date: date || '',
+      time,
+    });
+  }
+
+  if (matches.length === 0) return null;
+
+  const dateLabel = matches[0]?.date || '';
+  return { title, dateLabel, isoDate, matches };
+}
+
+export async function fetchProgramacion(): Promise<ProgramacionDay[]> {
+  const rows = await fetchSheet('Programación', 'A1:K100');
+  const days: ProgramacionDay[] = [];
+
+  // Day 1: columns A-E (offset 0)
+  const day1 = parseDaySection(rows, 0);
+  if (day1) days.push(day1);
+
+  // Day 2: columns G-K (offset 6)
+  const day2 = parseDaySection(rows, 6);
+  if (day2) days.push(day2);
+
+  return days;
+}
