@@ -90,7 +90,7 @@ function MatchBox({ match }: { match: (typeof ELIMINATION_MATCHES)[0] }) {
           {match.playerA}
         </div>
         <div className="text-[10px] text-text-muted">
-          BYE - avanza automaticamente
+          BYE - avanza automáticamente
         </div>
       </div>
     );
@@ -175,7 +175,7 @@ function ByePlayersPanel() {
         </div>
         <p className="text-[10px] text-text-muted/60 mt-3 px-1">
           Estos jugadores quedaron entre los primeros {byePlayers.length} en la
-          clasificacion general de grupos. Por su buen rendimiento, avanzan
+          clasificación general de grupos. Por su buen rendimiento, avanzan
           directamente a la Segunda Ronda sin necesidad de jugar la Primera
           Ronda de eliminación. Los demás ({42 - byePlayers.length} jugadores)
           deben jugar la Primera Ronda para clasificar.

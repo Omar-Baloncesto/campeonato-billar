@@ -176,14 +176,14 @@ export default async function Dashboard() {
       {/* Quick links */}
       <div className="px-4 pb-8 md:px-8">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase mb-4 px-1">Navegacion Rapida</h2>
+          <h2 className="text-sm font-bold tracking-wider text-text-muted uppercase mb-4 px-1">Navegación Rápida</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
-              { href: '/calendario', label: 'Calendario', desc: 'Programacion por jornada', icon: 'grid' },
-              { href: '/grupos', label: 'Cuadro Principal', desc: 'Grupos y clasificacion', icon: 'grid' },
+              { href: '/calendario', label: 'Calendario', desc: 'Programación por jornada', icon: 'grid' },
+              { href: '/grupos', label: 'Cuadro Principal', desc: 'Grupos y clasificación', icon: 'grid' },
               { href: '/resultados', label: 'Resultados', desc: 'Partidos fase de grupos', icon: 'results' },
               { href: '/eliminacion', label: 'Eliminación', desc: 'Cuadro eliminatorio', icon: 'bracket' },
-              { href: '/ranking', label: 'Ranking Final', desc: 'Clasificacion general', icon: 'ranking' },
+              { href: '/ranking', label: 'Ranking Final', desc: 'Clasificación general', icon: 'ranking' },
               { href: '/jugadores', label: 'Jugadores', desc: 'Plantel de jugadores', icon: 'players' },
             ].map((link) => (
               <Link

@@ -9,7 +9,7 @@ export default function Navigation() {
 
   return (
     <nav
-      aria-label="Navegacion principal"
+      aria-label="Navegación principal"
       className="hidden md:flex bg-[#0d1f16]/90 backdrop-blur-md border-b border-white/5 overflow-x-auto"
     >
       <div className="flex gap-0 px-3 md:px-5 min-w-max">

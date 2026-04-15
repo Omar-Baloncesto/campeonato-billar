@@ -139,7 +139,7 @@ export default function CalendarioPage() {
           Calendario
         </h2>
         <p className="text-sm text-text-muted mb-6">
-          Programacion de partidos y resultados por jornada
+          Programación de partidos y resultados por jornada
         </p>
 
         {/* Schedule / Results toggle */}
@@ -152,7 +152,7 @@ export default function CalendarioPage() {
                 : 'text-text-muted hover:text-text-primary'
             }`}
           >
-            Programacion
+            Programación
             {viewTab === 'schedule' && (
               <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-emerald-400 rounded-full" />
             )}

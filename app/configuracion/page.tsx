@@ -57,7 +57,7 @@ export default async function ConfiguracionPage() {
     <div className="animate-fade-in px-4 py-6 md:px-8">
       <div className="max-w-4xl mx-auto">
         <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-6">
-          Configuracion del Torneo
+          Configuración del Torneo
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 stagger-children">
