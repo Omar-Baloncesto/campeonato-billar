@@ -24,12 +24,13 @@ export default function Header({ isMenuOpen = false, onMenuToggle }: HeaderProps
   return (
     <header
       className={`
-        relative border-b border-emerald/30
+        relative border-b border-border-light bg-bg-header
         transition-shadow duration-300
-        ${scrolled ? 'shadow-lg shadow-black/30' : ''}
+        ${scrolled ? 'shadow-lg shadow-black/10' : ''}
       `}
     >
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Dark mode gradient overlay */}
+      <div className="absolute inset-0 overflow-hidden" data-hide-light>
         <div className="absolute inset-0 bg-gradient-to-r from-bg-darkest via-bg-secondary to-bg-darkest" />
         <div className="absolute inset-0 bg-gradient-to-b from-emerald/[0.04] to-transparent" />
       </div>

@@ -29,7 +29,7 @@
 /* ================================================================== */
 
 [data-theme="light"] {
-  --color-bg-primary: #f5f7fa !important;
+  --color-bg-primary: #f8fafb !important;
   --color-bg-secondary: #ffffff !important;
   --color-bg-header: #ffffff !important;
   --color-bg-darkest: #e8ecf2 !important;
@@ -68,9 +68,7 @@ body::before {
 }
 
 [data-theme="light"] body::before {
-  background:
-    radial-gradient(ellipse at 15% 5%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 95%, rgba(5, 150, 105, 0.04) 0%, transparent 50%);
+  background: none;
 }
 
 body > * {
@@ -201,9 +199,11 @@ a, button {
 }
 
 [data-theme="light"] .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  background: #ffffff;
+  backdrop-filter: none;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+              0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 /* Glow effect on hover */
@@ -217,8 +217,9 @@ a, button {
     transform: translateY(-2px);
   }
   [data-theme="light"] .glow-hover:hover {
-    border-color: rgba(5, 150, 105, 0.3);
-    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08), 0 0 0 1px rgba(5, 150, 105, 0.12);
+    border-color: rgba(5, 150, 105, 0.25);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(5, 150, 105, 0.15);
   }
 }
 @media (hover: none) {
@@ -259,7 +260,7 @@ a, button {
 }
 
 [data-theme="light"] .gradient-text {
-  background: linear-gradient(135deg, #059669, #047857);
+  background: linear-gradient(135deg, #047857, #065f46);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -329,6 +330,26 @@ a, button {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ================================================================== */
+/*  Light theme: layout & structure                                    */
+/* ================================================================== */
+
+/* Hide dark-mode gradient overlays in light mode */
+[data-theme="light"] [data-hide-light] {
+  display: none !important;
+}
+
+/* Light mode header: clean white + subtle bottom shadow */
+[data-theme="light"] header {
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Light mode navigation */
+[data-theme="light"] nav[aria-label] {
+  border-bottom-color: rgba(0, 0, 0, 0.06) !important;
 }
 
 /* ================================================================== */
