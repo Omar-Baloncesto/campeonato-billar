@@ -11,17 +11,44 @@ import {
 import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
 
 /* ------------------------------------------------------------------ */
-/*  Build schedule: groups (Sheets/static) + elimination (auto)        */
+/*  Types for elimination data from Sheets                             */
+/* ------------------------------------------------------------------ */
+
+interface ElimMatch {
+  round: number;
+  match: number;
+  playerA: string;
+  entriesA: number;
+  carambolasA: number;
+  averageA: number;
+  playerB: string;
+  entriesB: number;
+  carambolasB: number;
+  averageB: number;
+  winner: string;
+  isBye: boolean;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Build schedule: groups (Sheets/static) + elimination (Sheets/static)*/
 /* ------------------------------------------------------------------ */
 
 const ELIM_DATE = '2026-02-01'; // Eliminación: domingo 1 febrero
 
-function buildEliminationSchedule(): ScheduleMatch[] {
-  const matches: ScheduleMatch[] = [];
-  const realMatches = ELIMINATION_MATCHES.filter(m => !m.isBye);
+const ROUND_LABELS: Record<number, string> = {
+  1: 'Primera Ronda',
+  2: 'Segunda Ronda',
+  3: 'Octavos de Final',
+  4: 'Cuartos de Final',
+  5: 'Semifinal',
+  6: 'Final',
+};
 
-  // Group by round, assign times starting at 9:00 AM
-  // 2 matches per time slot (2 tables)
+function buildEliminationSchedule(elimData: ElimMatch[]): ScheduleMatch[] {
+  const matches: ScheduleMatch[] = [];
+  const realMatches = elimData.filter(m => !m.isBye);
+
+  // 2 matches per hour, starting at 9:00 AM, skip lunch at 13:00
   let hour = 9;
   let slotCount = 0;
 
@@ -34,7 +61,7 @@ function buildEliminationSchedule(): ScheduleMatch[] {
       date: ELIM_DATE,
       time,
       table,
-      round: ROUND_NAMES[m.round] || `Ronda ${m.round}`,
+      round: ROUND_LABELS[m.round] || `Ronda ${m.round}`,
       playerA: m.playerA,
       playerB: m.playerB,
       scoreA: hasScore ? m.carambolasA : undefined,
@@ -46,17 +73,19 @@ function buildEliminationSchedule(): ScheduleMatch[] {
     slotCount++;
     if (slotCount % 2 === 0) {
       hour++;
-      if (hour === 13) hour = 14; // Skip 1 PM (lunch)
+      if (hour === 13) hour = 14;
     }
   }
 
   return matches;
 }
 
-function buildSchedule(programacion: ProgramacionMatch[]): ScheduleMatch[] {
+function buildSchedule(
+  programacion: ProgramacionMatch[],
+  eliminacion: ElimMatch[] | null,
+): ScheduleMatch[] {
+  // Groups: Sheets data if complete, otherwise static fallback
   let groupMatches: ScheduleMatch[];
-
-  // Groups: use Sheets data if complete, otherwise static fallback
   if (programacion.length >= 60) {
     groupMatches = [];
     const bySlot: Record<string, ProgramacionMatch[]> = {};
@@ -83,8 +112,9 @@ function buildSchedule(programacion: ProgramacionMatch[]): ScheduleMatch[] {
     groupMatches = [...SCHEDULE];
   }
 
-  // Elimination: always built from ELIMINATION_MATCHES (auto-updates)
-  const elimMatches = buildEliminationSchedule();
+  // Elimination: Sheets data if available, otherwise static fallback
+  const elimSource = eliminacion || ELIMINATION_MATCHES;
+  const elimMatches = buildEliminationSchedule(elimSource);
 
   return [...groupMatches, ...elimMatches];
 }
@@ -201,10 +231,12 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
 
 export default function CalendarioClient({
   programacion,
+  eliminacion,
 }: {
   programacion: ProgramacionMatch[];
+  eliminacion: ElimMatch[] | null;
 }) {
-  const allMatches = useMemo(() => buildSchedule(programacion), [programacion]);
+  const allMatches = useMemo(() => buildSchedule(programacion, eliminacion), [programacion, eliminacion]);
 
   const dates = useMemo(() => {
     return [...new Set(allMatches.map(m => m.date))].sort();
