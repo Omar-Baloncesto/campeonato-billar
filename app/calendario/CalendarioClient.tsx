@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import type { ProgramacionMatch } from '../lib/sheets';
 import type { ScheduleMatch } from '../data/types';
 import {
   SCHEDULE,
@@ -9,10 +10,50 @@ import {
 } from '../data/schedule';
 
 /* ------------------------------------------------------------------ */
-/*  Merge dynamic programming (Sheets) + static elimination schedule   */
+/*  Build schedule: Sheets data (dynamic) with static fallback         */
 /* ------------------------------------------------------------------ */
 
-/* Use static schedule data directly — verified and complete */
+function buildSchedule(programacion: ProgramacionMatch[]): ScheduleMatch[] {
+  // If Sheets returned all 60 group matches, use dynamic data
+  if (programacion.length >= 60) {
+    const matches: ScheduleMatch[] = [];
+
+    // Group by date+time to assign table numbers
+    const bySlot: Record<string, ProgramacionMatch[]> = {};
+    for (const m of programacion) {
+      const key = `${m.isoDate}|${m.time24}`;
+      if (!bySlot[key]) bySlot[key] = [];
+      bySlot[key].push(m);
+    }
+
+    for (const [, slotMatches] of Object.entries(bySlot)) {
+      slotMatches.forEach((m, idx) => {
+        matches.push({
+          date: m.isoDate,
+          time: m.time24,
+          table: idx + 1,
+          round: 'Grupos',
+          group: m.group,
+          playerA: m.playerA,
+          playerB: m.playerB,
+          status: 'ended',
+        });
+      });
+    }
+
+    // Add elimination matches from static data
+    for (const m of SCHEDULE) {
+      if (m.round !== 'Grupos') {
+        matches.push(m);
+      }
+    }
+
+    return matches;
+  }
+
+  // Fallback: use complete static data
+  return [...SCHEDULE];
+}
 
 /* ------------------------------------------------------------------ */
 /*  Components                                                         */
@@ -124,8 +165,12 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
 /*  Main client component                                              */
 /* ------------------------------------------------------------------ */
 
-export default function CalendarioClient() {
-  const allMatches = SCHEDULE;
+export default function CalendarioClient({
+  programacion,
+}: {
+  programacion: ProgramacionMatch[];
+}) {
+  const allMatches = useMemo(() => buildSchedule(programacion), [programacion]);
 
   const dates = useMemo(() => {
     return [...new Set(allMatches.map(m => m.date))].sort();

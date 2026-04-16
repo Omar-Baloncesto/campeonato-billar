@@ -202,22 +202,15 @@ export interface ProgramacionMatch {
   group: number;
   playerA: string;
   playerB: string;
-  date: string;     // "viernes", "sábado", etc.
-  time: string;     // "9:00 a. m.", "10:00 a. m.", etc.
-}
-
-export interface ProgramacionDay {
-  title: string;           // Full header like "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026"
-  dateLabel: string;       // "viernes", "sábado"
-  isoDate: string;         // "2026-01-30"
-  matches: ProgramacionMatch[];
+  isoDate: string;   // "2026-01-30"
+  time24: string;    // "09:00", "14:00"
 }
 
 function parseTime24(timeStr: string): string {
-  // Convert various time formats to 24h:
-  //   "9:00 a. m.", "2:00 p. m.", "12:00 m."
-  //   "9:00 AM", "2:00 PM", "9:00:00 AM"
-  //   "9:00 a.m.", "2:00 p.m."
+  // "9:00 a. m." → "09:00"
+  // "2:00 p. m." → "14:00"
+  // "12:00 m." or "12:00 m" → "12:00"
+  // "6:00 p. m." → "18:00"
   const clean = timeStr.replace(/\s+/g, ' ').trim().toLowerCase();
   const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?|m\.?)?$/);
   if (!match) return '00:00';
@@ -232,69 +225,49 @@ function parseTime24(timeStr: string): string {
   return `${hours.toString().padStart(2, '0')}:${minutes}`;
 }
 
-function extractIsoDate(title: string): string {
-  // Extract date from titles like:
-  //   "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026"
-  //   "PROGRAMACIÓN 2DA CATEGORIA SÁBADO 31 DE ENERO DEL 2026"
-  const months: Record<string, string> = {
-    'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
-    'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
-    'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12',
-  };
-  const match = title.match(/(\d{1,2})\s+(?:DE\s+)?(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\s+(?:DEL?\s+)?(\d{4})/i);
-  if (!match) return '2026-01-01';
-  const day = match[1].padStart(2, '0');
-  const month = months[match[2].toLowerCase()] || '01';
-  const year = match[3];
-  return `${year}-${month}-${day}`;
+function parseDateDMY(dateStr: string): string {
+  // "30-01-2026" or "31-01-2026" → "2026-01-30"
+  const match = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (!match) return '';
+  return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
 }
 
-function parseDaySection(rows: string[][], colOffset: number): ProgramacionDay | null {
-  // Row 0 = title row, Row 1 = headers (Grupo, Jugador A, Jugador B, fecha, horario)
-  // Row 2+ = data
-  const title = (rows[0]?.[colOffset] || '').trim();
-  if (!title || !title.includes('PROGRAMACIÓN')) return null;
-
-  const isoDate = extractIsoDate(title);
+function parseDayColumns(rows: string[][], colOffset: number): ProgramacionMatch[] {
+  // CSV structure per day section (5 columns):
+  //   Row 0: Title (e.g. "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026")
+  //   Row 1: Headers (Grupo, Jugador A, Jugador B, fecha, horario)
+  //   Row 2+: Data
   const matches: ProgramacionMatch[] = [];
 
   for (let i = 2; i < rows.length; i++) {
-    const grupo = rows[i]?.[colOffset]?.trim();
-    const playerA = rows[i]?.[colOffset + 1]?.trim();
-    const playerB = rows[i]?.[colOffset + 2]?.trim();
-    const date = rows[i]?.[colOffset + 3]?.trim();
-    const time = rows[i]?.[colOffset + 4]?.trim();
+    const grupo = (rows[i]?.[colOffset] || '').trim();
+    const playerA = (rows[i]?.[colOffset + 1] || '').trim();
+    const playerB = (rows[i]?.[colOffset + 2] || '').trim();
+    const dateRaw = (rows[i]?.[colOffset + 3] || '').trim();
+    const timeRaw = (rows[i]?.[colOffset + 4] || '').trim();
 
-    if (!grupo || !playerA || !playerB || !time) continue;
+    if (!grupo || !playerA || !playerB) continue;
     const groupNum = parseInt(grupo);
     if (isNaN(groupNum)) continue;
 
-    matches.push({
-      group: groupNum,
-      playerA,
-      playerB,
-      date: date || '',
-      time,
-    });
+    const isoDate = parseDateDMY(dateRaw);
+    const time24 = timeRaw ? parseTime24(timeRaw) : '00:00';
+    if (!isoDate) continue;
+
+    matches.push({ group: groupNum, playerA, playerB, isoDate, time24 });
   }
 
-  if (matches.length === 0) return null;
-
-  const dateLabel = matches[0]?.date || '';
-  return { title, dateLabel, isoDate, matches };
+  return matches;
 }
 
-export async function fetchProgramacion(): Promise<ProgramacionDay[]> {
+export async function fetchProgramacion(): Promise<ProgramacionMatch[]> {
   const rows = await fetchSheet('Programación', 'A1:K100');
-  const days: ProgramacionDay[] = [];
 
   // Day 1: columns A-E (offset 0)
-  const day1 = parseDaySection(rows, 0);
-  if (day1) days.push(day1);
+  const day1 = parseDayColumns(rows, 0);
 
-  // Day 2: columns G-K (offset 6)
-  const day2 = parseDaySection(rows, 6);
-  if (day2) days.push(day2);
+  // Day 2: columns G-K (offset 6, column F is empty separator)
+  const day2 = parseDayColumns(rows, 6);
 
-  return days;
+  return [...day1, ...day2];
 }
