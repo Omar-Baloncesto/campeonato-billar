@@ -197,7 +197,7 @@ export async function fetchEliminationMatches() {
     try {
       rows = await fetchSheet(name, 'A1:K200');
       if (rows.length > 5) break;
-    } catch { /* try next name */ }
+    } catch (_e) { /* try next name */ }
   }
 
   if (rows.length === 0) return null;
