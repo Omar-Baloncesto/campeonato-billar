@@ -90,11 +90,17 @@ export default function GroupStandingsTable({ group }: { group: GroupData }) {
                 <th className="px-1.5 py-1.5 text-center">CA1</th>
                 <th className="px-1.5 py-1.5 text-center">CA2</th>
                 {hasP3 && <th className="px-1.5 py-1.5 text-center">CA3</th>}
-                <th className="px-1.5 py-1.5 text-center">Tot</th>
+                <th className="px-1.5 py-1.5 text-center">Tot CA</th>
+                <th className="px-1.5 py-1.5 text-center">CR1</th>
+                <th className="px-1.5 py-1.5 text-center">CR2</th>
+                {hasP3 && <th className="px-1.5 py-1.5 text-center">CR3</th>}
+                <th className="px-1.5 py-1.5 text-center">Tot CR</th>
                 <th className="px-1.5 py-1.5 text-center">P1</th>
                 <th className="px-1.5 py-1.5 text-center">P2</th>
                 {hasP3 && <th className="px-1.5 py-1.5 text-center">P3</th>}
                 <th className="px-1.5 py-1.5 text-center">Pts</th>
+                <th className="px-1.5 py-1.5 text-center">Ord</th>
+                <th className="px-1.5 py-1.5 text-center">Clas</th>
               </tr>
             </thead>
             <tbody>
@@ -105,10 +111,16 @@ export default function GroupStandingsTable({ group }: { group: GroupData }) {
                   <td className="px-1.5 py-1.5 text-center font-mono">{s.caP2}</td>
                   {hasP3 && <td className="px-1.5 py-1.5 text-center font-mono">{s.caP3 ?? '-'}</td>}
                   <td className="px-1.5 py-1.5 text-center font-mono font-bold text-emerald-400">{s.totalCA}</td>
+                  <td className="px-1.5 py-1.5 text-center font-mono">{s.crP1}</td>
+                  <td className="px-1.5 py-1.5 text-center font-mono">{s.crP2}</td>
+                  {hasP3 && <td className="px-1.5 py-1.5 text-center font-mono">{s.crP3 ?? '-'}</td>}
+                  <td className="px-1.5 py-1.5 text-center font-mono font-bold text-negative">{s.totalCR}</td>
                   <td className="px-1.5 py-1.5 text-center font-mono">{s.ptsP1}</td>
                   <td className="px-1.5 py-1.5 text-center font-mono">{s.ptsP2}</td>
                   {hasP3 && <td className="px-1.5 py-1.5 text-center font-mono">{s.ptsP3 ?? '-'}</td>}
                   <td className="px-1.5 py-1.5 text-center font-mono font-bold">{s.totalPts}</td>
+                  <td className="px-1.5 py-1.5 text-center font-mono font-bold text-emerald-400">{s.groupOrder}</td>
+                  <td className="px-1.5 py-1.5 text-center font-mono font-bold">{s.generalClassification}</td>
                 </tr>
               ))}
             </tbody>
