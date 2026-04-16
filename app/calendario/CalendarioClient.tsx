@@ -179,7 +179,12 @@ export default function CalendarioClient() {
 
   const [viewTab, setViewTab] = useState<'schedule' | 'results'>('schedule');
   const dayMatches = allMatches.filter(m => m.date === selectedDate);
-  const filteredMatches = viewTab === 'results' ? dayMatches.filter(m => m.scoreA != null) : dayMatches;
+
+  // Programación: ALL matches, NO scores (just the fixture)
+  // Resultados: only matches WITH scores
+  const filteredMatches = viewTab === 'results'
+    ? dayMatches.filter(m => m.scoreA != null)
+    : dayMatches.map(m => ({ ...m, scoreA: undefined, scoreB: undefined, winner: undefined, status: 'scheduled' as const }));
 
   const byTime: Record<string, ScheduleMatch[]> = {};
   for (const m of filteredMatches) {
