@@ -8,12 +8,12 @@ export default async function CalendarioPage() {
   let eliminacion;
   try {
     programacion = await fetchProgramacion();
-  } catch {
+  } catch (_e) {
     programacion = [];
   }
   try {
     eliminacion = await fetchEliminationMatches();
-  } catch {
+  } catch (_e) {
     eliminacion = null;
   }
   return <CalendarioClient programacion={programacion} eliminacion={eliminacion} />;
