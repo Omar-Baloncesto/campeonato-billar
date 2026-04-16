@@ -191,11 +191,69 @@ export async function fetchRankingGroups() {
 }
 
 export async function fetchEliminationMatches() {
-  // The elimination data is complex - read the full sheet
-  const rows = await fetchSheet('RESULTADOS', 'A1:L200');
-  // For now we still use static elimination data since the sheet structure
-  // for elimination is different. We'll parse the results for group stage.
-  return null;
+  // Try different possible sheet names
+  let rows: string[][] = [];
+  for (const name of ['ELIMINACIÓN SIMPLE', 'ELIMINACION SIMPLE', 'Eliminación Simple']) {
+    try {
+      rows = await fetchSheet(name, 'A1:K200');
+      if (rows.length > 5) break;
+    } catch { /* try next name */ }
+  }
+
+  if (rows.length === 0) return null;
+
+  const matches: {
+    round: number;
+    match: number;
+    playerA: string;
+    entriesA: number;
+    carambolasA: number;
+    averageA: number;
+    playerB: string;
+    entriesB: number;
+    carambolasB: number;
+    averageB: number;
+    winner: string;
+    isBye: boolean;
+  }[] = [];
+
+  for (const row of rows) {
+    const ronda = parseInt(row[0]);
+    if (isNaN(ronda) || ronda < 1 || ronda > 10) continue;
+
+    const matchNum = parseInt(row[1]);
+    if (isNaN(matchNum)) continue;
+
+    const playerA = (row[2] || '').trim();
+    const playerB = (row[6] || '').trim();
+    if (!playerA) continue;
+
+    const isBye = playerB.toUpperCase() === 'BYE';
+    const entriesA = parseNumber(row[3]);
+    const carambolasA = parseNumber(row[4]);
+    const averageA = parseNumber(row[5]);
+    const entriesB = parseNumber(row[7]);
+    const carambolasB = parseNumber(row[8]);
+    const averageB = parseNumber(row[9]);
+    const winner = (row[10] || '').trim();
+
+    matches.push({
+      round: ronda,
+      match: matchNum,
+      playerA,
+      entriesA: entriesA < 1 ? 0 : Math.round(entriesA),
+      carambolasA,
+      averageA,
+      playerB: isBye ? 'BYE' : playerB,
+      entriesB: entriesB < 1 ? 0 : Math.round(entriesB),
+      carambolasB,
+      averageB,
+      winner,
+      isBye,
+    });
+  }
+
+  return matches.length > 0 ? matches : null;
 }
 
 export interface ProgramacionMatch {
