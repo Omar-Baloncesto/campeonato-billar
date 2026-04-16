@@ -8,27 +8,66 @@ import {
   formatDate,
   formatDateFull,
 } from '../data/schedule';
+import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
 
 /* ------------------------------------------------------------------ */
-/*  Build schedule: Sheets data (dynamic) with static fallback         */
+/*  Build schedule: groups (Sheets/static) + elimination (auto)        */
 /* ------------------------------------------------------------------ */
+
+const ELIM_DATE = '2026-02-01'; // Eliminación: domingo 1 febrero
+
+function buildEliminationSchedule(): ScheduleMatch[] {
+  const matches: ScheduleMatch[] = [];
+  const realMatches = ELIMINATION_MATCHES.filter(m => !m.isBye);
+
+  // Group by round, assign times starting at 9:00 AM
+  // 2 matches per time slot (2 tables)
+  let hour = 9;
+  let slotCount = 0;
+
+  for (const m of realMatches) {
+    const table = (slotCount % 2) + 1;
+    const time = `${hour.toString().padStart(2, '0')}:00`;
+    const hasScore = m.carambolasA > 0 || m.carambolasB > 0;
+
+    matches.push({
+      date: ELIM_DATE,
+      time,
+      table,
+      round: ROUND_NAMES[m.round] || `Ronda ${m.round}`,
+      playerA: m.playerA,
+      playerB: m.playerB,
+      scoreA: hasScore ? m.carambolasA : undefined,
+      scoreB: hasScore ? m.carambolasB : undefined,
+      winner: m.winner || undefined,
+      status: hasScore ? 'ended' : 'scheduled',
+    });
+
+    slotCount++;
+    if (slotCount % 2 === 0) {
+      hour++;
+      if (hour === 13) hour = 14; // Skip 1 PM (lunch)
+    }
+  }
+
+  return matches;
+}
 
 function buildSchedule(programacion: ProgramacionMatch[]): ScheduleMatch[] {
-  // If Sheets returned all 60 group matches, use dynamic data
-  if (programacion.length >= 60) {
-    const matches: ScheduleMatch[] = [];
+  let groupMatches: ScheduleMatch[];
 
-    // Group by date+time to assign table numbers
+  // Groups: use Sheets data if complete, otherwise static fallback
+  if (programacion.length >= 60) {
+    groupMatches = [];
     const bySlot: Record<string, ProgramacionMatch[]> = {};
     for (const m of programacion) {
       const key = `${m.isoDate}|${m.time24}`;
       if (!bySlot[key]) bySlot[key] = [];
       bySlot[key].push(m);
     }
-
     for (const [, slotMatches] of Object.entries(bySlot)) {
       slotMatches.forEach((m, idx) => {
-        matches.push({
+        groupMatches.push({
           date: m.isoDate,
           time: m.time24,
           table: idx + 1,
@@ -40,19 +79,14 @@ function buildSchedule(programacion: ProgramacionMatch[]): ScheduleMatch[] {
         });
       });
     }
-
-    // Add elimination matches from static data
-    for (const m of SCHEDULE) {
-      if (m.round !== 'Grupos') {
-        matches.push(m);
-      }
-    }
-
-    return matches;
+  } else {
+    groupMatches = [...SCHEDULE];
   }
 
-  // Fallback: use complete static data
-  return [...SCHEDULE];
+  // Elimination: always built from ELIMINATION_MATCHES (auto-updates)
+  const elimMatches = buildEliminationSchedule();
+
+  return [...groupMatches, ...elimMatches];
 }
 
 /* ------------------------------------------------------------------ */

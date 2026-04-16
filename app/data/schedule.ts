@@ -103,52 +103,6 @@ export const SCHEDULE: ScheduleMatch[] = [
   { date: '2026-01-31', time: '15:00', table: 2, round: 'Grupos', group: 7, playerA: 'Carlos Pérez Jr.', playerB: 'Fernando Moreno', status: 'ended' },
   { date: '2026-01-31', time: '15:00', table: 3, round: 'Grupos', group: 8, playerA: 'Elkin Florez', playerB: 'Henry Pardo', status: 'ended' },
   { date: '2026-01-31', time: '15:00', table: 4, round: 'Grupos', group: 9, playerA: 'Tulio Rivera', playerB: 'Anibal Ortiz', status: 'ended' },
-
-  // ============================================================
-  //  DOMINGO 1 FEBRERO 2026 – Eliminación 1ra Ronda (desde 9:00 AM)
-  // ============================================================
-  { date: '2026-02-01', time: '09:00', table: 1, round: '1ra Ronda', playerA: 'José Manuel Ardila', playerB: 'Elkin Florez', scoreA: 15, scoreB: 0, winner: 'José Manuel Ardila', status: 'ended' },
-  { date: '2026-02-01', time: '09:00', table: 2, round: '1ra Ronda', playerA: 'David Varón', playerB: 'Gabriel Monsalve', scoreA: 11, scoreB: 14, winner: 'Gabriel Monsalve', status: 'ended' },
-  { date: '2026-02-01', time: '10:00', table: 1, round: '1ra Ronda', playerA: 'Pedro Vasquez', playerB: 'German Vivas', scoreA: 15, scoreB: 7, winner: 'Pedro Vasquez', status: 'ended' },
-  { date: '2026-02-01', time: '10:00', table: 2, round: '1ra Ronda', playerA: 'Pedro J. Pezzoti', playerB: 'Oscar Ramirez', scoreA: 12, scoreB: 15, winner: 'Oscar Ramirez', status: 'ended' },
-
-  // ============================================================
-  //  DOMINGO 1 FEBRERO 2026 – Eliminación 2da Ronda
-  // ============================================================
-  { date: '2026-02-01', time: '11:00', table: 1, round: '2da Ronda', playerA: 'Hugo Portilla', playerB: 'Henry Pacheco', scoreA: 13, scoreB: 12, winner: 'Hugo Portilla', status: 'ended' },
-  { date: '2026-02-01', time: '11:00', table: 2, round: '2da Ronda', playerA: 'Henry Pardo', playerB: 'Nicolás Carrero', scoreA: 15, scoreB: 4, winner: 'Henry Pardo', status: 'ended' },
-  { date: '2026-02-01', time: '12:00', table: 1, round: '2da Ronda', playerA: 'Daniel Mejia', playerB: 'Omar Alvarez', scoreA: 15, scoreB: 10, winner: 'Daniel Mejia', status: 'ended' },
-
-  // ============================================================
-  //  DOMINGO 1 FEBRERO 2026 – Octavos de Final
-  // ============================================================
-  { date: '2026-02-01', time: '14:00', table: 1, round: 'Octavos', playerA: 'Hugo Portilla', playerB: 'William Abreo', scoreA: 12, scoreB: 10, winner: 'Hugo Portilla', status: 'ended' },
-  { date: '2026-02-01', time: '14:00', table: 2, round: 'Octavos', playerA: 'Henry Pardo', playerB: 'Eugenio Sánchez', scoreA: 8, scoreB: 15, winner: 'Eugenio Sánchez', status: 'ended' },
-  { date: '2026-02-01', time: '15:00', table: 1, round: 'Octavos', playerA: 'Luis Miguel Salguero', playerB: 'Alvaro Ortega Sierra', scoreA: 15, scoreB: 4, winner: 'Luis Miguel Salguero', status: 'ended' },
-  { date: '2026-02-01', time: '15:00', table: 2, round: 'Octavos', playerA: 'Javier García', playerB: 'Jorge Leal', scoreA: 14, scoreB: 8, winner: 'Javier García', status: 'ended' },
-  { date: '2026-02-01', time: '16:00', table: 1, round: 'Octavos', playerA: 'Franklin Bueno', playerB: 'Fernando Moreno', scoreA: 5, scoreB: 10, winner: 'Fernando Moreno', status: 'ended' },
-  { date: '2026-02-01', time: '16:00', table: 2, round: 'Octavos', playerA: 'Argemiro Aguirre', playerB: 'Antonio Osorio', scoreA: 12, scoreB: 8, winner: 'Argemiro Aguirre', status: 'ended' },
-  { date: '2026-02-01', time: '17:00', table: 1, round: 'Octavos', playerA: 'Gabriel Monsalve', playerB: 'Victor Manuel Oviedo', scoreA: 6, scoreB: 3, winner: 'Gabriel Monsalve', status: 'ended' },
-  { date: '2026-02-01', time: '17:00', table: 2, round: 'Octavos', playerA: 'Daniel Mejia', playerB: 'Oscar Ramirez', scoreA: 10, scoreB: 7, winner: 'Daniel Mejia', status: 'ended' },
-
-  // ============================================================
-  //  LUNES 2 FEBRERO 2026 – Cuartos de Final (desde 9:00 AM)
-  // ============================================================
-  { date: '2026-02-02', time: '09:00', table: 1, round: 'Cuartos', playerA: 'Hugo Portilla', playerB: 'Gabriel Monsalve', scoreA: 15, scoreB: 12, winner: 'Hugo Portilla', status: 'ended' },
-  { date: '2026-02-02', time: '09:00', table: 2, round: 'Cuartos', playerA: 'Eugenio Sánchez', playerB: 'Argemiro Aguirre', scoreA: 8, scoreB: 15, winner: 'Argemiro Aguirre', status: 'ended' },
-  { date: '2026-02-02', time: '10:00', table: 1, round: 'Cuartos', playerA: 'Luis Miguel Salguero', playerB: 'Daniel Mejia', scoreA: 15, scoreB: 11, winner: 'Luis Miguel Salguero', status: 'ended' },
-  { date: '2026-02-02', time: '10:00', table: 2, round: 'Cuartos', playerA: 'Javier García', playerB: 'Fernando Moreno', scoreA: 9, scoreB: 8, winner: 'Javier García', status: 'ended' },
-
-  // ============================================================
-  //  LUNES 2 FEBRERO 2026 – Semifinales
-  // ============================================================
-  { date: '2026-02-02', time: '14:00', table: 1, round: 'Semifinal', playerA: 'Hugo Portilla', playerB: 'Javier García', scoreA: 6, scoreB: 8, winner: 'Javier García', status: 'ended' },
-  { date: '2026-02-02', time: '14:00', table: 2, round: 'Semifinal', playerA: 'Argemiro Aguirre', playerB: 'Luis Miguel Salguero', scoreA: 7, scoreB: 15, winner: 'Luis Miguel Salguero', status: 'ended' },
-
-  // ============================================================
-  //  LUNES 2 FEBRERO 2026 – FINAL
-  // ============================================================
-  { date: '2026-02-02', time: '17:00', table: 1, round: 'Final', playerA: 'Javier García', playerB: 'Luis Miguel Salguero', scoreA: 20, scoreB: 18, winner: 'Javier García', status: 'ended' },
 ];
 
 export function getScheduleDates(): string[] {
