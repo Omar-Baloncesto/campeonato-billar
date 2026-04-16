@@ -134,3 +134,42 @@ export async function fetchEliminationClient(): Promise<EliminationMatch[] | nul
   }
   return matches.length > 20 ? matches : null;
 }
+
+export interface GroupResult {
+  group: number;
+  match: number;
+  playerA: string;
+  carambolasA: number;
+  entriesA: number;
+  averageA: number;
+  playerB: string;
+  carambolasB: number;
+  entriesB: number;
+  averageB: number;
+  winner: string;
+}
+
+export async function fetchResultsClient(): Promise<GroupResult[] | null> {
+  const rows = await fetchSheetClient('RESULTADOS', 'A1:L200');
+  if (!rows) return null;
+
+  const results: GroupResult[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row[0] || !row[2]) continue;
+    results.push({
+      group: parseNumber(row[0]),
+      match: parseNumber(row[1]),
+      playerA: (row[2] || '').trim(),
+      carambolasA: parseNumber(row[3]),
+      entriesA: parseNumber(row[4]),
+      averageA: parseNumber(row[5]),
+      playerB: (row[6] || '').trim(),
+      carambolasB: parseNumber(row[7]),
+      entriesB: parseNumber(row[8]),
+      averageB: parseNumber(row[9]),
+      winner: (row[10] || '').trim(),
+    });
+  }
+  return results.length > 0 ? results : null;
+}

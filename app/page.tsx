@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { fetchConfig, fetchPlayers, fetchResults, fetchRankingFinal } from './lib/sheets';
+import { fetchConfig, fetchPlayers, fetchResults, fetchRankingFinal, fetchEliminationMatches } from './lib/sheets';
 import { ELIMINATION_MATCHES } from './data/elimination';
 import { CITIES } from './lib/constants';
 import { TrophyBadge, MedalBadge } from './components/TrophyBadge';
@@ -7,26 +7,29 @@ import { TrophyBadge, MedalBadge } from './components/TrophyBadge';
 export const revalidate = 60;
 
 export default async function Dashboard() {
-  const [config, players, results, rankingFinal] = await Promise.all([
+  const [config, players, results, rankingFinal, liveElimination] = await Promise.all([
     fetchConfig(),
     fetchPlayers(),
     fetchResults(),
     fetchRankingFinal(),
+    fetchEliminationMatches().catch(() => null),
   ]);
+
+  const elimData = liveElimination || ELIMINATION_MATCHES;
 
   const champion = rankingFinal[0];
   const finalist = rankingFinal[1];
   const third = rankingFinal[2];
   const fourth = rankingFinal[3];
   const totalMatches = results.length;
-  const eliminationMatches = ELIMINATION_MATCHES.filter(m => !m.isBye).length;
+  const eliminationMatches = elimData.filter(m => !m.isBye).length;
 
   const cityCounts: Record<string, number> = {};
   for (const p of players) {
     cityCounts[p.city] = (cityCounts[p.city] || 0) + 1;
   }
 
-  const finalMatch = ELIMINATION_MATCHES.find(m => m.round === 6);
+  const finalMatch = elimData.find(m => m.round === 6);
 
   const stats = [
     { label: 'Jugadores', value: config.totalPlayers, icon: 'players' },
