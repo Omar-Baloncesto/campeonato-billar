@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { ProgramacionMatch } from '../lib/sheets';
 import type { ScheduleMatch } from '../data/types';
 import {
   SCHEDULE,
@@ -11,57 +10,32 @@ import {
 import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
 
 /* ------------------------------------------------------------------ */
-/*  Types for elimination data from Sheets                             */
+/*  Build full schedule: groups (static) + elimination (auto from data)*/
 /* ------------------------------------------------------------------ */
 
-interface ElimMatch {
-  round: number;
-  match: number;
-  playerA: string;
-  entriesA: number;
-  carambolasA: number;
-  averageA: number;
-  playerB: string;
-  entriesB: number;
-  carambolasB: number;
-  averageB: number;
-  winner: string;
-  isBye: boolean;
-}
+const ELIM_DATE = '2026-02-01';
 
-/* ------------------------------------------------------------------ */
-/*  Build schedule: groups (Sheets/static) + elimination (Sheets/static)*/
-/* ------------------------------------------------------------------ */
+function buildFullSchedule(): ScheduleMatch[] {
+  // Groups from static schedule
+  const groupMatches = [...SCHEDULE];
 
-const ELIM_DATE = '2026-02-01'; // Eliminación: domingo 1 febrero
+  // Elimination from ELIMINATION_MATCHES (auto, no BYEs)
+  const elimMatches: ScheduleMatch[] = [];
+  const realElim = ELIMINATION_MATCHES.filter(m => !m.isBye);
 
-const ROUND_LABELS: Record<number, string> = {
-  1: 'Primera Ronda',
-  2: 'Segunda Ronda',
-  3: 'Octavos de Final',
-  4: 'Cuartos de Final',
-  5: 'Semifinal',
-  6: 'Final',
-};
-
-function buildEliminationSchedule(elimData: ElimMatch[]): ScheduleMatch[] {
-  const matches: ScheduleMatch[] = [];
-  const realMatches = elimData.filter(m => !m.isBye);
-
-  // 2 matches per hour, starting at 9:00 AM, skip lunch at 13:00
   let hour = 9;
   let slotCount = 0;
 
-  for (const m of realMatches) {
+  for (const m of realElim) {
     const table = (slotCount % 2) + 1;
     const time = `${hour.toString().padStart(2, '0')}:00`;
     const hasScore = m.carambolasA > 0 || m.carambolasB > 0;
 
-    matches.push({
+    elimMatches.push({
       date: ELIM_DATE,
       time,
       table,
-      round: ROUND_LABELS[m.round] || `Ronda ${m.round}`,
+      round: ROUND_NAMES[m.round] || `Ronda ${m.round}`,
       playerA: m.playerA,
       playerB: m.playerB,
       scoreA: hasScore ? m.carambolasA : undefined,
@@ -76,45 +50,6 @@ function buildEliminationSchedule(elimData: ElimMatch[]): ScheduleMatch[] {
       if (hour === 13) hour = 14;
     }
   }
-
-  return matches;
-}
-
-function buildSchedule(
-  programacion: ProgramacionMatch[],
-  eliminacion: ElimMatch[] | null,
-): ScheduleMatch[] {
-  // Groups: Sheets data if complete, otherwise static fallback
-  let groupMatches: ScheduleMatch[];
-  if (programacion.length >= 60) {
-    groupMatches = [];
-    const bySlot: Record<string, ProgramacionMatch[]> = {};
-    for (const m of programacion) {
-      const key = `${m.isoDate}|${m.time24}`;
-      if (!bySlot[key]) bySlot[key] = [];
-      bySlot[key].push(m);
-    }
-    for (const [, slotMatches] of Object.entries(bySlot)) {
-      slotMatches.forEach((m, idx) => {
-        groupMatches.push({
-          date: m.isoDate,
-          time: m.time24,
-          table: idx + 1,
-          round: 'Grupos',
-          group: m.group,
-          playerA: m.playerA,
-          playerB: m.playerB,
-          status: 'ended',
-        });
-      });
-    }
-  } else {
-    groupMatches = [...SCHEDULE];
-  }
-
-  // Elimination: Sheets data if available, otherwise static fallback
-  const elimSource = eliminacion || ELIMINATION_MATCHES;
-  const elimMatches = buildEliminationSchedule(elimSource);
 
   return [...groupMatches, ...elimMatches];
 }
@@ -154,7 +89,6 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
 
   return (
     <div className="glass-card rounded-xl overflow-hidden glow-hover">
-      {/* Match header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-light">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-text-primary">{match.time}</span>
@@ -171,9 +105,7 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
         </div>
       </div>
 
-      {/* Players */}
       <div className="px-4 py-3 space-y-2">
-        {/* Player A */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-bg-darkest/30 flex items-center justify-center shrink-0">
             <svg className="w-4 h-4 text-text-muted/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -197,7 +129,6 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
           )}
         </div>
 
-        {/* Player B */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-bg-darkest/30 flex items-center justify-center shrink-0">
             <svg className="w-4 h-4 text-text-muted/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -226,17 +157,11 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Main client component                                              */
+/*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-export default function CalendarioClient({
-  programacion,
-  eliminacion,
-}: {
-  programacion: ProgramacionMatch[];
-  eliminacion: ElimMatch[] | null;
-}) {
-  const allMatches = useMemo(() => buildSchedule(programacion, eliminacion), [programacion, eliminacion]);
+export default function CalendarioClient() {
+  const allMatches = useMemo(() => buildFullSchedule(), []);
 
   const dates = useMemo(() => {
     return [...new Set(allMatches.map(m => m.date))].sort();
@@ -251,7 +176,6 @@ export default function CalendarioClient({
       ? dayMatches.filter((m) => m.scoreA != null)
       : dayMatches;
 
-  // Group by time slot
   const byTime: Record<string, ScheduleMatch[]> = {};
   for (const m of filteredMatches) {
     if (!byTime[m.time]) byTime[m.time] = [];
@@ -268,7 +192,6 @@ export default function CalendarioClient({
           Programación de partidos y resultados por jornada
         </p>
 
-        {/* Schedule / Results toggle */}
         <div className="flex gap-0 mb-4 border-b border-border-light">
           <button
             onClick={() => setViewTab('schedule')}
@@ -298,7 +221,6 @@ export default function CalendarioClient({
           </button>
         </div>
 
-        {/* Date pills */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-6">
           {dates.map((date) => {
             const isActive = date === selectedDate;
@@ -322,12 +244,10 @@ export default function CalendarioClient({
           })}
         </div>
 
-        {/* Date header */}
         <div className="text-sm text-text-muted mb-4 font-medium">
           {formatDateFull(selectedDate)}
         </div>
 
-        {/* Matches grouped by time */}
         {Object.keys(byTime).length === 0 ? (
           <div className="text-center py-12">
             <div className="text-text-muted text-sm">
