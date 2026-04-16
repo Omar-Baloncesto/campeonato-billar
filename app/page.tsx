@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { fetchConfig, fetchPlayers, fetchResults, fetchRankingFinal, fetchEliminationMatches } from './lib/sheets';
+import { fetchConfig, fetchPlayers, fetchResults, fetchEliminationMatches } from './lib/sheets';
 import { ELIMINATION_MATCHES } from './data/elimination';
 import { CITIES } from './lib/constants';
 import { TrophyBadge, MedalBadge } from './components/TrophyBadge';
@@ -7,20 +7,30 @@ import { TrophyBadge, MedalBadge } from './components/TrophyBadge';
 export const revalidate = 60;
 
 export default async function Dashboard() {
-  const [config, players, results, rankingFinal, liveElimination] = await Promise.all([
+  const [config, players, results, liveElimination] = await Promise.all([
     fetchConfig(),
     fetchPlayers(),
     fetchResults(),
-    fetchRankingFinal(),
     fetchEliminationMatches().catch(() => null),
   ]);
 
   const elimData = liveElimination || ELIMINATION_MATCHES;
 
-  const champion = rankingFinal[0];
-  const finalist = rankingFinal[1];
-  const third = rankingFinal[2];
-  const fourth = rankingFinal[3];
+  // Champion & podium from elimination (semifinal + final)
+  const finalMatch = elimData.find(m => m.round === 6 && !m.isBye);
+  const semis = elimData.filter(m => m.round === 5 && !m.isBye);
+
+  const championName = finalMatch?.winner || '';
+  const finalistName = finalMatch ? (finalMatch.winner === finalMatch.playerA ? finalMatch.playerB : finalMatch.playerA) : '';
+
+  // 3rd and 4th = losers of semifinals
+  const semiLosers = semis.map(m => m.winner === m.playerA ? m.playerB : m.playerA).filter(Boolean);
+
+  const champion = championName ? { player: championName, ranking: 1, roundReached: 6 } : null;
+  const finalist = finalistName ? { player: finalistName, ranking: 2, roundReached: 6 } : null;
+  const third = semiLosers[0] ? { player: semiLosers[0], ranking: 3, roundReached: 5 } : null;
+  const fourth = semiLosers[1] ? { player: semiLosers[1], ranking: 4, roundReached: 5 } : null;
+
   const totalMatches = results.length;
   const eliminationMatches = elimData.filter(m => !m.isBye).length;
 
@@ -28,8 +38,6 @@ export default async function Dashboard() {
   for (const p of players) {
     cityCounts[p.city] = (cityCounts[p.city] || 0) + 1;
   }
-
-  const finalMatch = elimData.find(m => m.round === 6);
 
   const stats = [
     { label: 'Jugadores', value: config.totalPlayers, icon: 'players' },
