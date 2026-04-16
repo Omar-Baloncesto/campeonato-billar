@@ -75,3 +75,62 @@ export function parseDateDMY(dateStr: string): string {
   if (!match) return '';
   return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Client-side fetch helpers                                          */
+/* ------------------------------------------------------------------ */
+
+import type { EliminationMatch } from '../data/types';
+
+async function fetchSheetClient(sheetName: string, range: string): Promise<string[][] | null> {
+  try {
+    const res = await fetch(sheetUrl(sheetName, range));
+    if (!res.ok) return null;
+    const csv = await res.text();
+    if (!csv || csv.length < 10) return null;
+    return parseCSV(csv);
+  } catch (_e) {
+    return null;
+  }
+}
+
+export async function fetchEliminationClient(): Promise<EliminationMatch[] | null> {
+  let rows: string[][] | null = null;
+  for (const name of ['Eliminación Simple', 'ELIMINACIÓN SIMPLE', 'ELIMINACION SIMPLE']) {
+    rows = await fetchSheetClient(name, 'A1:K200');
+    if (rows && rows.length > 5) break;
+    rows = null;
+  }
+  if (!rows) return null;
+
+  const matches: EliminationMatch[] = [];
+  for (const row of rows) {
+    const ronda = parseInt(row[0]);
+    if (isNaN(ronda) || ronda < 1 || ronda > 10) continue;
+    const matchNum = parseInt(row[1]);
+    if (isNaN(matchNum)) continue;
+    const playerA = (row[2] || '').trim();
+    const playerB = (row[6] || '').trim();
+    if (!playerA) continue;
+
+    const isBye = playerB.toUpperCase() === 'BYE';
+    const entriesA = parseNumber(row[3]);
+    const entriesB = parseNumber(row[7]);
+
+    matches.push({
+      round: ronda,
+      match: matchNum,
+      playerA,
+      entriesA: entriesA < 1 ? 0 : Math.round(entriesA),
+      carambolasA: parseNumber(row[4]),
+      averageA: parseNumber(row[5]),
+      playerB: isBye ? 'BYE' : playerB,
+      entriesB: entriesB < 1 ? 0 : Math.round(entriesB),
+      carambolasB: parseNumber(row[8]),
+      averageB: parseNumber(row[9]),
+      winner: (row[10] || '').trim(),
+      isBye,
+    });
+  }
+  return matches.length > 20 ? matches : null;
+}

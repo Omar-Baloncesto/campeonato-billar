@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { ScheduleMatch, EliminationMatch } from '../data/types';
 import { SCHEDULE, formatDate, formatDateFull } from '../data/schedule';
 import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
-import { sheetUrl, parseCSV, parseNumber, parseTime24, parseDateDMY } from '../lib/sheets-client';
+import { sheetUrl, parseCSV, parseNumber, parseTime24, parseDateDMY, fetchEliminationClient } from '../lib/sheets-client';
 
 /* ------------------------------------------------------------------ */
 /*  Client-side fetch from Google Sheets                               */
@@ -20,48 +20,6 @@ async function fetchSheetClient(sheetName: string, range: string): Promise<strin
   } catch (_e) {
     return null;
   }
-}
-
-async function fetchEliminationClient(): Promise<EliminationMatch[] | null> {
-  // Try different sheet names
-  let rows: string[][] | null = null;
-  for (const name of ['Eliminación Simple', 'ELIMINACIÓN SIMPLE', 'ELIMINACION SIMPLE']) {
-    rows = await fetchSheetClient(name, 'A1:K200');
-    if (rows && rows.length > 5) break;
-    rows = null;
-  }
-  if (!rows) return null;
-
-  const matches: EliminationMatch[] = [];
-  for (const row of rows) {
-    const ronda = parseInt(row[0]);
-    if (isNaN(ronda) || ronda < 1 || ronda > 10) continue;
-    const matchNum = parseInt(row[1]);
-    if (isNaN(matchNum)) continue;
-    const playerA = (row[2] || '').trim();
-    const playerB = (row[6] || '').trim();
-    if (!playerA) continue;
-
-    const isBye = playerB.toUpperCase() === 'BYE';
-    const entriesA = parseNumber(row[3]);
-    const entriesB = parseNumber(row[7]);
-
-    matches.push({
-      round: ronda,
-      match: matchNum,
-      playerA,
-      entriesA: entriesA < 1 ? 0 : Math.round(entriesA),
-      carambolasA: parseNumber(row[4]),
-      averageA: parseNumber(row[5]),
-      playerB: isBye ? 'BYE' : playerB,
-      entriesB: entriesB < 1 ? 0 : Math.round(entriesB),
-      carambolasB: parseNumber(row[8]),
-      averageB: parseNumber(row[9]),
-      winner: (row[10] || '').trim(),
-      isBye,
-    });
-  }
-  return matches.length > 20 ? matches : null;
 }
 
 interface ProgMatch {
