@@ -1,27 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ELIMINATION_MATCHES,
   ROUND_NAMES,
-  getMatchesByRound,
 } from '../data/elimination';
+import { fetchEliminationClient } from '../lib/sheets-client';
+import type { EliminationMatch } from '../data/types';
 import FilterPills from '../components/FilterPills';
 import TournamentBracket from '../components/TournamentBracket';
 import RondasBracket from '../components/RondasBracket';
-
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
-
-const hasPreOctavos = ELIMINATION_MATCHES.some(
-  (m) => m.round <= 2 && !m.isBye,
-);
-
-// Get BYE players sorted by match number (= ranking position)
-const byePlayers = ELIMINATION_MATCHES
-  .filter((m) => m.round === 1 && m.isBye)
-  .sort((a, b) => a.match - b.match);
 
 type ViewMode = 'lista' | 'rondas' | 'cuadro';
 
@@ -79,7 +67,7 @@ function PlayerSlotList({
   );
 }
 
-function MatchBox({ match }: { match: (typeof ELIMINATION_MATCHES)[0] }) {
+function MatchBox({ match }: { match: EliminationMatch }) {
   const isWinnerA = match.winner === match.playerA;
   const isWinnerB = match.winner === match.playerB;
 
@@ -133,7 +121,7 @@ function MatchBox({ match }: { match: (typeof ELIMINATION_MATCHES)[0] }) {
 /*  BYE Players Panel - always visible                                 */
 /* ------------------------------------------------------------------ */
 
-function ByePlayersPanel() {
+function ByePlayersPanel({ byePlayers }: { byePlayers: EliminationMatch[] }) {
   if (byePlayers.length === 0) return null;
 
   return (
@@ -192,16 +180,29 @@ function ByePlayersPanel() {
 export default function EliminacionPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('lista');
   const [roundFilter, setRoundFilter] = useState('all');
-  const rounds = [1, 2, 3, 4, 5, 6];
+  const [matches, setMatches] = useState<EliminationMatch[]>(ELIMINATION_MATCHES);
+
+  // Fetch live data from Google Sheets
+  useEffect(() => {
+    let cancelled = false;
+    fetchEliminationClient().then(data => {
+      if (!cancelled && data) setMatches(data);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const rounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
 
   const roundItems = [
     { key: 'all', label: 'Todas' },
-    ...rounds.map((r) => ({ key: String(r), label: ROUND_NAMES[r] })),
+    ...rounds.map((r) => ({ key: String(r), label: ROUND_NAMES[r] || `Ronda ${r}` })),
   ];
 
-  const champion = ELIMINATION_MATCHES.find((m) => m.round === 6)?.winner;
-  const finalMatch = ELIMINATION_MATCHES.find((m) => m.round === 6);
-  const totalReal = ELIMINATION_MATCHES.filter((m) => !m.isBye).length;
+  const hasPreOctavos = matches.some(m => m.round <= 2 && !m.isBye);
+  const byePlayers = matches.filter(m => m.round === 1 && m.isBye).sort((a, b) => a.match - b.match);
+  const champion = matches.find((m) => m.round === 6)?.winner;
+  const finalMatch = matches.find((m) => m.round === 6);
+  const totalReal = matches.filter((m) => !m.isBye).length;
 
   return (
     <div className="animate-fade-in px-4 py-6 md:px-8">
@@ -240,7 +241,7 @@ export default function EliminacionPage() {
         </div>
 
         {/* ============ BYE PANEL - visible in lista & rondas ============ */}
-        {viewMode !== 'cuadro' && <ByePlayersPanel />}
+        {viewMode !== 'cuadro' && <ByePlayersPanel byePlayers={byePlayers} />}
 
         {/* ============ LISTA VIEW ============ */}
         {viewMode === 'lista' && (
@@ -279,8 +280,8 @@ export default function EliminacionPage() {
 
             {(roundFilter === 'all' ? rounds : [Number(roundFilter)]).map(
               (round) => {
-                const matches = getMatchesByRound(round);
-                const actualMatches = matches.filter((m) => !m.isBye);
+                const roundMatches = matches.filter(m => m.round === round);
+                const actualMatches = roundMatches.filter((m) => !m.isBye);
 
                 if (actualMatches.length === 0 && round === 1) {
                   // Round 1 only has BYEs that are shown in the panel above
@@ -328,14 +329,14 @@ export default function EliminacionPage() {
                 partidos) → Octavos
               </p>
             </div>
-            <RondasBracket matches={ELIMINATION_MATCHES} />
+            <RondasBracket matches={matches} />
           </div>
         )}
 
         {/* ============ CUADRO VIEW ============ */}
         {viewMode === 'cuadro' && (
           <div className="mt-2">
-            <TournamentBracket matches={ELIMINATION_MATCHES} />
+            <TournamentBracket matches={matches} />
           </div>
         )}
       </div>
