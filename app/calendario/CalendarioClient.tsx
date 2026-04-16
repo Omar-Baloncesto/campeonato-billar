@@ -4,55 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { ScheduleMatch, EliminationMatch } from '../data/types';
 import { SCHEDULE, formatDate, formatDateFull } from '../data/schedule';
 import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
-import { sheetUrl, parseCSV, parseNumber, parseTime24, parseDateDMY, fetchEliminationClient, fetchResultsClient, type GroupResult } from '../lib/sheets-client';
-
-/* ------------------------------------------------------------------ */
-/*  Client-side fetch from Google Sheets                               */
-/* ------------------------------------------------------------------ */
-
-async function fetchSheetClient(sheetName: string, range: string): Promise<string[][] | null> {
-  try {
-    const res = await fetch(sheetUrl(sheetName, range));
-    if (!res.ok) return null;
-    const csv = await res.text();
-    if (!csv || csv.length < 10) return null;
-    return parseCSV(csv);
-  } catch (_e) {
-    return null;
-  }
-}
-
-interface ProgMatch {
-  group: number; playerA: string; playerB: string; isoDate: string; time24: string;
-}
-
-async function fetchProgramacionClient(): Promise<ProgMatch[] | null> {
-  const rows = await fetchSheetClient('Programación', 'A1:K100');
-  if (!rows) return null;
-
-  function parseCols(colOffset: number): ProgMatch[] {
-    const out: ProgMatch[] = [];
-    for (let i = 2; i < rows!.length; i++) {
-      const grupo = (rows![i]?.[colOffset] || '').trim();
-      const playerA = (rows![i]?.[colOffset + 1] || '').trim();
-      const playerB = (rows![i]?.[colOffset + 2] || '').trim();
-      const dateRaw = (rows![i]?.[colOffset + 3] || '').trim();
-      const timeRaw = (rows![i]?.[colOffset + 4] || '').trim();
-      if (!grupo || !playerA || !playerB) continue;
-      const groupNum = parseInt(grupo);
-      if (isNaN(groupNum)) continue;
-      const isoDate = parseDateDMY(dateRaw);
-      if (!isoDate) continue;
-      out.push({ group: groupNum, playerA, playerB, isoDate, time24: timeRaw ? parseTime24(timeRaw) : '00:00' });
-    }
-    return out;
-  }
-
-  const day1 = parseCols(0);
-  const day2 = parseCols(6);
-  const all = [...day1, ...day2];
-  return all.length >= 50 ? all : null;
-}
+import { fetchEliminationClient, fetchResultsClient, type GroupResult } from '../lib/sheets-client';
 
 /* ------------------------------------------------------------------ */
 /*  Build schedule from data                                           */
@@ -72,36 +24,6 @@ function findResult(results: GroupResult[], group: number, playerA: string, play
       (r.playerA.includes(playerB.split(' ')[0]) && r.playerB.includes(playerA.split(' ')[0]))
     )
   );
-}
-
-function buildGroupSchedule(prog: ProgMatch[] | null, results: GroupResult[] | null): ScheduleMatch[] {
-  if (!prog) return [...SCHEDULE];
-
-  const matches: ScheduleMatch[] = [];
-  const bySlot: Record<string, ProgMatch[]> = {};
-  for (const m of prog) {
-    const key = `${m.isoDate}|${m.time24}`;
-    if (!bySlot[key]) bySlot[key] = [];
-    bySlot[key].push(m);
-  }
-  for (const slotMatches of Object.values(bySlot)) {
-    slotMatches.forEach((m, idx) => {
-      // Cross-reference with results to get scores
-      const result = results ? findResult(results, m.group, m.playerA, m.playerB) : undefined;
-      const hasResult = result && (result.carambolasA > 0 || result.carambolasB > 0);
-
-      matches.push({
-        date: m.isoDate, time: m.time24, table: idx + 1,
-        round: 'Grupos', group: m.group,
-        playerA: m.playerA, playerB: m.playerB,
-        scoreA: hasResult ? result.carambolasA : undefined,
-        scoreB: hasResult ? result.carambolasB : undefined,
-        winner: hasResult ? result.winner : undefined,
-        status: hasResult ? 'ended' : 'scheduled',
-      });
-    });
-  }
-  return matches;
 }
 
 function buildElimSchedule(elimData: EliminationMatch[]): ScheduleMatch[] {
@@ -201,35 +123,51 @@ function ScheduleCard({ match }: { match: ScheduleMatch }) {
 /* ------------------------------------------------------------------ */
 
 export default function CalendarioClient() {
-  // Static data shown immediately
+  // Static data shown immediately (always the base — never replaced)
   const staticGroups = useMemo(() => [...SCHEDULE], []);
   const staticElim = useMemo(() => buildElimSchedule(ELIMINATION_MATCHES), []);
 
-  // Live data from Google Sheets
-  const [liveGroups, setLiveGroups] = useState<ScheduleMatch[] | null>(null);
+  // Live scores from Google Sheets (overlay on top of static)
+  const [liveResults, setLiveResults] = useState<GroupResult[] | null>(null);
   const [liveElim, setLiveElim] = useState<ScheduleMatch[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [elimData, progData, resultsData] = await Promise.all([
+      const [elimData, resultsData] = await Promise.all([
         fetchEliminationClient(),
-        fetchProgramacionClient(),
         fetchResultsClient(),
       ]);
       if (cancelled) return;
       if (elimData) setLiveElim(buildElimSchedule(elimData));
-      if (progData) setLiveGroups(buildGroupSchedule(progData, resultsData));
+      if (resultsData) setLiveResults(resultsData);
     }
     load();
     return () => { cancelled = true; };
   }, []);
 
+  // Merge: static groups + live scores overlay
+  const groupsWithScores = useMemo(() => {
+    if (!liveResults) return staticGroups;
+    return staticGroups.map(m => {
+      if (!m.group) return m;
+      const result = findResult(liveResults, m.group, m.playerA, m.playerB);
+      const hasResult = result && (result.carambolasA > 0 || result.carambolasB > 0);
+      if (!hasResult) return { ...m, status: 'scheduled' as const };
+      return {
+        ...m,
+        scoreA: result.carambolasA,
+        scoreB: result.carambolasB,
+        winner: result.winner,
+        status: 'ended' as const,
+      };
+    });
+  }, [staticGroups, liveResults]);
+
   const allMatches = useMemo(() => {
-    const groups = liveGroups ?? staticGroups;
     const elim = liveElim ?? staticElim;
-    return [...groups, ...elim];
-  }, [liveGroups, liveElim, staticGroups, staticElim]);
+    return [...groupsWithScores, ...elim];
+  }, [groupsWithScores, liveElim, staticElim]);
 
   const dates = useMemo(() => [...new Set(allMatches.map(m => m.date))].sort(), [allMatches]);
   const [selectedDate, setSelectedDate] = useState('');
