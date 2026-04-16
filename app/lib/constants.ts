@@ -21,14 +21,14 @@ export function getCityColor(city: string): string {
 }
 
 export const NAV_ITEMS = [
-  { label: 'Inicio', href: '/', icon: '🎱' },
+  { label: 'Config', href: '/configuracion', icon: '⚙️' },
+  { label: 'Jugadores', href: '/jugadores', icon: '👤' },
   { label: 'Calendario', href: '/calendario', icon: '📅' },
   { label: 'Grupos', href: '/grupos', icon: '📋' },
   { label: 'Resultados', href: '/resultados', icon: '📊' },
   { label: 'Eliminación', href: '/eliminacion', icon: '🏆' },
   { label: 'Ranking', href: '/ranking', icon: '🥇' },
-  { label: 'Jugadores', href: '/jugadores', icon: '👤' },
-  { label: 'Config', href: '/configuracion', icon: '⚙️' },
+  { label: 'Final Torneo', href: '/', icon: '🎱' },
 ];
 
 export const APP_CONFIG = {
