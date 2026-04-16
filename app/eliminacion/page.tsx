@@ -246,30 +246,6 @@ export default function EliminacionPage() {
         {/* ============ LISTA VIEW ============ */}
         {viewMode === 'lista' && (
           <>
-            {/* Champion box */}
-            {champion && (
-              <div
-                className="relative overflow-hidden rounded-2xl p-5 text-center mb-6 border border-[rgba(245,184,0,0.2)]"
-                style={{
-                  background:
-                    'linear-gradient(135deg, rgba(245,184,0,0.06), rgba(16,185,129,0.04))',
-                }}
-              >
-                <div className="text-[10px] tracking-[0.24em] text-text-muted uppercase mb-1 font-bold">
-                  Campeón
-                </div>
-                <div className="text-xl font-black text-[#F5B800]">
-                  {champion}
-                </div>
-                {finalMatch && (
-                  <div className="text-xs text-text-muted mt-2">
-                    Final: {finalMatch.carambolasA} -{' '}
-                    {finalMatch.carambolasB} ({finalMatch.entriesA} entradas)
-                  </div>
-                )}
-              </div>
-            )}
-
             <div className="mb-6">
               <FilterPills
                 items={roundItems}
