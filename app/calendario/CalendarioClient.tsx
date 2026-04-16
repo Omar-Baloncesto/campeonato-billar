@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { ScheduleMatch, EliminationMatch } from '../data/types';
 import { SCHEDULE, formatDate, formatDateFull } from '../data/schedule';
 import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
-import { sheetUrl, parseCSV, parseNumber, parseTime24, parseDateDMY, fetchEliminationClient } from '../lib/sheets-client';
+import { sheetUrl, parseCSV, parseNumber, parseTime24, parseDateDMY, fetchEliminationClient, fetchResultsClient, type GroupResult } from '../lib/sheets-client';
 
 /* ------------------------------------------------------------------ */
 /*  Client-side fetch from Google Sheets                               */
@@ -65,7 +65,16 @@ const ROUND_LABELS: Record<number, string> = {
   4: 'Cuartos de Final', 5: 'Semifinal', 6: 'Final',
 };
 
-function buildGroupSchedule(prog: ProgMatch[] | null): ScheduleMatch[] {
+function findResult(results: GroupResult[], group: number, playerA: string, playerB: string): GroupResult | undefined {
+  return results.find(r =>
+    r.group === group && (
+      (r.playerA.includes(playerA.split(' ')[0]) && r.playerB.includes(playerB.split(' ')[0])) ||
+      (r.playerA.includes(playerB.split(' ')[0]) && r.playerB.includes(playerA.split(' ')[0]))
+    )
+  );
+}
+
+function buildGroupSchedule(prog: ProgMatch[] | null, results: GroupResult[] | null): ScheduleMatch[] {
   if (!prog) return [...SCHEDULE];
 
   const matches: ScheduleMatch[] = [];
@@ -77,10 +86,18 @@ function buildGroupSchedule(prog: ProgMatch[] | null): ScheduleMatch[] {
   }
   for (const slotMatches of Object.values(bySlot)) {
     slotMatches.forEach((m, idx) => {
+      // Cross-reference with results to get scores
+      const result = results ? findResult(results, m.group, m.playerA, m.playerB) : undefined;
+      const hasResult = result && (result.carambolasA > 0 || result.carambolasB > 0);
+
       matches.push({
         date: m.isoDate, time: m.time24, table: idx + 1,
         round: 'Grupos', group: m.group,
-        playerA: m.playerA, playerB: m.playerB, status: 'ended',
+        playerA: m.playerA, playerB: m.playerB,
+        scoreA: hasResult ? result.carambolasA : undefined,
+        scoreB: hasResult ? result.carambolasB : undefined,
+        winner: hasResult ? result.winner : undefined,
+        status: hasResult ? 'ended' : 'scheduled',
       });
     });
   }
@@ -195,13 +212,14 @@ export default function CalendarioClient() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const [elimData, progData] = await Promise.all([
+      const [elimData, progData, resultsData] = await Promise.all([
         fetchEliminationClient(),
         fetchProgramacionClient(),
+        fetchResultsClient(),
       ]);
       if (cancelled) return;
       if (elimData) setLiveElim(buildElimSchedule(elimData));
-      if (progData) setLiveGroups(buildGroupSchedule(progData));
+      if (progData) setLiveGroups(buildGroupSchedule(progData, resultsData));
     }
     load();
     return () => { cancelled = true; };
