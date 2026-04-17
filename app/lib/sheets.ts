@@ -54,7 +54,7 @@ function parseNumber(val: string): number {
 
 async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
   const url = sheetUrl(sheetName, range);
-  const res = await fetch(url, { next: { revalidate: 60 } });
+  const res = await fetch(url, { next: { revalidate: 60, tags: ['sheet-data'] } });
   if (!res.ok) throw new Error(`Failed to fetch sheet ${sheetName}: ${res.status}`);
   const csv = await res.text();
   return parseCSV(csv);
