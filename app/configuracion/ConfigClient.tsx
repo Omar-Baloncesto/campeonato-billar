@@ -20,6 +20,7 @@ interface ConfigData {
 
 interface PlayerData {
   city: string;
+  group: number;
 }
 
 // Comparar claves sin que tildes/mayúsculas/espacios/chars invisibles rompan el match.
@@ -109,7 +110,10 @@ async function fetchPlayersClient(): Promise<PlayerData[]> {
     if (!res.ok) return [];
     const csv = await res.text();
     const rows = parseCSV(csv);
-    return rows.slice(1).filter(r => r[0] && r[1]).map(r => ({ city: r[5] || '' }));
+    return rows.slice(1).filter(r => r[0] && r[1]).map(r => ({
+      city: r[5] || '',
+      group: parseNumber(r[2] || ''),
+    }));
   } catch (_e) {
     return [];
   }
@@ -132,7 +136,14 @@ export default function ConfigClient() {
       fetchEliminationClient(),
     ]);
 
-    setConfig(cfgResult.data);
+    // Contar grupos distintos desde JUGADORES (columna C).
+    const distinctGroups = new Set<number>();
+    for (const p of players) {
+      if (p.group > 0) distinctGroups.add(p.group);
+    }
+    const totalGroups = distinctGroups.size || cfgResult.data.totalGroups;
+
+    setConfig({ ...cfgResult.data, totalGroups });
     setSource({
       fromSheet: cfgResult.fromSheet,
       error: cfgResult.error,
