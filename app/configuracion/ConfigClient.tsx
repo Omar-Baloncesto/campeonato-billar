@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { sheetUrl, parseCSV, parseNumber, fetchEliminationClient } from '../lib/sheets-client';
 import { ELIMINATION_MATCHES } from '../data/elimination';
 import { CITIES } from '../lib/constants';
+import { SHEET_REFRESH_EVENT } from '../components/AutoRefresh';
 
 interface ConfigData {
   totalPlayers: number;
@@ -21,31 +22,43 @@ interface PlayerData {
   city: string;
 }
 
+// Comparar claves sin que tildes/mayúsculas/espacios rompan el match.
+function normKey(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2010-\u2015]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 async function fetchConfigClient(): Promise<ConfigData> {
   const defaults: ConfigData = {
     totalPlayers: 42, playersPerGroup: 4, totalGroups: 11,
-    category: 'Segunda', carambolasPreliminary: 15, carambolasSemifinal: 20,
+    category: 'Primera', carambolasPreliminary: 15, carambolasSemifinal: 20,
     carambolasFinal: 20, entriesLimit: 30, timePerEntry: 40,
   };
   try {
-    const res = await fetch(sheetUrl('CONFIGURACION', 'A1:B15'));
+    const res = await fetch(sheetUrl('CONFIGURACION', 'A1:B15'), { cache: 'no-store' });
     if (!res.ok) return defaults;
     const csv = await res.text();
     const rows = parseCSV(csv);
     const map: Record<string, string> = {};
     for (const row of rows) {
-      if (row[0] && row[1]) map[row[0].trim()] = row[1].trim();
+      if (row[0] && row[1]) map[normKey(row[0])] = row[1].trim();
     }
+    const get = (key: string) => map[normKey(key)];
     return {
-      totalPlayers: parseNumber(map['Numero total de jugadores'] || '42'),
-      playersPerGroup: parseNumber(map['Jugadores por grupo'] || '4'),
-      totalGroups: parseNumber(map['Numero total de grupos'] || map['Total de grupos'] || map['Grupos'] || '11'),
-      category: map['Categoria'] || 'Segunda',
-      carambolasPreliminary: parseNumber(map['Carambolas - Ronda preliminar'] || '15'),
-      carambolasSemifinal: parseNumber(map['Carambolas - Semifinal'] || '20'),
-      carambolasFinal: parseNumber(map['Carambolas - Final'] || '20'),
-      entriesLimit: parseNumber(map['Limite de entradas'] || '30'),
-      timePerEntry: parseNumber(map['Tiempo por entrada (segundos)'] || '40'),
+      totalPlayers: parseNumber(get('Numero total de jugadores') || '42'),
+      playersPerGroup: parseNumber(get('Jugadores por grupo') || '4'),
+      totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
+      category: get('Categoria') || 'Primera',
+      carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || '15'),
+      carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || '20'),
+      carambolasFinal: parseNumber(get('Carambolas - Final') || '20'),
+      entriesLimit: parseNumber(get('Limite de entradas') || '30'),
+      timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || '40'),
     };
   } catch (_e) {
     return defaults;
@@ -54,7 +67,7 @@ async function fetchConfigClient(): Promise<ConfigData> {
 
 async function fetchPlayersClient(): Promise<PlayerData[]> {
   try {
-    const res = await fetch(sheetUrl('JUGADORES', 'A1:F100'));
+    const res = await fetch(sheetUrl('JUGADORES', 'A1:F100'), { cache: 'no-store' });
     if (!res.ok) return [];
     const csv = await res.text();
     const rows = parseCSV(csv);
@@ -70,28 +83,32 @@ export default function ConfigClient() {
   const [elimRounds, setElimRounds] = useState(6);
   const [elimReal, setElimReal] = useState(41);
 
-  useEffect(() => {
-    async function load() {
-      const [cfg, players, elimData] = await Promise.all([
-        fetchConfigClient(),
-        fetchPlayersClient(),
-        fetchEliminationClient(),
-      ]);
+  const load = useCallback(async () => {
+    const [cfg, players, elimData] = await Promise.all([
+      fetchConfigClient(),
+      fetchPlayersClient(),
+      fetchEliminationClient(),
+    ]);
 
-      setConfig(cfg);
+    setConfig(cfg);
 
-      const counts: Record<string, number> = {};
-      for (const p of players) {
-        if (p.city) counts[p.city] = (counts[p.city] || 0) + 1;
-      }
-      setCityCounts(counts);
-
-      const elim = elimData || ELIMINATION_MATCHES;
-      setElimRounds([...new Set(elim.map(m => m.round))].length);
-      setElimReal(elim.filter(m => !m.isBye).length);
+    const counts: Record<string, number> = {};
+    for (const p of players) {
+      if (p.city) counts[p.city] = (counts[p.city] || 0) + 1;
     }
-    load();
+    setCityCounts(counts);
+
+    const elim = elimData || ELIMINATION_MATCHES;
+    setElimRounds([...new Set(elim.map(m => m.round))].length);
+    setElimReal(elim.filter(m => !m.isBye).length);
   }, []);
+
+  useEffect(() => {
+    load();
+    const handler = () => { load(); };
+    window.addEventListener(SHEET_REFRESH_EVENT, handler);
+    return () => window.removeEventListener(SHEET_REFRESH_EVENT, handler);
+  }, [load]);
 
   if (!config) {
     return (

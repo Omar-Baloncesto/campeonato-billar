@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { ScheduleMatch, EliminationMatch } from '../data/types';
 import { SCHEDULE, formatDate, formatDateFull } from '../data/schedule';
 import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
 import { fetchEliminationClient, fetchResultsClient, type GroupResult } from '../lib/sheets-client';
+import { SHEET_REFRESH_EVENT } from '../components/AutoRefresh';
 
 /* ------------------------------------------------------------------ */
 /*  Build schedule from data                                           */
@@ -131,20 +132,21 @@ export default function CalendarioClient() {
   const [liveResults, setLiveResults] = useState<GroupResult[] | null>(null);
   const [liveElim, setLiveElim] = useState<ScheduleMatch[] | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      const [elimData, resultsData] = await Promise.all([
-        fetchEliminationClient(),
-        fetchResultsClient(),
-      ]);
-      if (cancelled) return;
-      if (elimData) setLiveElim(buildElimSchedule(elimData));
-      if (resultsData) setLiveResults(resultsData);
-    }
-    load();
-    return () => { cancelled = true; };
+  const load = useCallback(async () => {
+    const [elimData, resultsData] = await Promise.all([
+      fetchEliminationClient(),
+      fetchResultsClient(),
+    ]);
+    if (elimData) setLiveElim(buildElimSchedule(elimData));
+    if (resultsData) setLiveResults(resultsData);
   }, []);
+
+  useEffect(() => {
+    load();
+    const handler = () => { load(); };
+    window.addEventListener(SHEET_REFRESH_EVENT, handler);
+    return () => window.removeEventListener(SHEET_REFRESH_EVENT, handler);
+  }, [load]);
 
   // Merge: static groups + live scores overlay
   const groupsWithScores = useMemo(() => {

@@ -4,7 +4,7 @@ import { ELIMINATION_MATCHES } from './data/elimination';
 import { CITIES } from './lib/constants';
 import { TrophyBadge, MedalBadge } from './components/TrophyBadge';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function Dashboard() {
   const [config, players, results, liveElimination] = await Promise.all([

@@ -8,6 +8,7 @@ const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
 export function sheetUrl(sheetName: string, range?: string): string {
   let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
   if (range) url += `&range=${encodeURIComponent(range)}`;
+  url += `&_=${Date.now()}`;
   return url;
 }
 
@@ -84,7 +85,7 @@ import type { EliminationMatch } from '../data/types';
 
 async function fetchSheetClient(sheetName: string, range: string): Promise<string[][] | null> {
   try {
-    const res = await fetch(sheetUrl(sheetName, range));
+    const res = await fetch(sheetUrl(sheetName, range), { cache: 'no-store' });
     if (!res.ok) return null;
     const csv = await res.text();
     if (!csv || csv.length < 10) return null;
