@@ -53,19 +53,25 @@ async function fetchConfigClient(): Promise<{ data: ConfigData; fromSheet: boole
       if (row[0] && row[1]) map[normKey(row[0])] = row[1].trim();
     }
     const get = (key: string) => map[normKey(key)];
+    // Fallback por posición: la hoja tiene layout fijo.
+    const rowVal = (i: number) => (rows[i - 1]?.[1] || '').trim();
     if (typeof window !== 'undefined') {
-      console.info('[ConfigClient] keys del Sheet:', Object.keys(map), 'Categoria =', get('Categoria'));
+      console.info(
+        '[ConfigClient] keys del Sheet:', Object.keys(map),
+        '| Categoria via key =', JSON.stringify(get('Categoria')),
+        '| B5 via posición =', JSON.stringify(rowVal(5)),
+      );
     }
     const data: ConfigData = {
-      totalPlayers: parseNumber(get('Numero total de jugadores') || '42'),
-      playersPerGroup: parseNumber(get('Jugadores por grupo') || '4'),
+      totalPlayers: parseNumber(get('Numero total de jugadores') || rowVal(3) || '42'),
+      playersPerGroup: parseNumber(get('Jugadores por grupo') || rowVal(4) || '4'),
       totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
-      category: get('Categoria') || 'Primera',
-      carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || '15'),
-      carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || '20'),
-      carambolasFinal: parseNumber(get('Carambolas - Final') || '20'),
-      entriesLimit: parseNumber(get('Limite de entradas') || '30'),
-      timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || '40'),
+      category: get('Categoria') || rowVal(5) || 'Primera',
+      carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || rowVal(6) || '15'),
+      carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || rowVal(9) || '20'),
+      carambolasFinal: parseNumber(get('Carambolas - Final') || rowVal(10) || '20'),
+      entriesLimit: parseNumber(get('Limite de entradas') || rowVal(7) || '30'),
+      timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || rowVal(8) || '40'),
     };
     return { data, fromSheet: true };
   } catch (e) {
