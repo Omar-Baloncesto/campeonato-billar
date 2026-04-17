@@ -64,11 +64,28 @@ function parseNumber(val: string): number {
 function normalizeKey(s: string): string {
   return s
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // quitar tildes
-    .replace(/[\u2010-\u2015]/g, '-') // guiones tipográficos → guion normal
+    .replace(/[\u0300-\u036f]/g, '')           // quitar tildes
+    .replace(/[\u2010-\u2015]/g, '-')          // guiones tipográficos → guion normal
+    .replace(/[^a-zA-Z0-9 \-]/g, '')           // dejar solo alfanumérico + espacio + guion (mata NBSP, zero-width, etc.)
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
+}
+
+/**
+ * Busca el valor (columna B) de una fila cuya etiqueta (columna A), una
+ * vez normalizada, EMPIEZA por la pista dada. Esto es más tolerante
+ * que un match exacto: aguanta caracteres raros que el normalizador
+ * tampoco atrape, o etiquetas ligeramente diferentes a lo esperado.
+ */
+function findByLabel(rows: string[][], hint: string): string {
+  const n = normalizeKey(hint);
+  for (const row of rows) {
+    const a = row?.[0] ?? '';
+    const b = row?.[1] ?? '';
+    if (a && b && normalizeKey(a).startsWith(n)) return b.trim();
+  }
+  return '';
 }
 
 async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
@@ -86,33 +103,19 @@ export async function fetchConfig() {
     if (row[0] && row[1]) config[normalizeKey(row[0])] = row[1].trim();
   }
   const get = (key: string) => config[normalizeKey(key)];
-
-  // Fallback por posición de fila. La hoja CONFIGURACION tiene un
-  // layout fijo: fila 3 = total jugadores, fila 5 = categoría, etc.
-  // Si alguna celda A-label llega con un carácter invisible y el
-  // lookup por clave falla, leemos B-valor directamente por índice.
-  // (rows[i] corresponde a fila i+1 del Sheet si la fila 1 es la
-  //  primera; el parser trae todas las filas del rango pedido).
-  const rowVal = (i: number) => (rows[i - 1]?.[1] || '').trim();
-  const totalPlayers = get('Numero total de jugadores') || rowVal(3);
-  const playersPerGroup = get('Jugadores por grupo') || rowVal(4);
-  const category = get('Categoria') || rowVal(5);
-  const carPrelim = get('Carambolas - Ronda preliminar') || rowVal(6);
-  const entriesLimit = get('Limite de entradas') || rowVal(7);
-  const timePerEntry = get('Tiempo por entrada (segundos)') || rowVal(8);
-  const carSemi = get('Carambolas - Semifinal') || rowVal(9);
-  const carFinal = get('Carambolas - Final') || rowVal(10);
+  // Fallback tolerante: busca la fila cuya etiqueta EMPIECE por la pista.
+  const byLabel = (hint: string) => findByLabel(rows, hint);
 
   return {
-    totalPlayers: parseNumber(totalPlayers || '42'),
-    playersPerGroup: parseNumber(playersPerGroup || '4'),
-    totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
-    category: category || 'Primera',
-    carambolasPreliminary: parseNumber(carPrelim || '20'),
-    carambolasSemifinal: parseNumber(carSemi || '25'),
-    carambolasFinal: parseNumber(carFinal || '25'),
-    entriesLimit: parseNumber(entriesLimit || '30'),
-    timePerEntry: parseNumber(timePerEntry || '40'),
+    totalPlayers: parseNumber(get('Numero total de jugadores') || byLabel('Numero total') || '42'),
+    playersPerGroup: parseNumber(get('Jugadores por grupo') || byLabel('Jugadores por grupo') || '4'),
+    totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || byLabel('Numero total de grupos') || '11'),
+    category: get('Categoria') || byLabel('Categ') || 'Primera',
+    carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '20'),
+    carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || byLabel('Carambolas - Semi') || '25'),
+    carambolasFinal: parseNumber(get('Carambolas - Final') || byLabel('Carambolas - Final') || '25'),
+    entriesLimit: parseNumber(get('Limite de entradas') || byLabel('Limite de entradas') || '30'),
+    timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || byLabel('Tiempo por entrada') || '40'),
   };
 }
 
