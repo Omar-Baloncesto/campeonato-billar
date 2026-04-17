@@ -33,15 +33,19 @@ function normKey(s: string): string {
     .toLowerCase();
 }
 
-async function fetchConfigClient(): Promise<ConfigData> {
+async function fetchConfigClient(): Promise<{ data: ConfigData; fromSheet: boolean; error?: string }> {
   const defaults: ConfigData = {
     totalPlayers: 42, playersPerGroup: 4, totalGroups: 11,
     category: 'Primera', carambolasPreliminary: 15, carambolasSemifinal: 20,
     carambolasFinal: 20, entriesLimit: 30, timePerEntry: 40,
   };
   try {
-    const res = await fetch(sheetUrl('CONFIGURACION', 'A1:B15'), { cache: 'no-store' });
-    if (!res.ok) return defaults;
+    const res = await fetch(sheetUrl('CONFIGURACION', 'A1:B15'));
+    if (!res.ok) {
+      const msg = `fetch status ${res.status}`;
+      console.error('[ConfigClient]', msg);
+      return { data: defaults, fromSheet: false, error: msg };
+    }
     const csv = await res.text();
     const rows = parseCSV(csv);
     const map: Record<string, string> = {};
@@ -49,7 +53,10 @@ async function fetchConfigClient(): Promise<ConfigData> {
       if (row[0] && row[1]) map[normKey(row[0])] = row[1].trim();
     }
     const get = (key: string) => map[normKey(key)];
-    return {
+    if (typeof window !== 'undefined') {
+      console.info('[ConfigClient] keys del Sheet:', Object.keys(map), 'Categoria =', get('Categoria'));
+    }
+    const data: ConfigData = {
       totalPlayers: parseNumber(get('Numero total de jugadores') || '42'),
       playersPerGroup: parseNumber(get('Jugadores por grupo') || '4'),
       totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
@@ -60,14 +67,17 @@ async function fetchConfigClient(): Promise<ConfigData> {
       entriesLimit: parseNumber(get('Limite de entradas') || '30'),
       timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || '40'),
     };
-  } catch (_e) {
-    return defaults;
+    return { data, fromSheet: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[ConfigClient] excepción:', msg);
+    return { data: defaults, fromSheet: false, error: msg };
   }
 }
 
 async function fetchPlayersClient(): Promise<PlayerData[]> {
   try {
-    const res = await fetch(sheetUrl('JUGADORES', 'A1:F100'), { cache: 'no-store' });
+    const res = await fetch(sheetUrl('JUGADORES', 'A1:F100'));
     if (!res.ok) return [];
     const csv = await res.text();
     const rows = parseCSV(csv);
@@ -79,18 +89,27 @@ async function fetchPlayersClient(): Promise<PlayerData[]> {
 
 export default function ConfigClient() {
   const [config, setConfig] = useState<ConfigData | null>(null);
+  const [source, setSource] = useState<{ fromSheet: boolean; error?: string; at: string }>({
+    fromSheet: false,
+    at: '',
+  });
   const [cityCounts, setCityCounts] = useState<Record<string, number>>({});
   const [elimRounds, setElimRounds] = useState(6);
   const [elimReal, setElimReal] = useState(41);
 
   const load = useCallback(async () => {
-    const [cfg, players, elimData] = await Promise.all([
+    const [cfgResult, players, elimData] = await Promise.all([
       fetchConfigClient(),
       fetchPlayersClient(),
       fetchEliminationClient(),
     ]);
 
-    setConfig(cfg);
+    setConfig(cfgResult.data);
+    setSource({
+      fromSheet: cfgResult.fromSheet,
+      error: cfgResult.error,
+      at: new Date().toLocaleTimeString('es-CO'),
+    });
 
     const counts: Record<string, number> = {};
     for (const p of players) {
@@ -165,6 +184,18 @@ export default function ConfigClient() {
         <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-6">
           Configuración del Torneo
         </h2>
+
+        <div
+          className={`text-[11px] mb-4 px-3 py-2 rounded-lg border ${
+            source.fromSheet
+              ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400'
+              : 'border-red-500/40 bg-red-500/10 text-red-400'
+          }`}
+        >
+          {source.fromSheet
+            ? `✅ Datos en vivo desde Google Sheets · última lectura ${source.at}`
+            : `⚠️ No se pudo leer Google Sheets (${source.error || 'fetch error'}) — mostrando valores por defecto · intento ${source.at}`}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 stagger-children">
           {sections.map((section) => (
