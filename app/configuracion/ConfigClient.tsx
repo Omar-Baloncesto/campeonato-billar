@@ -45,6 +45,17 @@ function findByLabel(rows: string[][], hint: string): string {
   return '';
 }
 
+// Último recurso para categoría: escanear columna B por "Primera"/"Segunda".
+function findCategoryInColumnB(rows: string[][]): string {
+  for (const row of rows) {
+    const v = (row?.[1] || '').trim();
+    if (!v) continue;
+    const n = normKey(v);
+    if (n === 'primera' || n === 'segunda' || n === 'tercera' || n === 'cuarta') return v;
+  }
+  return '';
+}
+
 async function fetchConfigClient(): Promise<{ data: ConfigData; fromSheet: boolean; error?: string }> {
   const defaults: ConfigData = {
     totalPlayers: 42, playersPerGroup: 4, totalGroups: 11,
@@ -77,7 +88,7 @@ async function fetchConfigClient(): Promise<{ data: ConfigData; fromSheet: boole
       totalPlayers: parseNumber(get('Numero total de jugadores') || byLabel('Numero total') || '42'),
       playersPerGroup: parseNumber(get('Jugadores por grupo') || byLabel('Jugadores por grupo') || '4'),
       totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || byLabel('Numero total de grupos') || '11'),
-      category: get('Categoria') || byLabel('Categ') || 'Primera',
+      category: get('Categoria') || byLabel('Categ') || findCategoryInColumnB(rows) || 'Primera',
       carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '15'),
       carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || byLabel('Carambolas - Semi') || '20'),
       carambolasFinal: parseNumber(get('Carambolas - Final') || byLabel('Carambolas - Final') || '20'),

@@ -88,6 +88,24 @@ function findByLabel(rows: string[][], hint: string): string {
   return '';
 }
 
+/**
+ * Último recurso para la categoría: si ni la clave ni el startsWith en
+ * la etiqueta A funcionan (por ejemplo porque A5 llegó como celda
+ * vacía en el CSV), escaneamos TODA la columna B buscando un valor
+ * que sea exactamente "Primera" o "Segunda".
+ */
+function findCategoryInColumnB(rows: string[][]): string {
+  for (const row of rows) {
+    const v = (row?.[1] || '').trim();
+    if (!v) continue;
+    const n = normalizeKey(v);
+    if (n === 'primera' || n === 'segunda' || n === 'tercera' || n === 'cuarta') {
+      return v;
+    }
+  }
+  return '';
+}
+
 async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
   const url = sheetUrl(sheetName, range);
   const res = await fetch(url, { cache: 'no-store' });
@@ -110,7 +128,7 @@ export async function fetchConfig() {
     totalPlayers: parseNumber(get('Numero total de jugadores') || byLabel('Numero total') || '42'),
     playersPerGroup: parseNumber(get('Jugadores por grupo') || byLabel('Jugadores por grupo') || '4'),
     totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || byLabel('Numero total de grupos') || '11'),
-    category: get('Categoria') || byLabel('Categ') || 'Primera',
+    category: get('Categoria') || byLabel('Categ') || findCategoryInColumnB(rows) || 'Primera',
     carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '20'),
     carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || byLabel('Carambolas - Semi') || '25'),
     carambolasFinal: parseNumber(get('Carambolas - Final') || byLabel('Carambolas - Final') || '25'),
