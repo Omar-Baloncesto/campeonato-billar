@@ -1,10 +1,30 @@
 const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
 
+// El endpoint gviz/tq resultó cachear la respuesta sin respetar el
+// cache-buster: Google seguía devolviendo un snapshot viejo donde
+// B5 (Categoría) estaba vacío aunque el Sheet ya tuviera "Segunda".
+// El endpoint /export?format=csv&gid=... es el mismo que dispara
+// "Archivo → Descargar → CSV" desde la UI y siempre devuelve datos
+// frescos. A cambio, hay que conocer el gid numérico de cada tab.
+const SHEET_GIDS: Record<string, string> = {
+  CONFIGURACION: '394693629',
+};
+
 function sheetUrl(sheetName: string, range?: string): string {
+  const gid = SHEET_GIDS[sheetName];
+  const bust = `t=${Date.now()}&r=${Math.random().toString(36).slice(2, 8)}`;
+  if (gid) {
+    // /export?format=csv sí respeta el estado actual del Sheet.
+    let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+    if (range) url += `&range=${encodeURIComponent(range)}`;
+    url += `&${bust}`;
+    return url;
+  }
+  // Tabs sin gid conocido siguen por gviz (funcionan bien para datos
+  // que no se editan en tiempo real).
   let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
   if (range) url += `&range=${encodeURIComponent(range)}`;
-  // Cache-buster: impide que Google sirva CSV cacheado
-  url += `&_=${Date.now()}`;
+  url += `&${bust}`;
   return url;
 }
 

@@ -21,22 +21,24 @@ export async function GET(request: Request) {
       case 'config':
         return NextResponse.json(await fetchConfig());
       case 'config-raw': {
-        // Diagnóstico: devuelve el CSV crudo que Google entrega para
-        // A1:B15 de CONFIGURACION, byte a byte, para detectar caracteres
-        // invisibles en las celdas A-label.
-        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CONFIGURACION&range=A1:B15&_=${Date.now()}`;
-        const res = await fetch(url, { cache: 'no-store' });
-        const csv = await res.text();
-        const bytes = Array.from(csv).map(c => {
+        // Diagnóstico: devuelve ambos endpoints (gviz y export) para
+        // poder comparar cuál trae datos frescos.
+        const bust = `t=${Date.now()}&r=${Math.random().toString(36).slice(2, 8)}`;
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=CONFIGURACION&range=A1:B15&${bust}`;
+        const exportUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=394693629&range=A1:B15&${bust}`;
+        const [gvizRes, exportRes] = await Promise.all([
+          fetch(gvizUrl, { cache: 'no-store' }),
+          fetch(exportUrl, { cache: 'no-store' }),
+        ]);
+        const [gvizCsv, exportCsv] = await Promise.all([gvizRes.text(), exportRes.text()]);
+        const suspiciousFor = (csv: string) => Array.from(csv).map(c => {
           const code = c.charCodeAt(0);
           if (code < 32 || code > 126) return { char: c, hex: '0x' + code.toString(16) };
           return null;
         }).filter(Boolean);
         return NextResponse.json({
-          status: res.status,
-          length: csv.length,
-          csv,
-          suspicious_chars: bytes,
+          gviz: { status: gvizRes.status, length: gvizCsv.length, csv: gvizCsv, suspicious: suspiciousFor(gvizCsv) },
+          export: { status: exportRes.status, length: exportCsv.length, csv: exportCsv, suspicious: suspiciousFor(exportCsv) },
         });
       }
       case 'players':
