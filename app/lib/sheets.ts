@@ -54,6 +54,23 @@ function parseNumber(val: string): number {
   return Number(val.replace(',', '.'));
 }
 
+/**
+ * Normaliza una cadena para comparar claves de configuración sin que
+ * tildes, mayúsculas, espacios extras o guiones raros rompan el match.
+ *   "Categoría"          → "categoria"
+ *   "Número total"       → "numero total"
+ *   "Carambolas – Final" → "carambolas - final"
+ */
+function normalizeKey(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // quitar tildes
+    .replace(/[\u2010-\u2015]/g, '-') // guiones tipográficos → guion normal
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
   const url = sheetUrl(sheetName, range);
   const res = await fetch(url, { cache: 'no-store' });
@@ -66,18 +83,19 @@ export async function fetchConfig() {
   const rows = await fetchSheet('CONFIGURACION', 'A1:B10');
   const config: Record<string, string> = {};
   for (const row of rows) {
-    if (row[0] && row[1]) config[row[0]] = row[1];
+    if (row[0] && row[1]) config[normalizeKey(row[0])] = row[1].trim();
   }
+  const get = (key: string) => config[normalizeKey(key)];
   return {
-    totalPlayers: parseNumber(config['Numero total de jugadores'] || '42'),
-    playersPerGroup: parseNumber(config['Jugadores por grupo'] || '4'),
-    totalGroups: parseNumber(config['Numero total de grupos'] || config['Total de grupos'] || config['Grupos'] || '11'),
-    category: config['Categoria'] || 'Primera',
-    carambolasPreliminary: parseNumber(config['Carambolas - Ronda preliminar'] || '20'),
-    carambolasSemifinal: parseNumber(config['Carambolas - Semifinal'] || '25'),
-    carambolasFinal: parseNumber(config['Carambolas - Final'] || '25'),
-    entriesLimit: parseNumber(config['Limite de entradas'] || '30'),
-    timePerEntry: parseNumber(config['Tiempo por entrada (segundos)'] || '40'),
+    totalPlayers: parseNumber(get('Numero total de jugadores') || '42'),
+    playersPerGroup: parseNumber(get('Jugadores por grupo') || '4'),
+    totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
+    category: get('Categoria') || 'Primera',
+    carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || '20'),
+    carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || '25'),
+    carambolasFinal: parseNumber(get('Carambolas - Final') || '25'),
+    entriesLimit: parseNumber(get('Limite de entradas') || '30'),
+    timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || '40'),
   };
 }
 

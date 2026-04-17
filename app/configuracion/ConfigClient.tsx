@@ -22,10 +22,21 @@ interface PlayerData {
   city: string;
 }
 
+// Comparar claves sin que tildes/mayúsculas/espacios rompan el match.
+function normKey(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2010-\u2015]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
 async function fetchConfigClient(): Promise<ConfigData> {
   const defaults: ConfigData = {
     totalPlayers: 42, playersPerGroup: 4, totalGroups: 11,
-    category: 'Segunda', carambolasPreliminary: 15, carambolasSemifinal: 20,
+    category: 'Primera', carambolasPreliminary: 15, carambolasSemifinal: 20,
     carambolasFinal: 20, entriesLimit: 30, timePerEntry: 40,
   };
   try {
@@ -35,18 +46,19 @@ async function fetchConfigClient(): Promise<ConfigData> {
     const rows = parseCSV(csv);
     const map: Record<string, string> = {};
     for (const row of rows) {
-      if (row[0] && row[1]) map[row[0].trim()] = row[1].trim();
+      if (row[0] && row[1]) map[normKey(row[0])] = row[1].trim();
     }
+    const get = (key: string) => map[normKey(key)];
     return {
-      totalPlayers: parseNumber(map['Numero total de jugadores'] || '42'),
-      playersPerGroup: parseNumber(map['Jugadores por grupo'] || '4'),
-      totalGroups: parseNumber(map['Numero total de grupos'] || map['Total de grupos'] || map['Grupos'] || '11'),
-      category: map['Categoria'] || 'Segunda',
-      carambolasPreliminary: parseNumber(map['Carambolas - Ronda preliminar'] || '15'),
-      carambolasSemifinal: parseNumber(map['Carambolas - Semifinal'] || '20'),
-      carambolasFinal: parseNumber(map['Carambolas - Final'] || '20'),
-      entriesLimit: parseNumber(map['Limite de entradas'] || '30'),
-      timePerEntry: parseNumber(map['Tiempo por entrada (segundos)'] || '40'),
+      totalPlayers: parseNumber(get('Numero total de jugadores') || '42'),
+      playersPerGroup: parseNumber(get('Jugadores por grupo') || '4'),
+      totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
+      category: get('Categoria') || 'Primera',
+      carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || '15'),
+      carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || '20'),
+      carambolasFinal: parseNumber(get('Carambolas - Final') || '20'),
+      entriesLimit: parseNumber(get('Limite de entradas') || '30'),
+      timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || '40'),
     };
   } catch (_e) {
     return defaults;
