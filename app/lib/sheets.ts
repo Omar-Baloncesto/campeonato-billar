@@ -135,19 +135,33 @@ async function fetchSheet(sheetName: string, range?: string): Promise<string[][]
 }
 
 export async function fetchConfig() {
-  const rows = await fetchSheet('CONFIGURACION', 'A1:B15');
+  // Traemos CONFIGURACION y JUGADORES en paralelo. El número de grupos
+  // se deduce del Sheet JUGADORES (columna C), contando grupos
+  // distintos, en vez de hardcodearlo.
+  const [rows, playerRows] = await Promise.all([
+    fetchSheet('CONFIGURACION', 'A1:B15'),
+    fetchSheet('JUGADORES', 'A1:F200'),
+  ]);
+
   const config: Record<string, string> = {};
   for (const row of rows) {
     if (row[0] && row[1]) config[normalizeKey(row[0])] = row[1].trim();
   }
   const get = (key: string) => config[normalizeKey(key)];
-  // Fallback tolerante: busca la fila cuya etiqueta EMPIECE por la pista.
   const byLabel = (hint: string) => findByLabel(rows, hint);
+
+  // Grupos distintos en la columna C de JUGADORES (saltamos cabecera).
+  const distinctGroups = new Set<number>();
+  for (const r of playerRows.slice(1)) {
+    const g = parseNumber(r[2] || '');
+    if (g > 0) distinctGroups.add(g);
+  }
+  const totalGroupsFromPlayers = distinctGroups.size;
 
   return {
     totalPlayers: parseNumber(get('Numero total de jugadores') || byLabel('Numero total') || '42'),
     playersPerGroup: parseNumber(get('Jugadores por grupo') || byLabel('Jugadores por grupo') || '4'),
-    totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || byLabel('Numero total de grupos') || '11'),
+    totalGroups: totalGroupsFromPlayers || parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
     category: get('Categoria') || byLabel('Categ') || findCategoryInColumnB(rows) || 'Primera',
     carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '20'),
     carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || byLabel('Carambolas - Semi') || '25'),
