@@ -69,7 +69,7 @@ export async function fetchConfig() {
   return {
     totalPlayers: parseNumber(config['Numero total de jugadores'] || '42'),
     playersPerGroup: parseNumber(config['Jugadores por grupo'] || '4'),
-    totalGroups: 11,
+    totalGroups: parseNumber(config['Numero total de grupos'] || config['Total de grupos'] || config['Grupos'] || '11'),
     category: config['Categoria'] || 'Primera',
     carambolasPreliminary: parseNumber(config['Carambolas - Ronda preliminar'] || '20'),
     carambolasSemifinal: parseNumber(config['Carambolas - Semifinal'] || '25'),
