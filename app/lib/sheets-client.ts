@@ -5,10 +5,24 @@
 
 const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
 
+// gviz/tq caché (a pesar del cache-buster), así que para tabs que
+// se editan en tiempo real usamos /export?format=csv&gid=...
+const SHEET_GIDS: Record<string, string> = {
+  CONFIGURACION: '394693629',
+};
+
 export function sheetUrl(sheetName: string, range?: string): string {
+  const gid = SHEET_GIDS[sheetName];
+  const bust = `t=${Date.now()}&r=${Math.random().toString(36).slice(2, 8)}`;
+  if (gid) {
+    let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+    if (range) url += `&range=${encodeURIComponent(range)}`;
+    url += `&${bust}`;
+    return url;
+  }
   let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
   if (range) url += `&range=${encodeURIComponent(range)}`;
-  url += `&_=${Date.now()}`;
+  url += `&${bust}`;
   return url;
 }
 
