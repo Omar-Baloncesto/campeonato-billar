@@ -1,13 +1,19 @@
-import { fetchConfig, fetchPlayers } from '../lib/sheets';
+import { fetchConfig, fetchPlayers, fetchEliminationMatches } from '../lib/sheets';
+import { ELIMINATION_MATCHES } from '../data/elimination';
 import { CITIES } from '../lib/constants';
 
 export const revalidate = 60;
 
 export default async function ConfiguracionPage() {
-  const [config, players] = await Promise.all([
+  const [config, players, liveElim] = await Promise.all([
     fetchConfig(),
     fetchPlayers(),
+    fetchEliminationMatches().catch(() => null),
   ]);
+
+  const elimData = liveElim || ELIMINATION_MATCHES;
+  const elimRounds = [...new Set(elimData.map(m => m.round))].length;
+  const elimReal = elimData.filter(m => !m.isBye).length;
 
   const cityCounts: Record<string, number> = {};
   for (const p of players) {
@@ -47,7 +53,8 @@ export default async function ConfiguracionPage() {
       icon: '⚡',
       items: [
         { label: 'Tipo', value: 'Eliminación Simple' },
-        { label: 'Rondas', value: 6 },
+        { label: 'Rondas', value: elimRounds },
+        { label: 'Partidos reales', value: elimReal },
         { label: 'Jugadores clasificados', value: config.totalPlayers },
       ],
     },
