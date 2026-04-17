@@ -22,15 +22,27 @@ interface PlayerData {
   city: string;
 }
 
-// Comparar claves sin que tildes/mayúsculas/espacios rompan el match.
+// Comparar claves sin que tildes/mayúsculas/espacios/chars invisibles rompan el match.
 function normKey(s: string): string {
   return s
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[\u2010-\u2015]/g, '-')
+    .replace(/[^a-zA-Z0-9 \-]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
+}
+
+// Fallback tolerante: busca la fila cuya etiqueta EMPIECE por la pista.
+function findByLabel(rows: string[][], hint: string): string {
+  const n = normKey(hint);
+  for (const row of rows) {
+    const a = row?.[0] ?? '';
+    const b = row?.[1] ?? '';
+    if (a && b && normKey(a).startsWith(n)) return b.trim();
+  }
+  return '';
 }
 
 async function fetchConfigClient(): Promise<{ data: ConfigData; fromSheet: boolean; error?: string }> {
@@ -53,25 +65,24 @@ async function fetchConfigClient(): Promise<{ data: ConfigData; fromSheet: boole
       if (row[0] && row[1]) map[normKey(row[0])] = row[1].trim();
     }
     const get = (key: string) => map[normKey(key)];
-    // Fallback por posición: la hoja tiene layout fijo.
-    const rowVal = (i: number) => (rows[i - 1]?.[1] || '').trim();
+    const byLabel = (hint: string) => findByLabel(rows, hint);
     if (typeof window !== 'undefined') {
       console.info(
         '[ConfigClient] keys del Sheet:', Object.keys(map),
         '| Categoria via key =', JSON.stringify(get('Categoria')),
-        '| B5 via posición =', JSON.stringify(rowVal(5)),
+        '| Categoria via startsWith =', JSON.stringify(byLabel('Categ')),
       );
     }
     const data: ConfigData = {
-      totalPlayers: parseNumber(get('Numero total de jugadores') || rowVal(3) || '42'),
-      playersPerGroup: parseNumber(get('Jugadores por grupo') || rowVal(4) || '4'),
-      totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
-      category: get('Categoria') || rowVal(5) || 'Primera',
-      carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || rowVal(6) || '15'),
-      carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || rowVal(9) || '20'),
-      carambolasFinal: parseNumber(get('Carambolas - Final') || rowVal(10) || '20'),
-      entriesLimit: parseNumber(get('Limite de entradas') || rowVal(7) || '30'),
-      timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || rowVal(8) || '40'),
+      totalPlayers: parseNumber(get('Numero total de jugadores') || byLabel('Numero total') || '42'),
+      playersPerGroup: parseNumber(get('Jugadores por grupo') || byLabel('Jugadores por grupo') || '4'),
+      totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || byLabel('Numero total de grupos') || '11'),
+      category: get('Categoria') || byLabel('Categ') || 'Primera',
+      carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '15'),
+      carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || byLabel('Carambolas - Semi') || '20'),
+      carambolasFinal: parseNumber(get('Carambolas - Final') || byLabel('Carambolas - Final') || '20'),
+      entriesLimit: parseNumber(get('Limite de entradas') || byLabel('Limite de entradas') || '30'),
+      timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || byLabel('Tiempo por entrada') || '40'),
     };
     return { data, fromSheet: true };
   } catch (e) {
