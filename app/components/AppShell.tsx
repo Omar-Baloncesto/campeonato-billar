@@ -7,6 +7,7 @@ import Header from './Header';
 import Navigation from './Navigation';
 import MobileMenu from './MobileMenu';
 import ScrollToTop from './ScrollToTop';
+import AutoRefresh from './AutoRefresh';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -28,6 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       />
       {children}
       <ScrollToTop />
+      <AutoRefresh />
     </ThemeProvider>
   );
 }

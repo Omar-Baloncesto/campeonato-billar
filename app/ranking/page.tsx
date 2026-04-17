@@ -1,7 +1,7 @@
 import { fetchRankingFinal, fetchRankingGroups } from '../lib/sheets';
 import RankingClient from './RankingClient';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function RankingPage() {
   const [rankingFinal, rankingGroups] = await Promise.all([

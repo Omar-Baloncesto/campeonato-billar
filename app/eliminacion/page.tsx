@@ -10,6 +10,7 @@ import type { EliminationMatch } from '../data/types';
 import FilterPills from '../components/FilterPills';
 import TournamentBracket from '../components/TournamentBracket';
 import RondasBracket from '../components/RondasBracket';
+import { SHEET_REFRESH_EVENT } from '../components/AutoRefresh';
 
 type ViewMode = 'lista' | 'rondas' | 'cuadro';
 
@@ -182,13 +183,21 @@ export default function EliminacionPage() {
   const [roundFilter, setRoundFilter] = useState('all');
   const [matches, setMatches] = useState<EliminationMatch[]>(ELIMINATION_MATCHES);
 
-  // Fetch live data from Google Sheets
+  // Fetch live data from Google Sheets + auto-refresh on SHEET_REFRESH_EVENT
   useEffect(() => {
     let cancelled = false;
-    fetchEliminationClient().then(data => {
-      if (!cancelled && data) setMatches(data);
-    });
-    return () => { cancelled = true; };
+    const load = () => {
+      fetchEliminationClient().then(data => {
+        if (!cancelled && data) setMatches(data);
+      });
+    };
+    load();
+    const handler = () => load();
+    window.addEventListener(SHEET_REFRESH_EVENT, handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(SHEET_REFRESH_EVENT, handler);
+    };
   }, []);
 
   const rounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);

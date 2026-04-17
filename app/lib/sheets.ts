@@ -3,6 +3,8 @@ const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
 function sheetUrl(sheetName: string, range?: string): string {
   let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
   if (range) url += `&range=${encodeURIComponent(range)}`;
+  // Cache-buster: impide que Google sirva CSV cacheado
+  url += `&_=${Date.now()}`;
   return url;
 }
 
@@ -54,7 +56,7 @@ function parseNumber(val: string): number {
 
 async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
   const url = sheetUrl(sheetName, range);
-  const res = await fetch(url, { next: { revalidate: 60, tags: ['sheet-data'] } });
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to fetch sheet ${sheetName}: ${res.status}`);
   const csv = await res.text();
   return parseCSV(csv);
