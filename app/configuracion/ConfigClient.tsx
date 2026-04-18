@@ -110,7 +110,10 @@ async function fetchPlayersClient(): Promise<PlayerData[]> {
     if (!res.ok) return [];
     const csv = await res.text();
     const rows = parseCSV(csv);
-    return rows.slice(1).filter(r => r[0] && r[1]).map(r => ({
+    // Exigimos solo nombre (B) + grupo (C). La columna A (N°) puede
+    // estar vacía en jugadores recién agregados: no los excluimos, porque
+    // igual cuentan para el total de grupos.
+    return rows.slice(1).filter(r => r[1] && r[2]).map(r => ({
       city: r[5] || '',
       group: parseNumber(r[2] || ''),
     }));

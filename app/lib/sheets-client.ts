@@ -9,6 +9,7 @@ const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
 // se editan en tiempo real usamos /export?format=csv&gid=...
 const SHEET_GIDS: Record<string, string> = {
   CONFIGURACION: '394693629',
+  JUGADORES: '1215907359',
 };
 
 export function sheetUrl(sheetName: string, range?: string): string {
