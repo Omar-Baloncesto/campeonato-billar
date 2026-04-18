@@ -8,6 +8,7 @@ const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
 // frescos. A cambio, hay que conocer el gid numérico de cada tab.
 const SHEET_GIDS: Record<string, string> = {
   CONFIGURACION: '394693629',
+  JUGADORES: '1215907359',
 };
 
 function sheetUrl(sheetName: string, range?: string): string {
