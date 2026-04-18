@@ -43,6 +43,35 @@ export async function GET(request: Request) {
       }
       case 'players':
         return NextResponse.json(await fetchPlayers());
+      case 'players-raw': {
+        // Diagnóstico: CSV crudo de JUGADORES + conteo de grupos distintos.
+        const bust = `t=${Date.now()}&r=${Math.random().toString(36).slice(2, 8)}`;
+        const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=JUGADORES&range=A1:F200&${bust}`;
+        const res = await fetch(gvizUrl, { cache: 'no-store' });
+        const csv = await res.text();
+        // Parse simple para contar grupos distintos
+        const lines = csv.split('\n').slice(1); // skip header
+        const distinctGroups = new Set<number>();
+        const sampleRows: string[] = [];
+        for (const line of lines) {
+          if (sampleRows.length < 5 && line.trim()) sampleRows.push(line);
+          // Columna C = índice 2 tras split por coma cuidadoso
+          const cells = line.split(',');
+          if (cells.length >= 3) {
+            const g = parseInt((cells[2] || '').replace(/"/g, '').trim());
+            if (!isNaN(g) && g > 0) distinctGroups.add(g);
+          }
+        }
+        return NextResponse.json({
+          status: res.status,
+          length: csv.length,
+          totalLines: lines.length,
+          sampleRows: sampleRows,
+          distinctGroups: [...distinctGroups].sort((a, b) => a - b),
+          totalDistinct: distinctGroups.size,
+          csvPreview: csv.slice(0, 2000),
+        });
+      }
       case 'results':
         return NextResponse.json(await fetchResults());
       case 'groups':
