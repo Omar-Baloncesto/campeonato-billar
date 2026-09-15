@@ -80,6 +80,31 @@ wsF.getRange(filaF, 6).setFormula("=CONFIGURACION!$B$8");
 ```
 Sin esto la columna Entradas del fixture mostraría las carambolas de 2ª categoría.
 
+### B4 · M7/M8/M9 — Eliminación Simple reescrita
+`CrearEliminacionSimple`, `Crear_Rondas_Eliminacion_Automatica`, `Formato_Ronda`.
+Código completo en `apps-script/M7-M9-eliminacion-simple.gs`.
+
+- **Bug destructivo corregido.** `Crear_Rondas_Eliminacion_Automatica` colocaba
+  la ronda 2 en `getLastRow(K)+4`. Como los ganadores todavía están vacíos,
+  `getLastRow(K)` apuntaba al último partido CON ganador y la ronda nueva se
+  escribía **encima** de los últimos partidos de la ronda 1. En el torneo actual
+  se perdieron los partidos 14, 15 y 16 y la ronda 2 se creó con 5 partidos en
+  vez de 8: los jugadores 11 a 22 quedaron fuera del cuadro.
+- Ahora el cuadro **entero** se calcula del tamaño del torneo
+  (`cupo = 2^ceil(log2(N))`, ronda *r* tiene `cupo/2^r` partidos) y se escribe
+  con **un solo `setValues`**. No depende de que haya resultados.
+- Todas las rondas nacen con fórmulas listas: el ganador sube solo a la
+  siguiente ronda. Vacío mientras no se digite; nunca propaga "EMPATE".
+- Rondas con nombre: FINAL, SEMIFINAL, CUARTOS, OCTAVOS, DIECISEISAVOS…
+- **Nuevas columnas L = Objetivo A y M = Objetivo B** (`VLOOKUP` a
+  `'Base de Datos'!$B$3:$E` columna 4). Van al final para no mover `A:K`.
+- Ganador **por promedio** `carambolas/objetivo`, igual que GRUPOS. Si los dos
+  objetivos son iguales el resultado es idéntico a comparar carambolas, así que
+  sirve para torneo de una sola categoría y para primera contra segunda.
+- La hoja se crea ya **con tilde**: `Eliminación Simple`. Esto cierra el punto
+  D2: `GenerarRankingFinal` y la web la buscan con tilde.
+- `Crear_Rondas_Eliminacion_Automatica` queda como aviso; ya no se usa.
+
 ---
 
 ## C · QUÉ HAY QUE ARREGLAR EN LA WEB por estos cambios
@@ -115,6 +140,19 @@ Revisar `/resultados` y `/calendario` para que no lo trate como nombre de jugado
 `CalendarioClient`: `hasScore = m.carambolasA > 0 || m.carambolasB > 0`.
 Un W.O. tipo "AB" (0-0) aparecería como "Programado" aunque esté resuelto.
 
+### C6 · Eliminación Simple — nombre de hoja y ronda final 🔴 (por B4)
+`app/lib/sheets.ts` `fetchEliminationMatches()` prueba tres nombres en este
+orden: `ELIMINACIÓN SIMPLE`, `ELIMINACION SIMPLE`, `Eliminación Simple`.
+El bueno es el tercero → **tres peticiones a Google por cada visita**.
+Dejar solo `Eliminación Simple`.
+
+Y el campeón/podio está fijado a `round === 6`. Con 22 inscritos la final es la
+**ronda 5**, no la 6 → la web se queda sin campeón. Debe usar
+`Math.max(...rounds)`. (Es el punto 14 de la tabla D.)
+
+Además ya existen `L` y `M` (objetivos): se puede mostrar el promedio real
+`carambolas/objetivo` en el cuadro, pero el rango `A1:K200` sigue valiendo.
+
 ---
 
 ## D · Pendientes del diagnóstico original (independientes de lo anterior)
@@ -122,7 +160,7 @@ Un W.O. tipo "AB" (0-0) aparecería como "Programado" aunque esté resuelto.
 | # | Qué | Estado |
 |---|---|---|
 | 1 | Ciudad equivocada en 29 de 42 jugadores (el sorteo baraja solo la columna B) | 🔴 pendiente |
-| 2 | `Eliminación Simple` con/sin tilde: el paso 7 recrea la pestaña sin tilde | 🔴 pendiente |
+| 2 | `Eliminación Simple` con/sin tilde: el paso 7 recrea la pestaña sin tilde | ✅ resuelto en B4 |
 | 3 | No hay `error.tsx`: si Google falla, la web se queda en blanco | 🔴 pendiente |
 | 4 | Sin caché: ~7 lecturas del Sheet por visitante → Google rate-limita | 🔴 pendiente |
 | 5 | `/api/revalidate` no hace nada y nadie lo llama (tiempo real) | 🟡 pendiente |
@@ -130,7 +168,7 @@ Un W.O. tipo "AB" (0-0) aparecería como "Programado" aunque esté resuelto.
 | 7 | ORDEN GRUPO sin desempate final (dos "1" en el Grupo 10) | ⚖️ decide Omar |
 | 8 | GRUPOS no trae entradas → no existe el promedio en la clasificación | ⚖️ decide Omar |
 | 9 | Convención de W.O. — resuelto en A1, confirmar que es la definitiva | ⚖️ decide Omar |
-| 14 | Campeón/podio fijados a `round === 6`: con otro nº de inscritos se queda vacío | 🟡 pendiente |
+| 14 | Campeón/podio fijados a `round === 6`: con otro nº de inscritos se queda vacío | 🔴 pendiente (ver C6) |
 | 15 | Resto del Apps Script sigue escribiendo celda a celda | ⚪ pendiente |
 | 16-18 | Código duplicado, archivos muertos, `package.json` | ⚪ pendiente |
 
