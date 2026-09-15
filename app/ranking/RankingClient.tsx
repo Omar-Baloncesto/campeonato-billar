@@ -145,8 +145,8 @@ export default function RankingClient({
                   <tbody>
                     {rankingGroups.map(r => {
                       const p = byName.get(normalize(r.player));
-                      // La columna C del Sheet se titula «Ciudad» pero trae la
-                      // categoría. Se usa la de JUGADORES y esa queda de respaldo.
+                      // La columna C de RankingGrupos trae la categoría. Se usa
+                      // la de JUGADORES y esa queda de respaldo.
                       const category = p?.category || r.categoryOrCity;
                       const city = p?.city || '';
                       return (

@@ -207,11 +207,11 @@ Sheet lanza excepción: si Google falla, la página muestra su estado vacío.
 tenían el torneo de 42 jugadores y se usaban de respaldo, así que ante
 cualquier fallo la web enseñaba **otro torneo** como si fuera este. Borrados.
 
-### C12 · Ranking: «Ciudad» que traía la categoría
-La columna C de `RankingGrupos` se titula Ciudad pero `GenerarRankingGrupos`
-le mete la **categoría** (lee la columna D de JUGADORES en vez de la F). La
-web ahora saca club y categoría de JUGADORES y muestra las dos.
-**Queda pendiente arreglarlo en el Apps Script.**
+### C12 · Ranking: la columna C dice Categoría
+`GenerarRankingGrupos` busca el nombre en `Base de Datos` y escribe la columna
+**siguiente**, que es la C = Categoría. El encabezado decía «Ciudad» y no
+cuadraba con el dato. Corregido en el Apps Script (M16): C1 ahora dice
+**Categoría**. La web muestra categoría y club, este último desde JUGADORES.
 
 ---
 
@@ -230,11 +230,10 @@ Sin verificar si arrastró el Apps Script vinculado.
 |---|---|---|
 | 1 | `REVALIDATE_TOKEN` en Vercel y en las Propiedades del Apps Script | lo pone Omar |
 | 2 | Instalar el activador `onEditAvisarWeb` (M16) | Apps Script |
-| 3 | `GenerarRankingGrupos` mete la categoría en la columna «Ciudad» | Apps Script |
-| 4 | `var CLAVE = "cablestaca"` está en texto plano en el Código.gs | Apps Script |
-| 5 | Los `gid` de las pestañas que faltan en `SHEET_GIDS` | `app/lib/sheets.ts` |
+| 3 | `var CLAVE = "cablestaca"` está en texto plano en el Código.gs | Apps Script |
+| 4 | Los `gid` de las pestañas que faltan en `SHEET_GIDS` | `app/lib/sheets.ts` |
 
-**Sobre el punto 5:** hoy se leen todas las hojas y funciona. Añadir el gid de
+**Sobre el punto 4:** hoy se leen todas las hojas y funciona. Añadir el gid de
 RESULTADOS, GRUPOS y Eliminación Simple hace que esas tres se pidan por la vía
 más directa. El gid se ve en la URL al hacer clic en la pestaña:
 `.../edit#gid=123456789`.
