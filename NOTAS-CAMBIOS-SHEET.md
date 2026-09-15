@@ -119,6 +119,16 @@ Ahora K decide en este orden: `W.O.` → `SIN JUGAR` → mayor `D/M` contra `H/N
 dos comparaciones son equivalentes, así que sirve igual para torneo de una sola
 categoría.
 
+**Columnas O y P — `% Objetivo A` y `% Objetivo B`.** El número que decide el
+partido (`carambolas / objetivo`) ahora se ve, en formato porcentaje: Andrés
+50,0% contra Jorge 52,9%. El más alto de los dos sale en verde y negrita por
+formato condicional, así que se entiende sin abrir la fórmula. Van después de
+`N`, así que `A:L` —lo que lee la web— no se mueve.
+
+Ojo: `F` y `J` (`Promedio A/B`) siguen siendo carambolas ÷ entradas, el promedio
+de la partida. No deciden nada; son dos cosas distintas y ahora se ven por
+separado.
+
 Fórmula para arreglar las filas que ya existen (pegar en K2 y arrastrar):
 ```
 =SI(L2="SI";"W.O.";SI(O(D2="";H2="");"SIN JUGAR";SI(O(M2="";N2="";M2=0;N2=0);SI(D2>H2;C2;SI(H2>D2;G2;"EMPATE"));SI(D2/M2>H2/N2;C2;SI(H2/N2>D2/M2;G2;"EMPATE")))))
