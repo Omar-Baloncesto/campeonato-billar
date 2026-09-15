@@ -104,18 +104,25 @@ def resolver(partidos, cupos, dias, semilla):
 
 
 def repartir_mesas(partidos, turno):
-    """Cada grupo intenta quedarse siempre en la misma mesa."""
+    """Cada grupo intenta quedarse en "su" mesa (grupo 3 -> mesa 3).
+
+    En los turnos que no llenan las mesas se renumeran de forma seguida,
+    para no dejar una mesa vacía en medio: si hay 4 partidas se usan las
+    mesas 1 a 4, no la 1, 2, 4 y 5."""
     por_turno = defaultdict(list)
     for m, s in enumerate(turno): por_turno[s].append(m)
     mesa = {}
     for s, ms in por_turno.items():
         libres = set(range(1, MESAS + 1))
         pend = sorted(ms, key=lambda m: (partidos[m][0], partidos[m][1]))
+        provisional = {}
         for m in pend[:]:
             g = partidos[m][0]
-            if g in libres: mesa[m] = g; libres.discard(g); pend.remove(m)
+            if g in libres: provisional[m] = g; libres.discard(g); pend.remove(m)
         for m in pend:
-            x = min(libres); mesa[m] = x; libres.discard(x)
+            x = min(libres); provisional[m] = x; libres.discard(x)
+        for i, m in enumerate(sorted(provisional, key=lambda m: provisional[m]), 1):
+            mesa[m] = i
     return mesa
 
 
