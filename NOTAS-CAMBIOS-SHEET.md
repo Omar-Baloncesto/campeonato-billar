@@ -105,6 +105,25 @@ Código completo en `apps-script/M7-M9-eliminacion-simple.gs`.
   D2: `GenerarRankingFinal` y la web la buscan con tilde.
 - `Crear_Rondas_Eliminacion_Automatica` queda como aviso; ya no se usa.
 
+### B5 · M5 RESULTADOS — el ganador sale del promedio, no de las carambolas
+`CargarResultados` + nueva función `formulaResultadoPartido(r)`.
+Código completo en `apps-script/M5-resultados.gs`.
+
+La columna K comparaba `D>H` (carambolas a secas). En un grupo mixto eso da el
+ganador equivocado: Andrés 10 carambolas con objetivo 20 (0,500) figuraba por
+encima de Jorge con 9 y objetivo 17 (0,529). GRUPOS ya calculaba bien el punto,
+así que RESULTADOS y GRUPOS se contradecían en pantalla.
+
+Ahora K decide en este orden: `W.O.` → `SIN JUGAR` → mayor `D/M` contra `H/N`
+→ (si falta objetivo) mayor carambolas → `EMPATE`. Con objetivos iguales las
+dos comparaciones son equivalentes, así que sirve igual para torneo de una sola
+categoría.
+
+Fórmula para arreglar las filas que ya existen (pegar en K2 y arrastrar):
+```
+=SI(L2="SI";"W.O.";SI(O(D2="";H2="");"SIN JUGAR";SI(O(M2="";N2="";M2=0;N2=0);SI(D2>H2;C2;SI(H2>D2;G2;"EMPATE"));SI(D2/M2>H2/N2;C2;SI(H2/N2>D2/M2;G2;"EMPATE")))))
+```
+
 ---
 
 ## C · QUÉ HAY QUE ARREGLAR EN LA WEB por estos cambios
