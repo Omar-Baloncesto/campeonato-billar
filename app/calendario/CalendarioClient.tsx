@@ -1,245 +1,219 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { ScheduleMatch, EliminationMatch } from '../data/types';
-import { SCHEDULE, formatDate, formatDateFull } from '../data/schedule';
-import { ELIMINATION_MATCHES, ROUND_NAMES } from '../data/elimination';
-import { fetchEliminationClient, fetchResultsClient, type GroupResult } from '../lib/sheets-client';
-import { SHEET_REFRESH_EVENT } from '../components/AutoRefresh';
+import { useState, useMemo } from 'react';
+import FilterPills from '../components/FilterPills';
+import EmptyState from '../components/EmptyState';
+import StatCard from '../components/StatCard';
+import { fmtDate, fmtTime, fmtInt, fmtPct, EMPTY } from '../lib/format';
+import type { FixtureMatch, GroupResult, MatchStatus } from '../data/types';
 
-/* ------------------------------------------------------------------ */
-/*  Build schedule from data                                           */
-/* ------------------------------------------------------------------ */
+/* ==================================================================
+ *  Calendario.
+ *
+ *  Sale de la hoja FIXTURE_GRUPOS, que es la que manda: allí están las
+ *  columnas Fecha y Hora que se digitan a mano. Los marcadores se
+ *  cruzan con RESULTADOS por grupo + número de partido.
+ *
+ *  Antes esta página leía un archivo fijo dentro del código con la
+ *  programación de otro torneo, así que nunca cambiaba.
+ * ================================================================== */
 
-const ELIM_DATE = '2026-02-01';
+interface Row extends FixtureMatch {
+  result: GroupResult | null;
+  status: MatchStatus | 'unscheduled';
+}
 
-const ROUND_LABELS: Record<number, string> = {
-  1: 'Primera Ronda', 2: 'Segunda Ronda', 3: 'Octavos de Final',
-  4: 'Cuartos de Final', 5: 'Semifinal', 6: 'Final',
+const STATUS_STYLE: Record<string, { label: string; className: string }> = {
+  played: { label: 'Jugado', className: 'bg-emerald-500/10 text-emerald-400' },
+  draw: { label: 'Empate', className: 'bg-yellow-500/15 text-yellow-400' },
+  walkover: { label: 'W.O.', className: 'bg-red-500/15 text-red-400' },
+  pending: { label: 'Programado', className: 'bg-white/5 text-text-muted' },
+  unscheduled: { label: 'Sin fecha', className: 'bg-white/5 text-text-muted/70' },
 };
 
-function findResult(results: GroupResult[], group: number, playerA: string, playerB: string): GroupResult | undefined {
-  return results.find(r =>
-    r.group === group && (
-      (r.playerA.includes(playerA.split(' ')[0]) && r.playerB.includes(playerB.split(' ')[0])) ||
-      (r.playerA.includes(playerB.split(' ')[0]) && r.playerB.includes(playerA.split(' ')[0]))
-    )
-  );
-}
+function MatchRow({ row }: { row: Row }) {
+  const r = row.result;
+  const winnerA = !!r && r.winner !== '' && r.winner === row.playerA;
+  const winnerB = !!r && r.winner !== '' && r.winner === row.playerB;
+  const style = STATUS_STYLE[row.status] || STATUS_STYLE.pending;
+  const showPct = !!r && r.targetA !== null && r.targetB !== null && r.targetA !== r.targetB;
 
-function buildElimSchedule(elimData: EliminationMatch[]): ScheduleMatch[] {
-  const matches: ScheduleMatch[] = [];
-  const real = elimData.filter(m => !m.isBye);
-  let hour = 9, slotCount = 0;
-
-  for (const m of real) {
-    const table = (slotCount % 2) + 1;
-    const time = `${hour.toString().padStart(2, '0')}:00`;
-    const hasScore = m.carambolasA > 0 || m.carambolasB > 0;
-    matches.push({
-      date: ELIM_DATE, time, table,
-      round: ROUND_LABELS[m.round] || `Ronda ${m.round}`,
-      playerA: m.playerA, playerB: m.playerB,
-      scoreA: hasScore ? m.carambolasA : undefined,
-      scoreB: hasScore ? m.carambolasB : undefined,
-      winner: m.winner || undefined,
-      status: hasScore ? 'ended' : 'scheduled',
-    });
-    slotCount++;
-    if (slotCount % 2 === 0) { hour++; if (hour === 13) hour = 14; }
-  }
-  return matches;
-}
-
-/* ------------------------------------------------------------------ */
-/*  UI Components                                                      */
-/* ------------------------------------------------------------------ */
-
-function StatusBadge({ status }: { status: 'scheduled' | 'live' | 'ended' }) {
-  if (status === 'live') return (
-    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-red-400 bg-red-500/15 px-2 py-0.5 rounded-full">
-      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" /> EN VIVO
-    </span>
-  );
-  if (status === 'ended') return (
-    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Finalizado</span>
-  );
-  return <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">Programado</span>;
-}
-
-function PlayerRow({ name, score, isWinner, hasScores }: { name: string; score?: number; isWinner: boolean; hasScores: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-full bg-bg-darkest/30 flex items-center justify-center shrink-0">
-        <svg className="w-4 h-4 text-text-muted/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
-        </svg>
+    <div className="glass-card rounded-lg px-3 py-2.5 flex items-center gap-3 glow-hover">
+      <div className="text-[10px] font-mono text-text-muted/70 w-16 shrink-0 text-center leading-tight">
+        <div>G{row.group}</div>
+        <div className="text-text-muted/50">P{row.match}</div>
       </div>
-      <span className={`flex-1 text-sm font-semibold truncate ${isWinner ? 'text-text-primary' : hasScores ? 'text-text-muted' : 'text-text-primary'}`}>
-        {name}
-      </span>
-      {hasScores && (
-        <div className="flex items-center gap-2">
-          <span className={`text-lg font-black ${isWinner ? 'text-emerald-400' : 'text-text-muted'}`}>{score}</span>
-          {isWinner && (
-            <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-              <span className="text-[8px] font-black text-white">W</span>
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
-function ScheduleCard({ match }: { match: ScheduleMatch }) {
-  const hasScores = match.scoreA != null && match.scoreB != null;
-  const isWinnerA = hasScores && match.winner === match.playerA;
-  const isWinnerB = hasScores && match.winner === match.playerB;
-
-  return (
-    <div className="glass-card rounded-xl overflow-hidden glow-hover">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-light">
+      <div className="flex-1 min-w-0 space-y-0.5">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-text-primary">{match.time}</span>
-          {hasScores && <StatusBadge status={match.status} />}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-text-muted tracking-wider uppercase">
-            {match.round}{match.group ? ` · G${match.group}` : ''}
+          <span className={`flex-1 text-xs truncate ${winnerA ? 'text-text-primary font-bold' : 'text-text-muted'}`}>
+            {row.playerA}
           </span>
-          <span className="text-[10px] text-text-muted/80 bg-bg-darkest/30 px-1.5 py-0.5 rounded">Mesa {match.table}</span>
+          {showPct && <span className="text-[9px] font-mono text-text-muted/60 w-12 text-right">{fmtPct(r!.pctA, 0)}</span>}
+          <span className={`text-xs font-mono w-6 text-right tabular-nums ${winnerA ? 'text-emerald-400 font-bold' : 'text-text-muted'}`}>
+            {r ? fmtInt(r.carambolasA) : EMPTY}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`flex-1 text-xs truncate ${winnerB ? 'text-text-primary font-bold' : 'text-text-muted'}`}>
+            {row.playerB}
+          </span>
+          {showPct && <span className="text-[9px] font-mono text-text-muted/60 w-12 text-right">{fmtPct(r!.pctB, 0)}</span>}
+          <span className={`text-xs font-mono w-6 text-right tabular-nums ${winnerB ? 'text-emerald-400 font-bold' : 'text-text-muted'}`}>
+            {r ? fmtInt(r.carambolasB) : EMPTY}
+          </span>
         </div>
       </div>
-      <div className="px-4 py-3 space-y-2">
-        <PlayerRow name={match.playerA} score={match.scoreA} isWinner={isWinnerA} hasScores={hasScores} />
-        <PlayerRow name={match.playerB} score={match.scoreB} isWinner={isWinnerB} hasScores={hasScores} />
+
+      <div className="shrink-0 text-right">
+        {row.time24 && (
+          <div className="text-[10px] font-mono text-text-muted mb-0.5">{fmtTime(row.time24)}</div>
+        )}
+        <span className={`text-[9px] px-2 py-0.5 rounded-full font-semibold ${style.className}`}>
+          {style.label}
+        </span>
       </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main component                                                     */
-/* ------------------------------------------------------------------ */
+export default function CalendarioClient({
+  fixture,
+  results,
+}: {
+  fixture: FixtureMatch[];
+  results: GroupResult[];
+}) {
+  const [groupFilter, setGroupFilter] = useState('all');
 
-export default function CalendarioClient() {
-  // Static data shown immediately (always the base — never replaced)
-  const staticGroups = useMemo(() => [...SCHEDULE], []);
-  const staticElim = useMemo(() => buildElimSchedule(ELIMINATION_MATCHES), []);
+  const rows = useMemo<Row[]>(() => {
+    const byKey = new Map<string, GroupResult>();
+    for (const r of results) byKey.set(`${r.group}-${r.match}`, r);
 
-  // Live scores from Google Sheets (overlay on top of static)
-  const [liveResults, setLiveResults] = useState<GroupResult[] | null>(null);
-  const [liveElim, setLiveElim] = useState<ScheduleMatch[] | null>(null);
-
-  const load = useCallback(async () => {
-    const [elimData, resultsData] = await Promise.all([
-      fetchEliminationClient(),
-      fetchResultsClient(),
-    ]);
-    if (elimData) setLiveElim(buildElimSchedule(elimData));
-    if (resultsData) setLiveResults(resultsData);
-  }, []);
-
-  useEffect(() => {
-    load();
-    const handler = () => { load(); };
-    window.addEventListener(SHEET_REFRESH_EVENT, handler);
-    return () => window.removeEventListener(SHEET_REFRESH_EVENT, handler);
-  }, [load]);
-
-  // Merge: static groups + live scores overlay
-  const groupsWithScores = useMemo(() => {
-    if (!liveResults) return staticGroups;
-    return staticGroups.map(m => {
-      if (!m.group) return m;
-      const result = findResult(liveResults, m.group, m.playerA, m.playerB);
-      const hasResult = result && (result.carambolasA > 0 || result.carambolasB > 0);
-      if (!hasResult) return { ...m, status: 'scheduled' as const };
-      return {
-        ...m,
-        scoreA: result.carambolasA,
-        scoreB: result.carambolasB,
-        winner: result.winner,
-        status: 'ended' as const,
-      };
+    return fixture.map(f => {
+      const result = byKey.get(`${f.group}-${f.match}`) || null;
+      // "Programado" solo si de verdad tiene fecha; si no, está sin fecha.
+      const status: Row['status'] =
+        result && result.status !== 'pending'
+          ? result.status
+          : f.isoDate
+            ? 'pending'
+            : 'unscheduled';
+      return { ...f, result, status };
     });
-  }, [staticGroups, liveResults]);
+  }, [fixture, results]);
 
-  const allMatches = useMemo(() => {
-    const elim = liveElim ?? staticElim;
-    return [...groupsWithScores, ...elim];
-  }, [groupsWithScores, liveElim, staticElim]);
+  const groups = [...new Set(rows.map(r => r.group))].sort((a, b) => a - b);
+  const groupItems = [
+    { key: 'all', label: 'Todos' },
+    ...groups.map(g => ({ key: String(g), label: `Grupo ${g}` })),
+  ];
 
-  const dates = useMemo(() => [...new Set(allMatches.map(m => m.date))].sort(), [allMatches]);
-  const [selectedDate, setSelectedDate] = useState('');
+  const filtered = groupFilter === 'all' ? rows : rows.filter(r => r.group === Number(groupFilter));
 
-  // Set initial date once dates are available
-  useEffect(() => {
-    if (dates.length > 0 && !selectedDate) setSelectedDate(dates[0]);
-  }, [dates, selectedDate]);
+  const scheduled = rows.filter(r => r.isoDate).length;
+  const played = rows.filter(r => r.status === 'played' || r.status === 'draw').length;
 
-  const [viewTab, setViewTab] = useState<'schedule' | 'results'>('schedule');
-  const dayMatches = allMatches.filter(m => m.date === selectedDate);
+  // Si hay fechas, se agrupa por jornada. Si no, por grupo.
+  const byDate = useMemo(() => {
+    const map = new Map<string, Row[]>();
+    for (const r of filtered) {
+      const key = r.isoDate || '';
+      const list = map.get(key) || [];
+      list.push(r);
+      map.set(key, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => (a.time24 || '99:99').localeCompare(b.time24 || '99:99') || a.group - b.group || a.match - b.match);
+    }
+    return [...map.entries()].sort((a, b) => (a[0] || '9999').localeCompare(b[0] || '9999'));
+  }, [filtered]);
 
-  // Programación: ALL matches, NO scores (just the fixture)
-  // Resultados: only matches WITH scores
-  const filteredMatches = viewTab === 'results'
-    ? dayMatches.filter(m => m.scoreA != null)
-    : dayMatches.map(m => ({ ...m, scoreA: undefined, scoreB: undefined, winner: undefined, status: 'scheduled' as const }));
+  const byGroup = useMemo(() => {
+    const map = new Map<number, Row[]>();
+    for (const r of filtered) {
+      const list = map.get(r.group) || [];
+      list.push(r);
+      map.set(r.group, list);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.match - b.match);
+    return [...map.entries()].sort((a, b) => a[0] - b[0]);
+  }, [filtered]);
 
-  const byTime: Record<string, ScheduleMatch[]> = {};
-  for (const m of filteredMatches) {
-    if (!byTime[m.time]) byTime[m.time] = [];
-    byTime[m.time].push(m);
+  if (fixture.length === 0) {
+    return (
+      <div className="animate-fade-in px-4 py-6 md:px-8">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-6">Calendario</h2>
+          <EmptyState message="La hoja FIXTURE_GRUPOS todavía no tiene partidos. Corre el paso 3 del menú «Torneo Billar» en el Google Sheets." />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="animate-fade-in px-4 py-6 md:px-8">
-      <div className="max-w-3xl mx-auto">
-        <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-2">Calendario</h2>
-        <p className="text-sm text-text-muted mb-6">Programación de partidos y resultados por jornada</p>
-
-        <div className="flex gap-0 mb-4 border-b border-border-light">
-          {(['schedule', 'results'] as const).map(tab => (
-            <button key={tab} onClick={() => setViewTab(tab)}
-              className={`px-5 py-2.5 text-sm font-semibold transition-colors relative ${viewTab === tab ? 'text-emerald-400' : 'text-text-muted hover:text-text-primary'}`}>
-              {tab === 'schedule' ? 'Programación' : 'Resultados'}
-              {viewTab === tab && <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-emerald-400 rounded-full" />}
-            </button>
-          ))}
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-4">
+          <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text">Calendario</h2>
+          <p className="text-sm text-text-muted mt-1">
+            Fase de grupos · {rows.length} partidos · {played} jugados
+          </p>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-6">
-          {dates.map(date => {
-            const isActive = date === selectedDate;
-            const count = allMatches.filter(m => m.date === date).length;
-            return (
-              <button key={date} onClick={() => setSelectedDate(date)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${isActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-bg-secondary text-text-muted border border-border-light hover:border-emerald/20'}`}>
-                <span className="text-xs">{formatDate(date)}</span>
-                <span className={`ml-1.5 text-[10px] ${isActive ? 'text-emerald-400' : 'text-text-muted/70'}`}>({count})</span>
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          <StatCard label="Partidos" value={rows.length} />
+          <StatCard label="Con fecha" value={`${scheduled}/${rows.length}`} />
+          <StatCard label="Jugados" value={`${played}/${rows.length}`} accent />
         </div>
 
-        <div className="text-sm text-text-muted mb-4 font-medium">{formatDateFull(selectedDate)}</div>
-
-        {Object.keys(byTime).length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-text-muted text-sm">No hay partidos {viewTab === 'results' ? 'con resultados' : ''} para esta fecha</div>
+        {scheduled === 0 && (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-3 mb-6">
+            <p className="text-xs text-text-muted leading-relaxed">
+              Todavía no hay ninguna fecha puesta. Se digitan en el Google Sheets, en la hoja{' '}
+              <span className="font-mono text-text-primary">FIXTURE_GRUPOS</span>, columnas{' '}
+              <span className="font-mono text-text-primary">G (Fecha)</span> y{' '}
+              <span className="font-mono text-text-primary">H (Hora)</span>. En cuanto las pongas
+              aparecen aquí agrupadas por jornada.
+            </p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {Object.entries(byTime).sort(([a], [b]) => a.localeCompare(b)).map(([time, matches]) => (
-              <div key={time} className="space-y-3">
-                {matches.map((match, idx) => (
-                  <ScheduleCard key={`${match.date}-${match.time}-${idx}`} match={match} />
-                ))}
+        )}
+
+        <div className="mb-6">
+          <FilterPills items={groupItems} active={groupFilter} onChange={setGroupFilter} />
+        </div>
+
+        {filtered.length === 0 ? (
+          <EmptyState message="No hay partidos con ese filtro." onReset={() => setGroupFilter('all')} />
+        ) : scheduled > 0 ? (
+          byDate.map(([date, list]) => (
+            <section key={date || 'sin-fecha'} className="mb-8">
+              <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase mb-3 first-letter:uppercase">
+                {date ? fmtDate(date) : 'Sin fecha asignada'}
+                <span className="ml-2 text-[11px] font-normal text-text-muted normal-case tracking-normal">
+                  {list.length} partido{list.length !== 1 ? 's' : ''}
+                </span>
+              </h3>
+              <div className="space-y-2">
+                {list.map(r => <MatchRow key={`${r.group}-${r.match}`} row={r} />)}
               </div>
-            ))}
-          </div>
+            </section>
+          ))
+        ) : (
+          byGroup.map(([group, list]) => (
+            <section key={group} className="mb-8">
+              <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase mb-3">
+                Grupo {group}
+                <span className="ml-2 text-[11px] font-normal text-text-muted normal-case tracking-normal">
+                  {list.length} partido{list.length !== 1 ? 's' : ''}
+                </span>
+              </h3>
+              <div className="space-y-2">
+                {list.map(r => <MatchRow key={`${r.group}-${r.match}`} row={r} />)}
+              </div>
+            </section>
+          ))
         )}
       </div>
     </div>

@@ -1,7 +1,9 @@
 import { fetchPlayers } from '../lib/sheets';
 import JugadoresClient from './JugadoresClient';
 
-export const dynamic = 'force-dynamic';
+// ISR: la página se regenera cada 15 s como mucho, y al instante
+// cuando el Apps Script llama a /api/revalidate al editar una celda.
+export const revalidate = 15;
 
 export default async function JugadoresPage() {
   const players = await fetchPlayers();

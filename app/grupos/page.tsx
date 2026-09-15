@@ -1,9 +1,14 @@
-import { fetchGroupStandings } from '../lib/sheets';
+import { fetchGroups, fetchConfig } from '../lib/sheets';
 import GruposClient from './GruposClient';
 
-export const dynamic = 'force-dynamic';
+// ISR: la página se regenera cada 15 s como mucho, y al instante
+// cuando el Apps Script llama a /api/revalidate al editar una celda.
+export const revalidate = 15;
 
 export default async function GruposPage() {
-  const groups = await fetchGroupStandings();
-  return <GruposClient groups={groups} />;
+  const [{ groups, ranking }, config] = await Promise.all([
+    fetchGroups(),
+    fetchConfig(),
+  ]);
+  return <GruposClient groups={groups} ranking={ranking} config={config} />;
 }

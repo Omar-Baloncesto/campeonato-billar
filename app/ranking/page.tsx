@@ -1,12 +1,28 @@
-import { fetchRankingFinal, fetchRankingGroups } from '../lib/sheets';
+import { fetchRankingFinal, fetchRankingGroups, fetchEliminationMatches, fetchPlayers } from '../lib/sheets';
 import RankingClient from './RankingClient';
 
-export const dynamic = 'force-dynamic';
+// ISR: la página se regenera cada 15 s como mucho, y al instante
+// cuando el Apps Script llama a /api/revalidate al editar una celda.
+export const revalidate = 15;
 
 export default async function RankingPage() {
-  const [rankingFinal, rankingGroups] = await Promise.all([
-    fetchRankingFinal(),
-    fetchRankingGroups(),
+  const [rankingFinal, rankingGroups, elimination, players] = await Promise.all([
+    fetchRankingFinal().catch(() => []),
+    fetchRankingGroups().catch(() => []),
+    fetchEliminationMatches().catch(() => []),
+    fetchPlayers().catch(() => []),
   ]);
-  return <RankingClient rankingFinal={rankingFinal} rankingGroups={rankingGroups} />;
+
+  // El nombre de cada ronda sale del cuadro real, no de una lista fija.
+  const roundNames: Record<number, string> = {};
+  for (const m of elimination) roundNames[m.round] = m.roundName;
+
+  return (
+    <RankingClient
+      rankingFinal={rankingFinal}
+      rankingGroups={rankingGroups}
+      roundNames={roundNames}
+      players={players}
+    />
+  );
 }

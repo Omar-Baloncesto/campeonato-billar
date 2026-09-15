@@ -1,287 +1,137 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { sheetUrl, parseCSV, parseNumber, fetchEliminationClient } from '../lib/sheets-client';
-import { ELIMINATION_MATCHES } from '../data/elimination';
 import { CITIES } from '../lib/constants';
-import { SHEET_REFRESH_EVENT } from '../components/AutoRefresh';
+import type { TournamentConfig, Player, GroupData } from '../data/types';
 
-interface ConfigData {
-  totalPlayers: number;
-  playersPerGroup: number;
-  totalGroups: number;
-  category: string;
-  carambolasPreliminary: number;
-  carambolasSemifinal: number;
-  carambolasFinal: number;
-  entriesLimit: number;
-  timePerEntry: number;
-}
+/* ==================================================================
+ *  Configuración del torneo: lo que hay hoy en el Google Sheets.
+ *  Es una vista de solo lectura; para cambiar algo se edita el Sheet.
+ * ================================================================== */
 
-interface PlayerData {
-  city: string;
-  group: number;
-}
-
-// Comparar claves sin que tildes/mayúsculas/espacios/chars invisibles rompan el match.
-function normKey(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[\u2010-\u2015]/g, '-')
-    .replace(/[^a-zA-Z0-9 \-]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-}
-
-// Fallback tolerante: busca la fila cuya etiqueta EMPIECE por la pista.
-function findByLabel(rows: string[][], hint: string): string {
-  const n = normKey(hint);
-  for (const row of rows) {
-    const a = row?.[0] ?? '';
-    const b = row?.[1] ?? '';
-    if (a && b && normKey(a).startsWith(n)) return b.trim();
-  }
-  return '';
-}
-
-// Último recurso para categoría: escanear columna B por "Primera"/"Segunda".
-function findCategoryInColumnB(rows: string[][]): string {
-  for (const row of rows) {
-    const v = (row?.[1] || '').trim();
-    if (!v) continue;
-    const n = normKey(v);
-    if (n === 'primera' || n === 'segunda' || n === 'tercera' || n === 'cuarta') return v;
-  }
-  return '';
-}
-
-async function fetchConfigClient(): Promise<{ data: ConfigData; fromSheet: boolean; error?: string }> {
-  const defaults: ConfigData = {
-    totalPlayers: 42, playersPerGroup: 4, totalGroups: 11,
-    category: 'Primera', carambolasPreliminary: 15, carambolasSemifinal: 20,
-    carambolasFinal: 20, entriesLimit: 30, timePerEntry: 40,
-  };
-  try {
-    const res = await fetch(sheetUrl('CONFIGURACION', 'A1:B15'));
-    if (!res.ok) {
-      const msg = `fetch status ${res.status}`;
-      console.error('[ConfigClient]', msg);
-      return { data: defaults, fromSheet: false, error: msg };
-    }
-    const csv = await res.text();
-    const rows = parseCSV(csv);
-    const map: Record<string, string> = {};
-    for (const row of rows) {
-      if (row[0] && row[1]) map[normKey(row[0])] = row[1].trim();
-    }
-    const get = (key: string) => map[normKey(key)];
-    const byLabel = (hint: string) => findByLabel(rows, hint);
-    if (typeof window !== 'undefined') {
-      console.info(
-        '[ConfigClient] keys del Sheet:', Object.keys(map),
-        '| Categoria via key =', JSON.stringify(get('Categoria')),
-        '| Categoria via startsWith =', JSON.stringify(byLabel('Categ')),
-      );
-    }
-    const data: ConfigData = {
-      totalPlayers: parseNumber(get('Numero total de jugadores') || byLabel('Numero total') || '42'),
-      playersPerGroup: parseNumber(get('Jugadores por grupo') || byLabel('Jugadores por grupo') || '4'),
-      totalGroups: parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || byLabel('Numero total de grupos') || '11'),
-      category: get('Categoria') || byLabel('Categ') || findCategoryInColumnB(rows) || 'Primera',
-      carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '15'),
-      carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || byLabel('Carambolas - Semi') || '20'),
-      carambolasFinal: parseNumber(get('Carambolas - Final') || byLabel('Carambolas - Final') || '20'),
-      entriesLimit: parseNumber(get('Limite de entradas') || byLabel('Limite de entradas') || '30'),
-      timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || byLabel('Tiempo por entrada') || '40'),
-    };
-    return { data, fromSheet: true };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.error('[ConfigClient] excepción:', msg);
-    return { data: defaults, fromSheet: false, error: msg };
-  }
-}
-
-async function fetchPlayersClient(): Promise<PlayerData[]> {
-  try {
-    const res = await fetch(sheetUrl('JUGADORES', 'A1:F100'));
-    if (!res.ok) return [];
-    const csv = await res.text();
-    const rows = parseCSV(csv);
-    // Exigimos solo nombre (B) + grupo (C). La columna A (N°) puede
-    // estar vacía en jugadores recién agregados: no los excluimos, porque
-    // igual cuentan para el total de grupos.
-    return rows.slice(1).filter(r => r[1] && r[2]).map(r => ({
-      city: r[5] || '',
-      group: parseNumber(r[2] || ''),
-    }));
-  } catch (_e) {
-    return [];
-  }
-}
-
-export default function ConfigClient() {
-  const [config, setConfig] = useState<ConfigData | null>(null);
-  const [source, setSource] = useState<{ fromSheet: boolean; error?: string; at: string }>({
-    fromSheet: false,
-    at: '',
-  });
-  const [cityCounts, setCityCounts] = useState<Record<string, number>>({});
-  const [elimRounds, setElimRounds] = useState(6);
-  const [elimReal, setElimReal] = useState(41);
-
-  const load = useCallback(async () => {
-    const [cfgResult, players, elimData] = await Promise.all([
-      fetchConfigClient(),
-      fetchPlayersClient(),
-      fetchEliminationClient(),
-    ]);
-
-    // Contar grupos distintos desde JUGADORES (columna C).
-    const distinctGroups = new Set<number>();
-    for (const p of players) {
-      if (p.group > 0) distinctGroups.add(p.group);
-    }
-    const totalGroups = distinctGroups.size || cfgResult.data.totalGroups;
-
-    setConfig({ ...cfgResult.data, totalGroups });
-    setSource({
-      fromSheet: cfgResult.fromSheet,
-      error: cfgResult.error,
-      at: new Date().toLocaleTimeString('es-CO'),
-    });
-
-    const counts: Record<string, number> = {};
-    for (const p of players) {
-      if (p.city) counts[p.city] = (counts[p.city] || 0) + 1;
-    }
-    setCityCounts(counts);
-
-    const elim = elimData || ELIMINATION_MATCHES;
-    setElimRounds([...new Set(elim.map(m => m.round))].length);
-    setElimReal(elim.filter(m => !m.isBye).length);
-  }, []);
-
-  useEffect(() => {
-    load();
-    const handler = () => { load(); };
-    window.addEventListener(SHEET_REFRESH_EVENT, handler);
-    return () => window.removeEventListener(SHEET_REFRESH_EVENT, handler);
-  }, [load]);
-
-  if (!config) {
-    return (
-      <div className="animate-fade-in px-4 py-6 md:px-8">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-6">
-            Configuración del Torneo
-          </h2>
-          <div className="text-text-muted text-sm">Cargando...</div>
-        </div>
+function Field({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+  return (
+    <div className="glass-card rounded-lg px-4 py-3 flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <div className="text-xs text-text-primary font-medium">{label}</div>
+        {hint && <div className="text-[10px] text-text-muted/70 mt-0.5">{hint}</div>}
       </div>
-    );
+      <div className="text-sm font-black text-emerald-400 tabular-nums shrink-0">{value}</div>
+    </div>
+  );
+}
+
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-6">
+      <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase mb-1">{title}</h3>
+      {subtitle && <p className="text-[11px] text-text-muted mb-3">{subtitle}</p>}
+      <div className={subtitle ? '' : 'mt-3'}>{children}</div>
+    </section>
+  );
+}
+
+export default function ConfigClient({
+  config,
+  players,
+  groups,
+  resultsCount,
+  eliminationCount,
+  eliminationRounds,
+}: {
+  config: TournamentConfig;
+  players: Player[];
+  groups: GroupData[];
+  resultsCount: number;
+  eliminationCount: number;
+  eliminationRounds: number;
+}) {
+  const cityCounts: Record<string, number> = {};
+  const categoryCounts: Record<string, number> = {};
+  for (const p of players) {
+    if (p.city) cityCounts[p.city] = (cityCounts[p.city] || 0) + 1;
+    if (p.category) categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
   }
 
-  const sections = [
-    {
-      title: 'General', icon: '🎱',
-      items: [
-        { label: 'Total Jugadores', value: config.totalPlayers },
-        { label: 'Grupos', value: config.totalGroups },
-        { label: 'Jugadores por Grupo', value: config.playersPerGroup },
-        { label: 'Categoría', value: config.category },
-      ],
-    },
-    {
-      title: 'Fase de Grupos', icon: '📋',
-      items: [
-        { label: 'Carambolas por partido', value: config.carambolasPreliminary },
-        { label: 'Límite de entradas', value: config.entriesLimit },
-        { label: 'Tiempo por entrada', value: `${config.timePerEntry}s` },
-      ],
-    },
-    {
-      title: 'Semifinal y Final', icon: '🏆',
-      items: [
-        { label: 'Carambolas semifinal', value: config.carambolasSemifinal },
-        { label: 'Carambolas final', value: config.carambolasFinal },
-      ],
-    },
-    {
-      title: 'Formato Eliminación', icon: '⚡',
-      items: [
-        { label: 'Tipo', value: 'Eliminación Simple' },
-        { label: 'Rondas', value: elimRounds },
-        { label: 'Partidos reales', value: elimReal },
-        { label: 'Jugadores clasificados', value: config.totalPlayers },
-      ],
-    },
-  ];
+  const inactive = players.filter(p => !p.active).length;
+  const sizes = [...new Set(groups.map(g => g.standings.length))].sort((a, b) => a - b);
+
+  const total = players.length || config.totalPlayers;
+  const bracketSize = total > 1 ? Math.pow(2, Math.ceil(Math.log2(total))) : 0;
 
   return (
     <div className="animate-fade-in px-4 py-6 md:px-8">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-6">
-          Configuración del Torneo
+      <div className="max-w-3xl mx-auto">
+        <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-1">
+          Configuración
         </h2>
+        <p className="text-sm text-text-muted mb-6">
+          Lo que está puesto ahora mismo en el Google Sheets. Para cambiar algo se edita allí y
+          esta página se actualiza sola.
+        </p>
 
-        <div
-          className={`text-[11px] mb-4 px-3 py-2 rounded-lg border ${
-            source.fromSheet
-              ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400'
-              : 'border-red-500/40 bg-red-500/10 text-red-400'
-          }`}
+        <Section title="Torneo">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Field label="Categoría del torneo" value={config.category} />
+            <Field label="Jugadores inscritos" value={total} hint={inactive > 0 ? `${inactive} marcados como no activos` : undefined} />
+            <Field label="Grupos" value={groups.length || config.totalGroups} hint={sizes.length ? `${sizes.join(' y ')} jugadores por grupo` : undefined} />
+            <Field label="Jugadores por grupo (config.)" value={config.playersPerGroup} />
+          </div>
+        </Section>
+
+        <Section
+          title="Reglas de juego"
+          subtitle={
+            config.mixedCategories
+              ? 'Se cruzan las dos categorías: gana quien consiga el mayor porcentaje de su propio objetivo.'
+              : 'Todos los jugadores tienen el mismo objetivo, así que gana quien haga más carambolas.'
+          }
         >
-          {source.fromSheet
-            ? `✅ Datos en vivo desde Google Sheets · última lectura ${source.at}`
-            : `⚠️ No se pudo leer Google Sheets (${source.error || 'fetch error'}) — mostrando valores por defecto · intento ${source.at}`}
-        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Field label="Carambolas · primera categoría" value={config.carambolasPrimera} hint="objetivo de la partida" />
+            <Field label="Carambolas · segunda categoría" value={config.carambolasSegunda} hint="objetivo de la partida" />
+            <Field label="Límite de entradas" value={config.entriesLimit} hint="máximo de entradas por partida" />
+            <Field label="Tiempo por entrada" value={`${config.timePerEntry} s`} />
+            <Field label="Carambolas · semifinal" value={config.carambolasSemifinal} />
+            <Field label="Carambolas · final" value={config.carambolasFinal} />
+          </div>
+        </Section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 stagger-children">
-          {sections.map((section) => (
-            <div key={section.title} className="glass-card rounded-xl overflow-hidden glow-hover">
-              <div className="bg-bg-header px-4 py-3 border-b border-border-light flex items-center gap-2">
-                <span className="text-lg">{section.icon}</span>
-                <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase">
-                  {section.title}
-                </h3>
-              </div>
-              <div className="p-4">
-                {section.items.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between py-2 border-b border-border-subtle last:border-0">
-                    <span className="text-sm text-text-muted">{item.label}</span>
-                    <span className="text-sm font-bold text-text-primary">{item.value}</span>
-                  </div>
-                ))}
-              </div>
+        <Section title="Estado de las hojas" subtitle="Cuántos datos ha generado hasta ahora el Apps Script.">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Field label="Partidos de grupo" value={resultsCount} />
+            <Field label="Partidos de cuadro" value={eliminationCount} />
+            <Field label="Rondas de eliminación" value={eliminationRounds} />
+            <Field label="Tamaño del cuadro" value={bracketSize} hint={`${Math.max(0, bracketSize - total)} BYE`} />
+          </div>
+        </Section>
+
+        {Object.keys(categoryCounts).length > 0 && (
+          <Section title="Jugadores por categoría">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]).map(([cat, n]) => (
+                <Field
+                  key={cat}
+                  label={cat}
+                  value={n}
+                  hint={`objetivo ${cat.toLowerCase().startsWith('prim') ? config.carambolasPrimera : config.carambolasSegunda} carambolas`}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+          </Section>
+        )}
 
         {Object.keys(cityCounts).length > 0 && (
-          <div className="glass-card rounded-xl overflow-hidden">
-            <div className="bg-bg-header px-4 py-3 border-b border-border-light">
-              <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase">
-                Ciudades Participantes
-              </h3>
+          <Section title="Jugadores por club">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).map(([city, n]) => (
+                <div key={city} className="glass-card rounded-lg px-4 py-3 flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CITIES[city]?.safeColor || '#888' }} />
+                  <span className="flex-1 text-xs text-text-primary truncate">{city}</span>
+                  <span className="text-sm font-black text-emerald-400 tabular-nums">{n}</span>
+                </div>
+              ))}
             </div>
-            <div className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).map(([city, count]) => (
-                  <div key={city} className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-white/[0.02] transition-colors">
-                    <div
-                      className="w-3 h-3 rounded-full shrink-0"
-                      style={{ background: CITIES[city]?.safeColor || '#888' }}
-                    />
-                    <span className="flex-1 text-sm text-text-primary">{city}</span>
-                    <span className="text-sm font-bold text-emerald-400">{count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          </Section>
         )}
       </div>
     </div>

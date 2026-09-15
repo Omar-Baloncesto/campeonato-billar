@@ -136,73 +136,82 @@ Fórmula para arreglar las filas que ya existen (pegar en K2 y arrastrar):
 
 ---
 
-## C · QUÉ HAY QUE ARREGLAR EN LA WEB por estos cambios
+## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 
-### C1 · `app/lib/sheets.ts` — `fetchConfig()` 🔴 (por B2)
-La etiqueta `"Carambolas - Ronda preliminar"` **deja de existir**. Hoy:
-```ts
-carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '20')
-```
-Los dos fallan → cae al default 20. Hay que leer las dos etiquetas nuevas y
-elegir según `category`. Lo mismo en `app/configuracion/ConfigClient.tsx`.
+Todo lo de esta sección está aplicado y verificado contra una copia local
+del Sheet real (22 jugadores, 5 grupos, cuadro de 32).
 
-Las demás etiquetas siguen bien: la web busca por texto, no por fila.
+### C1 · `app/lib/sheets.ts` — reescrito
+Antes se leía `GRUPOS!A1:Q200` con las columnas fijadas a mano suponiendo
+grupos de 3 partidos. El Sheet de hoy llega hasta la columna **V** y tiene
+**4** columnas CA/CR/PTS, así que la web leía cada dato una columna corrida:
+en `#` salía el ORDEN, en `CA` la suma de otra cosa, y la columna
+«Ranking Jugadores» ni se leía.
 
-### C2 · `parseNumber('')` devuelve `0` 🔴 (por A4)
-`app/lib/sheets.ts` y `app/lib/sheets-client.ts`. El Sheet ya distingue
-"pendiente" (vacío) de "cero", pero la web lo pisa y pinta **0**.
-Hay que permitir `null` para CA/CR/PTS y pintar `—` o vacío.
+Ahora la posición de cada columna se deduce del **encabezado de cada grupo**,
+así que funciona con cualquier tamaño de grupo sin tocar código.
 
-### C3 · `hasP3` incoherente 🟡 (por A4)
-```ts
-const hasP3 = row[4] !== undefined && row[4] !== '';
-caP3: hasP3 ? parseNumber(row[4]) : null,
-```
-P1/P2 pendientes → `0`; P3 pendiente → columna oculta. Tres comportamientos
-para lo mismo. Debe distinguir "grupo de 3 jugadores" de "partido pendiente".
+### C2 · Vacío ya no es cero
+`parseNumber('')` devolvía `0`, así que un partido sin jugar se pintaba como
+un 0-0 real. Ahora todo lo que puede estar pendiente es `number | null` y se
+pinta `—`.
 
-### C4 · "SIN JUGAR" en la columna Resultado 🟡 (por A2)
-`fetchResults()` mapea `winner: r[10]`. Ahora puede valer `"SIN JUGAR"`.
-Revisar `/resultados` y `/calendario` para que no lo trate como nombre de jugador.
+### C3 · Se acabaron las columnas P1/P2/P3 fijas
+En un grupo de n jugadores cada uno juega n-1 partidos. Se calcula, no se
+supone. Con eso el recuento pasó de «34 de 44» (mal) a «34 de 38» (bien).
 
-### C5 · W.O. con 0 entradas 🟡 (por A1)
-`CalendarioClient`: `hasScore = m.carambolasA > 0 || m.carambolasB > 0`.
-Un W.O. tipo "AB" (0-0) aparecería como "Programado" aunque esté resuelto.
+### C4 · «SIN JUGAR» y «EMPATE» ya no son nombres de jugador
+La columna Resultado puede traer `W.O.`, `SIN JUGAR` o `EMPATE`. Antes se
+tomaban como el nombre del ganador. Ahora cada partido tiene un estado
+(jugado / sin jugar / empate / W.O.) con su etiqueta de color.
 
-### C6 · Eliminación Simple — nombre de hoja y ronda final 🔴 (por B4)
-`app/lib/sheets.ts` `fetchEliminationMatches()` prueba tres nombres en este
-orden: `ELIMINACIÓN SIMPLE`, `ELIMINACION SIMPLE`, `Eliminación Simple`.
-El bueno es el tercero → **tres peticiones a Google por cada visita**.
-Dejar solo `Eliminación Simple`.
+### C5 · W.O. con 0 entradas
+Ya no aparece como «Programado»: el estado sale de la columna W.O., no de
+si hay carambolas.
 
-Y el campeón/podio está fijado a `round === 6`. Con 22 inscritos la final es la
-**ronda 5**, no la 6 → la web se queda sin campeón. Debe usar
-`Math.max(...rounds)`. (Es el punto 14 de la tabla D.)
+### C6 · Eliminación: rondas y campeón dinámicos
+El campeón estaba fijado a `round === 6`. Con 22 inscritos la final es la
+ronda **5**, así que la web se quedaba sin campeón ni podio. Ahora la última
+ronda se deduce del cuadro, y el nombre de cada ronda sale de cuántos
+partidos tiene (Final, Semifinal, Cuartos, Octavos, Dieciseisavos…).
 
-Además ya existen `L` y `M` (objetivos): se puede mostrar el promedio real
-`carambolas/objetivo` en el cuadro, pero el rango `A1:K200` sigue valiendo.
+También se leen las columnas **L y M** (Objetivo A/B), así que la web enseña
+el **% de objetivo** y explica cuándo alguien pasa con menos carambolas.
 
----
+### C7 · Cuadro de eliminación de verdad
+El cuadro anterior estaba dibujado a mano para 16 jugadores desde octavos.
+Ahora se construye el árbol desde la final hacia atrás siguiendo la siembra
+en espejo del Apps Script, así que sirve para cualquier número de rondas.
 
-## D · Pendientes del diagnóstico original (independientes de lo anterior)
+### C8 · Calendario conectado al Sheet
+Leía un archivo fijo dentro del código con la programación de otro torneo.
+Ahora lee **FIXTURE_GRUPOS** y cruza los marcadores con RESULTADOS. Mientras
+las columnas G (Fecha) y H (Hora) estén vacías, avisa dónde se digitan.
 
-| # | Qué | Estado |
-|---|---|---|
-| 1 | Ciudad equivocada en 29 de 42 jugadores (el sorteo baraja solo la columna B) | 🔴 pendiente |
-| 2 | `Eliminación Simple` con/sin tilde: el paso 7 recrea la pestaña sin tilde | ✅ resuelto en B4 |
-| 3 | No hay `error.tsx`: si Google falla, la web se queda en blanco | 🔴 pendiente |
-| 4 | Sin caché: ~7 lecturas del Sheet por visitante → Google rate-limita | 🔴 pendiente |
-| 5 | `/api/revalidate` no hace nada y nadie lo llama (tiempo real) | 🟡 pendiente |
-| 6 | Calendario usa `app/data/schedule.ts` fijo; `fetchProgramacion()` es código muerto | 🟡 pendiente |
-| 7 | ORDEN GRUPO sin desempate final (dos "1" en el Grupo 10) | ⚖️ decide Omar |
-| 8 | GRUPOS no trae entradas → no existe el promedio en la clasificación | ⚖️ decide Omar |
-| 9 | Convención de W.O. — resuelto en A1, confirmar que es la definitiva | ⚖️ decide Omar |
-| 14 | Campeón/podio fijados a `round === 6`: con otro nº de inscritos se queda vacío | 🔴 pendiente (ver C6) |
-| 15 | Resto del Apps Script sigue escribiendo celda a celda | ⚪ pendiente |
-| 16-18 | Código duplicado, archivos muertos, `package.json` | ⚪ pendiente |
+### C9 · Caché y tiempo real
+Cada visitante disparaba ~7 descargas del Sheet sin caché. Ahora:
+- la página se guarda 15 s (ISR) y todas las lecturas van marcadas con el
+  tag `sheet-data`;
+- `/api/revalidate` **por fin hace algo**: antes invalidaba un tag que
+  ninguna descarga llevaba, y `revalidatePath` no servía porque todas las
+  páginas eran `force-dynamic` (que obliga a `no-store` en cada `fetch`);
+- el Apps Script llama a esa ruta al editar una celda
+  (`apps-script/M16-avisar-a-la-web.gs`) y el cambio se ve al instante.
 
-**RankingGrupos y RankingFinal son fotos congeladas** (valores, no fórmulas).
-No se actualizan solas: hay que correr el menú. La web `/ranking` las lee tal cual.
+### C10 · Ya no hay pantalla en blanco
+Se añadieron `app/error.tsx` y `app/global-error.tsx`, y ninguna lectura del
+Sheet lanza excepción: si Google falla, la página muestra su estado vacío.
+
+### C11 · Fuera los datos del torneo viejo
+`app/data/{elimination,groups,players,rankings,schedule,config,helpers}.ts`
+tenían el torneo de 42 jugadores y se usaban de respaldo, así que ante
+cualquier fallo la web enseñaba **otro torneo** como si fuera este. Borrados.
+
+### C12 · Ranking: «Ciudad» que traía la categoría
+La columna C de `RankingGrupos` se titula Ciudad pero `GenerarRankingGrupos`
+le mete la **categoría** (lee la columna D de JUGADORES en vez de la F). La
+web ahora saca club y categoría de JUGADORES y muestra las dos.
+**Queda pendiente arreglarlo en el Apps Script.**
 
 ---
 
@@ -212,3 +221,20 @@ No se actualizan solas: hay que correr el menú. La web `/ranking` las lee tal c
 https://docs.google.com/spreadsheets/d/1TzWeEtQCOhR3SG0YXJg64ppT34uSIeKEQ-Q5UQp_2TE/edit
 
 Sin verificar si arrastró el Apps Script vinculado.
+
+---
+
+## F · Lo que queda pendiente
+
+| # | Qué | Dónde |
+|---|---|---|
+| 1 | `REVALIDATE_TOKEN` en Vercel y en las Propiedades del Apps Script | lo pone Omar |
+| 2 | Instalar el activador `onEditAvisarWeb` (M16) | Apps Script |
+| 3 | `GenerarRankingGrupos` mete la categoría en la columna «Ciudad» | Apps Script |
+| 4 | `var CLAVE = "cablestaca"` está en texto plano en el Código.gs | Apps Script |
+| 5 | Los `gid` de las pestañas que faltan en `SHEET_GIDS` | `app/lib/sheets.ts` |
+
+**Sobre el punto 5:** hoy se leen todas las hojas y funciona. Añadir el gid de
+RESULTADOS, GRUPOS y Eliminación Simple hace que esas tres se pidan por la vía
+más directa. El gid se ve en la URL al hacer clic en la pestaña:
+`.../edit#gid=123456789`.

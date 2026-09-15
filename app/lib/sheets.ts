@@ -1,424 +1,187 @@
-const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
+/* ==================================================================
+ *  Lectura del Google Sheet del torneo (lado servidor).
+ *
+ *  Antes cada visita disparaba ~7 descargas a Google con
+ *  `cache: 'no-store'`, así que con varias personas mirando a la vez
+ *  Google acababa limitando las peticiones. Ahora todas las descargas
+ *  van marcadas con el tag SHEET_TAG y se guardan SHEET_TTL segundos:
+ *
+ *    · sin tocar nada, los datos se refrescan solos cada 15 s
+ *    · el Apps Script puede llamar a /api/revalidate al editar una
+ *      celda y entonces el cambio se ve al instante
+ *
+ *  Sobre el endpoint: /export?format=csv&gid=N devuelve siempre el
+ *  estado actual de la hoja; /gviz/tq?sheet=NOMBRE a veces sirve una
+ *  copia vieja. Por eso se intenta primero por gid y el gviz queda
+ *  solo como último recurso.
+ * ================================================================== */
 
-// El endpoint gviz/tq resultó cachear la respuesta sin respetar el
-// cache-buster: Google seguía devolviendo un snapshot viejo donde
-// B5 (Categoría) estaba vacío aunque el Sheet ya tuviera "Segunda".
-// El endpoint /export?format=csv&gid=... es el mismo que dispara
-// "Archivo → Descargar → CSV" desde la UI y siempre devuelve datos
-// frescos. A cambio, hay que conocer el gid numérico de cada tab.
-const SHEET_GIDS: Record<string, string> = {
+import { parseCSV } from './csv';
+import {
+  parseConfig, parseTargets, parsePlayers, parseResults,
+  parseGroupStandings, parseGlobalRanking, parseElimination,
+  parseRankingFinal, parseRankingGroups, parseFixture,
+} from './parsers';
+import type {
+  TournamentConfig, Player, GroupResult, GroupData, RankedPlayer,
+  EliminationMatch, RankingFinalRow, RankingGroupRow, FixtureMatch,
+} from '../data/types';
+
+export const SPREADSHEET_ID = '13drcy7eWhX3P0cfrzYWAoBAJ53bRwQLU3NGKxEgiXYQ';
+
+/** Tag común: /api/revalidate lo invalida y todas las páginas se refrescan. */
+export const SHEET_TAG = 'sheet-data';
+
+/** Segundos que se reutiliza una descarga antes de volver a pedirla. */
+export const SHEET_TTL = 15;
+
+/**
+ * gid numérico de cada pestaña. El gid se ve en la URL del navegador
+ * al hacer clic en la pestaña: .../edit#gid=394693629
+ *
+ * Las pestañas que no estén aquí siguen funcionando (se leen por
+ * nombre), pero pueden tardar un poco más en reflejar un cambio.
+ */
+export const SHEET_GIDS: Record<string, string> = {
   CONFIGURACION: '394693629',
   JUGADORES: '1215907359',
 };
 
-function sheetUrl(sheetName: string, range?: string): string {
+export const SHEETS = {
+  baseDatos: 'Base de Datos',
+  config: 'CONFIGURACION',
+  players: 'JUGADORES',
+  fixture: 'FIXTURE_GRUPOS',
+  results: 'RESULTADOS',
+  groups: 'GRUPOS',
+  elimination: 'Eliminación Simple',
+  rankingGroups: 'RankingGrupos',
+  rankingFinal: 'RankingFinal',
+} as const;
+
+/**
+ * Normalmente Google. Se puede apuntar a otro sitio con SHEETS_BASE_URL
+ * para probar la web en local contra una copia del Sheet.
+ */
+const BASE_URL = process.env.SHEETS_BASE_URL || 'https://docs.google.com';
+
+function candidateUrls(sheetName: string, range?: string): string[] {
+  const base = `${BASE_URL}/spreadsheets/d/${SPREADSHEET_ID}`;
+  const urls: string[] = [];
   const gid = SHEET_GIDS[sheetName];
-  const bust = `t=${Date.now()}&r=${Math.random().toString(36).slice(2, 8)}`;
+
   if (gid) {
-    // /export?format=csv sí respeta el estado actual del Sheet.
-    let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
-    if (range) url += `&range=${encodeURIComponent(range)}`;
-    url += `&${bust}`;
-    return url;
+    let u = `${base}/export?format=csv&gid=${gid}`;
+    if (range) u += `&range=${encodeURIComponent(range)}`;
+    urls.push(u);
   }
-  // Tabs sin gid conocido siguen por gviz (funcionan bien para datos
-  // que no se editan en tiempo real).
-  let url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-  if (range) url += `&range=${encodeURIComponent(range)}`;
-  url += `&${bust}`;
-  return url;
+
+  // Exportar por nombre de hoja: funciona en muchos libros y es fresco.
+  urls.push(`${base}/export?format=csv&range=${encodeURIComponent(`'${sheetName}'!${range || 'A1:BZ500'}`)}`);
+
+  // Último recurso.
+  let gviz = `${base}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  if (range) gviz += `&range=${encodeURIComponent(range)}`;
+  urls.push(gviz);
+
+  return urls;
 }
 
-function parseCSV(csv: string): string[][] {
-  const rows: string[][] = [];
-  let current = '';
-  let inQuotes = false;
-  let row: string[] = [];
-
-  for (let i = 0; i < csv.length; i++) {
-    const ch = csv[i];
-    if (inQuotes) {
-      if (ch === '"' && csv[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else if (ch === '"') {
-        inQuotes = false;
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ',') {
-        row.push(current.trim());
-        current = '';
-      } else if (ch === '\n' || (ch === '\r' && csv[i + 1] === '\n')) {
-        row.push(current.trim());
-        rows.push(row);
-        row = [];
-        current = '';
-        if (ch === '\r') i++;
-      } else {
-        current += ch;
-      }
-    }
-  }
-  if (current || row.length > 0) {
-    row.push(current.trim());
-    rows.push(row);
-  }
-  return rows;
-}
-
-function parseNumber(val: string): number {
-  if (!val || val === '') return 0;
-  return Number(val.replace(',', '.'));
+/** Una respuesta HTML es una página de error de Google, no un CSV. */
+function looksLikeCsv(text: string): boolean {
+  const head = text.trimStart().slice(0, 200).toLowerCase();
+  if (head.startsWith('<') || head.includes('<!doctype') || head.includes('<html')) return false;
+  return text.trim().length > 0;
 }
 
 /**
- * Normaliza una cadena para comparar claves de configuración sin que
- * tildes, mayúsculas, espacios extras o guiones raros rompan el match.
- *   "Categoría"          → "categoria"
- *   "Número total"       → "numero total"
- *   "Carambolas – Final" → "carambolas - final"
+ * Nunca lanza: si Google no responde devuelve una lista vacía y la
+ * página enseña su estado vacío. Un fallo puntual de Google no debe
+ * tumbar el build ni dejar la web en blanco.
  */
-function normalizeKey(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')           // quitar tildes
-    .replace(/[\u2010-\u2015]/g, '-')          // guiones tipográficos → guion normal
-    .replace(/[^a-zA-Z0-9 \-]/g, '')           // dejar solo alfanumérico + espacio + guion (mata NBSP, zero-width, etc.)
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-}
-
-/**
- * Busca el valor (columna B) de una fila cuya etiqueta (columna A), una
- * vez normalizada, EMPIEZA por la pista dada. Esto es más tolerante
- * que un match exacto: aguanta caracteres raros que el normalizador
- * tampoco atrape, o etiquetas ligeramente diferentes a lo esperado.
- */
-function findByLabel(rows: string[][], hint: string): string {
-  const n = normalizeKey(hint);
-  for (const row of rows) {
-    const a = row?.[0] ?? '';
-    const b = row?.[1] ?? '';
-    if (a && b && normalizeKey(a).startsWith(n)) return b.trim();
-  }
-  return '';
-}
-
-/**
- * Último recurso para la categoría: si ni la clave ni el startsWith en
- * la etiqueta A funcionan (por ejemplo porque A5 llegó como celda
- * vacía en el CSV), escaneamos TODA la columna B buscando un valor
- * que sea exactamente "Primera" o "Segunda".
- */
-function findCategoryInColumnB(rows: string[][]): string {
-  for (const row of rows) {
-    const v = (row?.[1] || '').trim();
-    if (!v) continue;
-    const n = normalizeKey(v);
-    if (n === 'primera' || n === 'segunda' || n === 'tercera' || n === 'cuarta') {
-      return v;
-    }
-  }
-  return '';
-}
-
 async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
-  const url = sheetUrl(sheetName, range);
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Failed to fetch sheet ${sheetName}: ${res.status}`);
-  const csv = await res.text();
-  return parseCSV(csv);
+  for (const url of candidateUrls(sheetName, range)) {
+    try {
+      const res = await fetch(url, {
+        next: { revalidate: SHEET_TTL, tags: [SHEET_TAG] },
+      });
+      if (!res.ok) continue;
+      const csv = await res.text();
+      if (!looksLikeCsv(csv)) continue;
+      const rows = parseCSV(csv);
+      if (rows.length > 0) return rows;
+    } catch {
+      // se prueba la siguiente forma de pedir la hoja
+    }
+  }
+
+  console.warn(`[sheets] no se pudo leer la hoja "${sheetName}"`);
+  return [];
 }
 
-export async function fetchConfig() {
-  // Traemos CONFIGURACION y JUGADORES en paralelo. El número de grupos
-  // se deduce del Sheet JUGADORES (columna C), contando grupos
-  // distintos, en vez de hardcodearlo.
+/* ------------------------------------------------------------------ */
+/*  Lecturas                                                           */
+/* ------------------------------------------------------------------ */
+
+/** Objetivo de carambolas de cada jugador, desde 'Base de Datos' columna E. */
+export async function fetchTargets(): Promise<Map<string, number>> {
+  try {
+    return parseTargets(await fetchSheet(SHEETS.baseDatos, 'A1:E300'));
+  } catch {
+    return new Map();
+  }
+}
+
+export async function fetchConfig(): Promise<TournamentConfig> {
   const [rows, playerRows] = await Promise.all([
-    fetchSheet('CONFIGURACION', 'A1:B15'),
-    fetchSheet('JUGADORES', 'A1:F200'),
+    fetchSheet(SHEETS.config, 'A1:B20'),
+    fetchSheet(SHEETS.players, 'A1:F300'),
   ]);
-
-  const config: Record<string, string> = {};
-  for (const row of rows) {
-    if (row[0] && row[1]) config[normalizeKey(row[0])] = row[1].trim();
-  }
-  const get = (key: string) => config[normalizeKey(key)];
-  const byLabel = (hint: string) => findByLabel(rows, hint);
-
-  // Grupos distintos en la columna C de JUGADORES (saltamos cabecera).
-  const distinctGroups = new Set<number>();
-  for (const r of playerRows.slice(1)) {
-    const g = parseNumber(r[2] || '');
-    if (g > 0) distinctGroups.add(g);
-  }
-  const totalGroupsFromPlayers = distinctGroups.size;
-
-  return {
-    totalPlayers: parseNumber(get('Numero total de jugadores') || byLabel('Numero total') || '42'),
-    playersPerGroup: parseNumber(get('Jugadores por grupo') || byLabel('Jugadores por grupo') || '4'),
-    totalGroups: totalGroupsFromPlayers || parseNumber(get('Numero total de grupos') || get('Total de grupos') || get('Grupos') || '11'),
-    category: get('Categoria') || byLabel('Categ') || findCategoryInColumnB(rows) || 'Primera',
-    carambolasPreliminary: parseNumber(get('Carambolas - Ronda preliminar') || byLabel('Carambolas - Ronda') || '20'),
-    carambolasSemifinal: parseNumber(get('Carambolas - Semifinal') || byLabel('Carambolas - Semi') || '25'),
-    carambolasFinal: parseNumber(get('Carambolas - Final') || byLabel('Carambolas - Final') || '25'),
-    entriesLimit: parseNumber(get('Limite de entradas') || byLabel('Limite de entradas') || '30'),
-    timePerEntry: parseNumber(get('Tiempo por entrada (segundos)') || byLabel('Tiempo por entrada') || '40'),
-  };
+  return parseConfig(rows, playerRows);
 }
 
-export async function fetchPlayers() {
-  const rows = await fetchSheet('JUGADORES', 'A1:F100');
-  // Skip header row
-  return rows.slice(1).filter(r => r[0] && r[1]).map(r => ({
-    id: parseNumber(r[0]),
-    name: r[1].trim(),
-    group: parseNumber(r[2]),
-    category: r[3] || 'Primera',
-    active: (r[4] || '').toUpperCase() === 'SI',
-    city: r[5] || '',
-  }));
+export async function fetchPlayers(): Promise<Player[]> {
+  const [rows, targets] = await Promise.all([
+    fetchSheet(SHEETS.players, 'A1:F300'),
+    fetchTargets(),
+  ]);
+  return parsePlayers(rows, targets);
 }
 
-export async function fetchResults() {
-  const rows = await fetchSheet('RESULTADOS', 'A1:L200');
-  return rows.slice(1).filter(r => r[0] && r[2]).map(r => ({
-    group: parseNumber(r[0]),
-    match: parseNumber(r[1]),
-    playerA: r[2] || '',
-    carambolasA: parseNumber(r[3]),
-    entriesA: parseNumber(r[4]),
-    averageA: parseNumber(r[5]),
-    playerB: r[6] || '',
-    carambolasB: parseNumber(r[7]),
-    entriesB: parseNumber(r[8]),
-    averageB: parseNumber(r[9]),
-    winner: r[10] || '',
-    walkover: (r[11] || '').toLowerCase() === 'si',
-  }));
+export async function fetchResults(): Promise<GroupResult[]> {
+  const [rows, targets] = await Promise.all([
+    fetchSheet(SHEETS.results, 'A1:P400'),
+    fetchTargets(),
+  ]);
+  return parseResults(rows, targets);
 }
 
-import type { GroupStanding, GroupData } from '../data/types';
+/** GRUPOS trae en el mismo rango las tablas y el ranking general. */
+export async function fetchGroups(): Promise<{ groups: GroupData[]; ranking: RankedPlayer[] }> {
+  const rows = await fetchSheet(SHEETS.groups, 'A1:AZ400');
+  return { groups: parseGroupStandings(rows), ranking: parseGlobalRanking(rows) };
+}
 
 export async function fetchGroupStandings(): Promise<GroupData[]> {
-  const rows = await fetchSheet('GRUPOS', 'A1:Q200');
-  const groups: GroupData[] = [];
-  let currentGroup = 0;
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-
-    // Detect group header: "GRUPO X" in column B (row[1]) or column A header row
-    const groupMatch = (row[0] || '').match(/GRUPO\s+(\d+)/i) || (row[1] || '').match(/GRUPO\s+(\d+)/i);
-    if (groupMatch) {
-      currentGroup = parseInt(groupMatch[1]);
-      continue;
-    }
-
-    // Skip sub-headers like "Jugador", "N°"
-    if ((row[1] || '').toLowerCase() === 'jugador' || row[0] === 'N°') {
-      continue;
-    }
-
-    // Data row: position in col 0, player name in col 1
-    if (currentGroup > 0 && row[0] && row[1] && !isNaN(Number(row[0]))) {
-      let group = groups.find(g => g.number === currentGroup);
-      if (!group) {
-        group = { number: currentGroup, standings: [] };
-        groups.push(group);
-      }
-
-      // Columns: 0=N°, 1=Player, 2=CA_P1, 3=CA_P2, 4=CA_P3, 5=TOTAL_CA,
-      //          6=CR_P1, 7=CR_P2, 8=CR_P3, 9=TOTAL_CR, 10=DIF,
-      //          11=PTS_P1, 12=PTS_P2, 13=PTS_P3, 14=TOTAL_PTS, 15=ORDEN, 16=CLASIF
-      const hasP3 = row[4] !== undefined && row[4] !== '';
-      group.standings.push({
-        position: parseNumber(row[0]),
-        player: row[1].trim(),
-        caP1: parseNumber(row[2]),
-        caP2: parseNumber(row[3]),
-        caP3: hasP3 ? parseNumber(row[4]) : null,
-        totalCA: parseNumber(row[5]),
-        crP1: parseNumber(row[6]),
-        crP2: parseNumber(row[7]),
-        crP3: hasP3 ? parseNumber(row[8]) : null,
-        totalCR: parseNumber(row[9]),
-        differential: parseNumber(row[10]),
-        ptsP1: parseNumber(row[11]),
-        ptsP2: parseNumber(row[12]),
-        ptsP3: hasP3 ? parseNumber(row[13]) : null,
-        totalPts: parseNumber(row[14]),
-        groupOrder: parseNumber(row[15]),
-        generalClassification: parseNumber(row[16]),
-      });
-    }
-  }
-  return groups;
+  return (await fetchGroups()).groups;
 }
 
-export async function fetchRankingFinal() {
-  const rows = await fetchSheet('RankingFinal', 'A1:C100');
-  return rows.slice(1).filter(r => r[0] && r[1]).map(r => ({
-    ranking: parseNumber(r[0]),
-    player: r[1].trim(),
-    roundReached: parseNumber(r[2]),
-  }));
+export async function fetchEliminationMatches(): Promise<EliminationMatch[]> {
+  const [rows, targets] = await Promise.all([
+    fetchSheet(SHEETS.elimination, 'A1:M300'),
+    fetchTargets(),
+  ]);
+  return parseElimination(rows, targets);
 }
 
-export async function fetchRankingGroups() {
-  const rows = await fetchSheet('RankingGrupos', 'A1:G100');
-  return rows.slice(1).filter(r => r[0] && r[1]).map(r => ({
-    ranking: parseNumber(r[0]),
-    player: r[1].trim(),
-    city: r[2] || '',
-    carambolas: parseNumber(r[3]),
-    entries: parseNumber(r[4]),
-    average: parseNumber(r[5]),
-    points: parseNumber(r[6]),
-  }));
+export async function fetchRankingFinal(): Promise<RankingFinalRow[]> {
+  return parseRankingFinal(await fetchSheet(SHEETS.rankingFinal, 'A1:C300'));
 }
 
-export async function fetchEliminationMatches() {
-  // Try different possible sheet names
-  let rows: string[][] = [];
-  for (const name of ['ELIMINACIÓN SIMPLE', 'ELIMINACION SIMPLE', 'Eliminación Simple']) {
-    try {
-      rows = await fetchSheet(name, 'A1:K200');
-      if (rows.length > 5) break;
-    } catch (_e) { /* try next name */ }
-  }
-
-  if (rows.length === 0) return null;
-
-  const matches: {
-    round: number;
-    match: number;
-    playerA: string;
-    entriesA: number;
-    carambolasA: number;
-    averageA: number;
-    playerB: string;
-    entriesB: number;
-    carambolasB: number;
-    averageB: number;
-    winner: string;
-    isBye: boolean;
-  }[] = [];
-
-  for (const row of rows) {
-    const ronda = parseInt(row[0]);
-    if (isNaN(ronda) || ronda < 1 || ronda > 10) continue;
-
-    const matchNum = parseInt(row[1]);
-    if (isNaN(matchNum)) continue;
-
-    const playerA = (row[2] || '').trim();
-    const playerB = (row[6] || '').trim();
-    if (!playerA) continue;
-
-    const isBye = playerB.toUpperCase() === 'BYE';
-    const entriesA = parseNumber(row[3]);
-    const carambolasA = parseNumber(row[4]);
-    const averageA = parseNumber(row[5]);
-    const entriesB = parseNumber(row[7]);
-    const carambolasB = parseNumber(row[8]);
-    const averageB = parseNumber(row[9]);
-    const winner = (row[10] || '').trim();
-
-    matches.push({
-      round: ronda,
-      match: matchNum,
-      playerA,
-      entriesA: entriesA < 1 ? 0 : Math.round(entriesA),
-      carambolasA,
-      averageA,
-      playerB: isBye ? 'BYE' : playerB,
-      entriesB: entriesB < 1 ? 0 : Math.round(entriesB),
-      carambolasB,
-      averageB,
-      winner,
-      isBye,
-    });
-  }
-
-  return matches.length > 0 ? matches : null;
+export async function fetchRankingGroups(): Promise<RankingGroupRow[]> {
+  return parseRankingGroups(await fetchSheet(SHEETS.rankingGroups, 'A1:G300'));
 }
 
-export interface ProgramacionMatch {
-  group: number;
-  playerA: string;
-  playerB: string;
-  isoDate: string;   // "2026-01-30"
-  time24: string;    // "09:00", "14:00"
-}
-
-function parseTime24(timeStr: string): string {
-  // "9:00 a. m." → "09:00"
-  // "2:00 p. m." → "14:00"
-  // "12:00 m." or "12:00 m" → "12:00"
-  // "6:00 p. m." → "18:00"
-  const clean = timeStr.replace(/\s+/g, ' ').trim().toLowerCase();
-  const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?|m\.?)?$/);
-  if (!match) return '00:00';
-  let hours = parseInt(match[1]);
-  const minutes = match[2];
-  const period = (match[3] || '').replace(/[\s.]/g, '');
-
-  if (period.startsWith('p') && hours < 12) hours += 12;
-  if (period.startsWith('a') && hours === 12) hours = 0;
-  if (period === 'm') hours = 12;
-
-  return `${hours.toString().padStart(2, '0')}:${minutes}`;
-}
-
-function parseDateDMY(dateStr: string): string {
-  // "30-01-2026" or "31-01-2026" → "2026-01-30"
-  const match = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-  if (!match) return '';
-  return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
-}
-
-function parseDayColumns(rows: string[][], colOffset: number): ProgramacionMatch[] {
-  // CSV structure per day section (5 columns):
-  //   Row 0: Title (e.g. "PROGRAMACIÓN 2DA CATEGORIA VIERNES 30 ENERO DEL 2026")
-  //   Row 1: Headers (Grupo, Jugador A, Jugador B, fecha, horario)
-  //   Row 2+: Data
-  const matches: ProgramacionMatch[] = [];
-
-  for (let i = 2; i < rows.length; i++) {
-    const grupo = (rows[i]?.[colOffset] || '').trim();
-    const playerA = (rows[i]?.[colOffset + 1] || '').trim();
-    const playerB = (rows[i]?.[colOffset + 2] || '').trim();
-    const dateRaw = (rows[i]?.[colOffset + 3] || '').trim();
-    const timeRaw = (rows[i]?.[colOffset + 4] || '').trim();
-
-    if (!grupo || !playerA || !playerB) continue;
-    const groupNum = parseInt(grupo);
-    if (isNaN(groupNum)) continue;
-
-    const isoDate = parseDateDMY(dateRaw);
-    const time24 = timeRaw ? parseTime24(timeRaw) : '00:00';
-    if (!isoDate) continue;
-
-    matches.push({ group: groupNum, playerA, playerB, isoDate, time24 });
-  }
-
-  return matches;
-}
-
-export async function fetchProgramacion(): Promise<ProgramacionMatch[]> {
-  const rows = await fetchSheet('Programación', 'A1:K100');
-
-  // Day 1: columns A-E (offset 0)
-  const day1 = parseDayColumns(rows, 0);
-
-  // Day 2: columns G-K (offset 6, column F is empty separator)
-  const day2 = parseDayColumns(rows, 6);
-
-  return [...day1, ...day2];
+export async function fetchFixture(): Promise<FixtureMatch[]> {
+  return parseFixture(await fetchSheet(SHEETS.fixture, 'A1:H400'));
 }

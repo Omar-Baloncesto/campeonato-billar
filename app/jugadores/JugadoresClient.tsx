@@ -4,23 +4,19 @@ import { useState } from 'react';
 import { getCityColor } from '../lib/constants';
 import FilterPills from '../components/FilterPills';
 import EmptyState from '../components/EmptyState';
-
-interface Player {
-  id: number;
-  name: string;
-  group: number;
-  category: string;
-  active: boolean;
-  city: string;
-}
+import StatCard from '../components/StatCard';
+import { EMPTY } from '../lib/format';
+import type { Player } from '../data/types';
 
 export default function JugadoresClient({ players }: { players: Player[] }) {
   const [groupFilter, setGroupFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  const groups = [...new Set(players.map(p => p.group))].sort((a, b) => a - b);
-  const cities = [...new Set(players.map(p => p.city))].sort();
+  const groups = [...new Set(players.map(p => p.group))].filter(Boolean).sort((a, b) => a - b);
+  const cities = [...new Set(players.map(p => p.city))].filter(Boolean).sort();
+  const categories = [...new Set(players.map(p => p.category))].filter(Boolean).sort();
 
   const groupItems = [
     { key: 'all', label: 'Todos' },
@@ -32,9 +28,15 @@ export default function JugadoresClient({ players }: { players: Player[] }) {
     ...cities.map(c => ({ key: c, label: c, color: getCityColor(c) })),
   ];
 
+  const categoryItems = [
+    { key: 'all', label: 'Todas' },
+    ...categories.map(c => ({ key: c, label: c })),
+  ];
+
   const filtered = players.filter(p => {
     if (groupFilter !== 'all' && p.group !== Number(groupFilter)) return false;
     if (cityFilter !== 'all' && p.city !== cityFilter) return false;
+    if (categoryFilter !== 'all' && p.category !== categoryFilter) return false;
     if (search.trim() && !p.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
   });
@@ -42,17 +44,38 @@ export default function JugadoresClient({ players }: { players: Player[] }) {
   const resetFilters = () => {
     setGroupFilter('all');
     setCityFilter('all');
+    setCategoryFilter('all');
     setSearch('');
   };
 
   return (
     <div className="animate-fade-in px-4 py-6 md:px-8">
       <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text">
             Jugadores
           </h2>
-          <span className="text-sm text-text-muted">{filtered.length} jugadores</span>
+          <span className="text-sm text-text-muted">
+            {filtered.length === players.length
+              ? `${players.length} inscritos`
+              : `${filtered.length} de ${players.length}`}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+          <StatCard label="Inscritos" value={players.length} />
+          <StatCard label="Grupos" value={groups.length} />
+          {categories.map(c => (
+            <StatCard
+              key={c}
+              label={c}
+              value={players.filter(p => p.category === c).length}
+              hint={(() => {
+                const t = players.find(p => p.category === c)?.target;
+                return t ? `objetivo ${t} carambolas` : undefined;
+              })()}
+            />
+          ))}
         </div>
 
         {/* Search input */}
@@ -79,10 +102,18 @@ export default function JugadoresClient({ players }: { players: Player[] }) {
             <div className="text-[11px] text-text-muted uppercase tracking-wider mb-1.5">Grupo</div>
             <FilterPills items={groupItems} active={groupFilter} onChange={setGroupFilter} />
           </div>
-          <div>
-            <div className="text-[11px] text-text-muted uppercase tracking-wider mb-1.5">Ciudad</div>
-            <FilterPills items={cityItems} active={cityFilter} onChange={setCityFilter} variant="outline" />
-          </div>
+          {categories.length > 1 && (
+            <div>
+              <div className="text-[11px] text-text-muted uppercase tracking-wider mb-1.5">Categoría</div>
+              <FilterPills items={categoryItems} active={categoryFilter} onChange={setCategoryFilter} />
+            </div>
+          )}
+          {cities.length > 1 && (
+            <div>
+              <div className="text-[11px] text-text-muted uppercase tracking-wider mb-1.5">Club</div>
+              <FilterPills items={cityItems} active={cityFilter} onChange={setCityFilter} variant="outline" />
+            </div>
+          )}
         </div>
 
         {filtered.length === 0 ? (
@@ -93,7 +124,7 @@ export default function JugadoresClient({ players }: { players: Player[] }) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 stagger-children">
             {filtered.map((player) => (
-              <div key={player.id} className="glass-card rounded-xl p-4 glow-hover flex items-center gap-3">
+              <div key={`${player.id}-${player.name}`} className="glass-card rounded-xl p-4 glow-hover flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
                   style={{
@@ -105,11 +136,23 @@ export default function JugadoresClient({ players }: { players: Player[] }) {
                   {player.id}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-text-primary truncate">{player.name}</div>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="text-sm font-bold text-text-primary truncate">
+                    {player.name}
+                    {!player.active && (
+                      <span className="ml-2 text-[9px] uppercase tracking-wider text-text-muted/70 font-normal">
+                        no activo
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="text-[11px] text-emerald-400 font-medium">Grupo {player.group}</span>
                     <span className="text-text-muted/60">·</span>
-                    <span className="text-[11px] text-text-muted truncate">{player.city}</span>
+                    <span className="text-[11px] text-text-muted">{player.category}</span>
+                    <span className="text-text-muted/60">·</span>
+                    <span className="text-[11px] text-text-muted truncate">{player.city || EMPTY}</span>
+                  </div>
+                  <div className="text-[10px] text-text-muted/60 mt-0.5">
+                    objetivo {player.target ?? EMPTY} carambolas
                   </div>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import type { GroupData } from '../data/types';
-import { getCityColor } from '../lib/constants';
+
 
 const GROUP_LETTERS = [
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
