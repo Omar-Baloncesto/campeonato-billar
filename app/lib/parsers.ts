@@ -463,7 +463,8 @@ export function parseRankingGroups(rows: string[][]): RankingGroupRow[] {
 /* ------------------------------------------------------------------ */
 
 /** A Grupo | B Partido | C Jugador A | D Carambolas A | E Jugador B
- *  F Carambolas B | G Fecha | H Hora  (G y H se digitan a mano) */
+ *  F Carambolas B | G Fecha | H Hora | I Mesa
+ *  G, H e I se digitan a mano. La columna I es opcional. */
 export function parseFixture(rows: string[][]): FixtureMatch[] {
   const out: FixtureMatch[] = [];
   for (const row of rows.slice(1)) {
@@ -481,6 +482,7 @@ export function parseFixture(rows: string[][]): FixtureMatch[] {
       targetB: numOrNull(cell(row, 5)),
       isoDate: parseDateAny(cell(row, 6)),
       time24: parseTime24(cell(row, 7)),
+      table: numOrNull(cell(row, 8)),
     });
   }
   return out;
@@ -493,7 +495,15 @@ export function parseDateAny(dateStr: string): string {
   const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
   const dmy = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+  if (dmy) {
+    let day = Number(dmy[1]);
+    let month = Number(dmy[2]);
+    // El Sheet está en español, así que lo normal es día/mes. Pero si el
+    // primer número no puede ser un mes y el segundo sí, viene al revés.
+    if (day <= 12 && month > 12) { const t = day; day = month; month = t; }
+    if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+    return `${dmy[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
   return '';
 }
 

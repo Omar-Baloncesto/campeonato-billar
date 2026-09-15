@@ -153,4 +153,6 @@ export interface FixtureMatch {
   /** '' mientras no se programe en el Sheet */
   isoDate: string;
   time24: string;
+  /** Columna I de FIXTURE_GRUPOS, opcional */
+  table: number | null;
 }

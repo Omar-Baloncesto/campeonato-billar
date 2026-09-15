@@ -185,8 +185,16 @@ en espejo del Apps Script, así que sirve para cualquier número de rondas.
 
 ### C8 · Calendario conectado al Sheet
 Leía un archivo fijo dentro del código con la programación de otro torneo.
-Ahora lee **FIXTURE_GRUPOS** y cruza los marcadores con RESULTADOS. Mientras
-las columnas G (Fecha) y H (Hora) estén vacías, avisa dónde se digitan.
+Ahora lee **FIXTURE_GRUPOS** y cruza los marcadores con RESULTADOS.
+
+Columnas que usa: **G Fecha**, **H Hora** y **I Mesa** (esta última opcional).
+La vista es una línea de tiempo: jornada → turno → los partidos que salen a
+la vez, ordenado por fecha y hora. Filtros por jornada y por grupo. Mientras
+no haya fechas, avisa dónde se digitan.
+
+La fecha se acepta como `23/09/2026`, `23-09-2026` o `2026-09-23`, y la hora
+como `5:00 p. m.` o `17:00`. Si el libro estuviera en inglés y exportara
+`09/23/2026`, se detecta que el primer número no puede ser un mes.
 
 ### C9 · Caché y tiempo real
 Cada visitante disparaba ~7 descargas del Sheet sin caché. Ahora:

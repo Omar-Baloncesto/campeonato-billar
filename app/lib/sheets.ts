@@ -183,5 +183,5 @@ export async function fetchRankingGroups(): Promise<RankingGroupRow[]> {
 }
 
 export async function fetchFixture(): Promise<FixtureMatch[]> {
-  return parseFixture(await fetchSheet(SHEETS.fixture, 'A1:H400'));
+  return parseFixture(await fetchSheet(SHEETS.fixture, 'A1:I400'));
 }
