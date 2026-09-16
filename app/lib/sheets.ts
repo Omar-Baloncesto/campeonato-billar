@@ -36,15 +36,32 @@ export const SHEET_TAG = 'sheet-data';
 export const SHEET_TTL = 15;
 
 /**
- * gid numérico de cada pestaña. El gid se ve en la URL del navegador
- * al hacer clic en la pestaña: .../edit#gid=394693629
+ * gid numérico de cada pestaña del libro del torneo.
  *
- * Las pestañas que no estén aquí siguen funcionando (se leen por
- * nombre), pero pueden tardar un poco más en reflejar un cambio.
+ * Pedir una hoja por gid es la única forma en la que Google devuelve
+ * SIEMPRE la pestaña pedida, y encima sin caché. Pedirla por nombre
+ * falla de vez en cuando: Google devuelve la primera hoja del libro
+ * como si nada, que es lo que dejaba /grupos en blanco.
+ *
+ * Una pestaña que no esté aquí sigue leyéndose por nombre, y la
+ * comprobación de identidad de más abajo se encarga de que al menos
+ * no se cuelen datos de otra hoja.
+ *
+ * Para sacarlos de un libro nuevo, en el Apps Script:
+ *   SpreadsheetApp.getActiveSpreadsheet().getSheets()
+ *     .forEach(h => console.log(h.getName(), h.getSheetId()));
  */
 export const SHEET_GIDS: Record<string, string> = {
+  'Base de Datos': '2016460506',
   CONFIGURACION: '394693629',
   JUGADORES: '1215907359',
+  FIXTURE_GRUPOS: '420873071',
+  Calendario: '739589239',
+  RESULTADOS: '1802098051',
+  GRUPOS: '331979390',
+  'Eliminación Simple': '1544967020',
+  RankingGrupos: '77690621',
+  RankingFinal: '860732655',
 };
 
 export const SHEETS = {

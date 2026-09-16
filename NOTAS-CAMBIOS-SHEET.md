@@ -182,8 +182,24 @@ Tres arreglos:
 Probado con un servidor falso que imita el fallo: pide GRUPOS por `range` y
 devuelve `Base de Datos`. Antes: 0 grupos. Ahora: los 5.
 
-**Pendiente de Omar:** meter los gid del resto de pestañas en `SHEET_GIDS`.
-Con gid no hace falta ninguna de estas defensas y además no hay caché.
+**Resuelto:** `SHEET_GIDS` ya tiene las diez pestañas. Comprobado contra un
+servidor que solo responde a gid correctos: las nueve descargas de las ocho
+páginas van por gid, ninguna cae en el camino por nombre. Las defensas de
+arriba se quedan igual, como red por si algún día se añade una pestaña
+nueva y se olvida su gid.
+
+| Pestaña | gid |
+|---|---|
+| Base de Datos | 2016460506 |
+| CONFIGURACION | 394693629 |
+| JUGADORES | 1215907359 |
+| FIXTURE_GRUPOS | 420873071 |
+| Calendario | 739589239 |
+| RESULTADOS | 1802098051 |
+| GRUPOS | 331979390 |
+| Eliminación Simple | 1544967020 |
+| RankingGrupos | 77690621 |
+| RankingFinal | 860732655 |
 
 ### C14 · Grupos: la tabla completa del Sheet
 
