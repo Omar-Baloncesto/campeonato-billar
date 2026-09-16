@@ -172,7 +172,12 @@ export default function GruposClient({
                       entre carambolas a favor y en contra.
                     </>
                   )}{' '}
-                  Los dos primeros de cada grupo van resaltados en verde.
+                  <span className="font-semibold text-text-muted">PTS x P</span> y{' '}
+                  <span className="font-semibold text-text-muted">VENT x P</span> son lo mismo
+                  repartido entre los partidos que juega cada grupo: como unos grupos son de 5 y
+                  otros de 4, es lo que permite compararlos sin que salga favorecido quien juega un
+                  partido más. Es lo que ordena la clasificación general. Los dos primeros de cada
+                  grupo van resaltados en verde.
                 </p>
               </>
             )}

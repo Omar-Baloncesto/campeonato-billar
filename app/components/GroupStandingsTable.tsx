@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import type { GroupData, GroupStanding } from '../data/types';
-import { fmtInt, fmtSigned, EMPTY } from '../lib/format';
+import { fmtInt, fmtSigned, fmtAvg, EMPTY } from '../lib/format';
 
 /* ==================================================================
  *  La tabla del grupo, tal cual está en el Google Sheet.
@@ -155,8 +155,8 @@ export default function GroupStandingsTable({ group }: { group: GroupData }) {
                 <th className={`${SEP} px-2 py-1.5 font-semibold`} colSpan={n + 1}>
                   Puntos
                 </th>
-                <th className={`${SEP} px-2 py-1.5 font-semibold`} colSpan={1}>
-                  Gral
+                <th className={`${SEP} px-2 py-1.5 font-semibold`} colSpan={3}>
+                  Por partido · Gral
                 </th>
               </tr>
 
@@ -194,7 +194,19 @@ export default function GroupStandingsTable({ group }: { group: GroupData }) {
                 ))}
                 <th className="px-2 py-2 text-center font-bold text-text-primary">TOTAL</th>
 
-                <th className={`${SEP} px-2 py-2 text-center font-semibold`} title="Puesto en la clasificación general del torneo">
+                <th
+                  className={`${SEP} px-2 py-2 text-center font-normal`}
+                  title="Puntos ÷ partidos del grupo. Iguala grupos de distinto tamaño."
+                >
+                  PTS&nbsp;x&nbsp;P
+                </th>
+                <th
+                  className="px-2 py-2 text-center font-normal"
+                  title={`${group.differentialLabel} ÷ partidos del grupo`}
+                >
+                  VENT&nbsp;x&nbsp;P
+                </th>
+                <th className="px-2 py-2 text-center font-semibold" title="Puesto en la clasificación general del torneo">
                   Clasif
                 </th>
               </tr>
@@ -252,7 +264,13 @@ export default function GroupStandingsTable({ group }: { group: GroupData }) {
                       {s.totalPts}
                     </td>
 
-                    <td className={`${SEP} px-2 py-2 text-center font-mono text-text-muted tabular-nums`}>
+                    <td className={`${SEP} px-2 py-2 text-center font-mono tabular-nums text-text-muted/80 italic`}>
+                      {n > 0 ? fmtAvg(s.totalPts / n) : EMPTY}
+                    </td>
+                    <td className="px-2 py-2 text-center font-mono tabular-nums text-text-muted/80 italic">
+                      {n > 0 ? fmtAvg(s.differential / n) : EMPTY}
+                    </td>
+                    <td className="px-2 py-2 text-center font-mono text-text-muted tabular-nums">
                       {s.generalClassification || EMPTY}
                     </td>
                   </tr>

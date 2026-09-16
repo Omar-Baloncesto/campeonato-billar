@@ -218,6 +218,48 @@ PTS P1..Pn, TOTAL PTS y CLASIF GRAL, con las tres cabeceras de bloque.
 - La leyenda va una sola vez al pie, no repetida en cada grupo.
 
 
+### B7 · M6 — CLASIF GRAL compara por partido jugado
+
+Con 22 jugadores los grupos no salen iguales: dos de 5 y tres de 4. Unos
+juegan 4 partidos y otros 3, y comparar una suma de 4 términos contra una de
+3 favorece a los primeros:
+
+- un jugador de grupo de 4 **no puede** llegar a 8 puntos por mucho que gane todo;
+- DIF % es una suma, así que también acumula un término menos.
+
+Medido en los datos de prueba: Contreras jugó mejor que Delgado por partido
+(+0,348 contra +0,271) y aun así salía detrás, solo por tener un partido menos
+que sumar.
+
+`GenerarGruposCompletos` gana dos columnas, justo detrás de TOTAL PTS:
+
+```
+PTS x PARTIDO      = TOTAL PTS / (jugadores del grupo - 1)
+VENTAJA x PARTIDO  = DIF %     / (jugadores del grupo - 1)
+```
+
+El divisor es una constante distinta en cada grupo, escrita por el script, que
+sabe el tamaño de cada uno. CLASIF GRAL pasa a comparar esas dos en lugar de
+los totales.
+
+**ORDEN GRUPO no se toca**: dentro de un grupo todos juegan lo mismo, así que
+dividir por el mismo número no movería ni un puesto.
+
+Se puede volver atrás poniendo `CLASIF_POR_PARTIDO = false` arriba del módulo.
+
+Comprobado con un simulador de SpreadsheetApp que ejecuta el módulo entero
+sobre los 5 grupos y los 38 resultados reales:
+
+- las fórmulas de CLASIF GRAL referencian S y T (las nuevas), no R ni M;
+- ORDEN GRUPO sigue referenciando R y M;
+- el divisor sale 4 en los grupos de 5 y 3 en los de 4;
+- **los 10 que pasan con BYE son los mismos** y ningún campeón de grupo cambia;
+  solo se reordenan los puestos 6-9 y 11-14, que es a quién le toca contra quién.
+
+En la web, `GroupStandingsTable` enseña las dos columnas (PTS x P y VENT x P).
+No hace falta tocar el parser: las calcula con `totalPts / matchesPerPlayer`,
+que es exactamente el mismo divisor.
+
 ## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 
 Todo lo de esta sección está aplicado y verificado contra una copia local
