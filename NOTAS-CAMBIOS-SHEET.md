@@ -183,6 +183,24 @@ El cuadro anterior estaba dibujado a mano para 16 jugadores desde octavos.
 Ahora se construye el árbol desde la final hacia atrás siguiendo la siembra
 en espejo del Apps Script, así que sirve para cualquier número de rondas.
 
+### C8b · Calendario: grupos + eliminación, y vista de Resultados
+El calendario ahora junta en una sola línea de tiempo la fase de grupos y
+el cuadro de eliminación, cada partido en su día y su hora:
+
+- **Programación** — todo lo que se juega, jornada por jornada y turno por
+  turno. Los partidos de grupo con el color de su grupo, los del cuadro en
+  dorado y con el nombre de la ronda (Octavos, Cuartos, Semifinal, Final).
+- **Resultados** — solo lo ya jugado, lo más reciente arriba, con el día y
+  la hora en la ficha.
+- Filtros por fase (grupos / eliminación) y por jornada.
+
+Las fechas del cuadro salen de las columnas **N (Fecha)** y **O (Hora)** de
+la hoja `Eliminación Simple`, que se digitan igual que las de
+FIXTURE_GRUPOS. Los jugadores NO se digitan: son fórmulas que miran el
+ranking de GRUPOS, así que al anotar un resultado de grupos los cruces se
+recalculan solos y la web los muestra ya actualizados. Mientras un cruce
+no esté decidido aparece como «Por definir».
+
 ### C8 · Calendario conectado al Sheet
 Leía un archivo fijo dentro del código con la programación de otro torneo.
 Ahora lee **FIXTURE_GRUPOS** y cruza los marcadores con RESULTADOS.

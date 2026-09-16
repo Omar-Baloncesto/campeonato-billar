@@ -366,7 +366,11 @@ export function parseGlobalRanking(rows: string[][]): RankedPlayer[] {
 /**
  * A Ronda | B Partido | C Jugador A | D Entradas A | E Carambolas A
  * F Prom A | G Jugador B | H Entradas B | I Carambolas B | J Prom B
- * K Ganador | L Objetivo A | M Objetivo B
+ * K Ganador | L Objetivo A | M Objetivo B | N Fecha | O Hora
+ *
+ * N y O se digitan a mano, igual que en FIXTURE_GRUPOS, y son las que
+ * colocan cada ronda en el calendario. Si están vacías, la ronda sale
+ * como pendiente de programar.
  *
  * Las filas de título ("FINAL", "SEMIFINAL"…) se saltan solas porque
  * la columna A no es un número.
@@ -418,6 +422,8 @@ export function parseElimination(rows: string[][], targets?: Map<string, number>
       pctA: ratio(carambolasA, targetA),
       pctB: ratio(carambolasB, targetB),
       status,
+      isoDate: parseDateAny(cell(row, 13)),
+      time24: parseTime24(cell(row, 14)),
     });
   }
 

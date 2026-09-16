@@ -168,7 +168,7 @@ export async function fetchGroupStandings(): Promise<GroupData[]> {
 
 export async function fetchEliminationMatches(): Promise<EliminationMatch[]> {
   const [rows, targets] = await Promise.all([
-    fetchSheet(SHEETS.elimination, 'A1:M300'),
+    fetchSheet(SHEETS.elimination, 'A1:O300'),
     fetchTargets(),
   ]);
   return parseElimination(rows, targets);

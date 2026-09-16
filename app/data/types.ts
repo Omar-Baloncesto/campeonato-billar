@@ -124,6 +124,9 @@ export interface EliminationMatch {
   pctA: number | null;
   pctB: number | null;
   status: MatchStatus;
+  /** Columnas N y O de 'Eliminación Simple', se digitan a mano */
+  isoDate: string;
+  time24: string;
 }
 
 export interface RankingFinalRow {

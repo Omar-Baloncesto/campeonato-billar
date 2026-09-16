@@ -9,10 +9,13 @@
 // Columnas:
 //   A Ronda | B Partido | C Jugador A | D Entradas A | E Carambolas A
 //   F Prom A | G Jugador B | H Entradas B | I Carambolas B | J Prom B
-//   K Ganador | L Objetivo A | M Objetivo B
+//   K Ganador | L Objetivo A | M Objetivo B | N Fecha | O Hora
 //
 // A:K se mantiene igual que siempre (la web lee A1:K200).
-// L y M se anaden AL FINAL para no mover nada.
+// L, M, N y O se anaden AL FINAL para no mover nada.
+//
+// N y O se digitan a mano, igual que en FIXTURE_GRUPOS, y son las que
+// colocan cada ronda en el calendario de la web.
 // ============================================================
 
 var ELIM_HOJA = "Eliminación Simple";
@@ -21,10 +24,10 @@ var ELIM_ENCABEZADOS = [
   "Ronda", "Partido",
   "Jugador A", "Entradas A", "Carambolas A", "Prom A",
   "Jugador B", "Entradas B", "Carambolas B", "Prom B",
-  "Ganador", "Objetivo A", "Objetivo B"
+  "Ganador", "Objetivo A", "Objetivo B", "Fecha", "Hora"
 ];
 
-var ELIM_COLS = 13;
+var ELIM_COLS = 15;
 
 /**
  * Nombre de la ronda segun cuantos partidos tiene.
@@ -171,6 +174,10 @@ function CrearEliminacionSimple() {
       // Objetivos (carambolas que debe hacer cada uno segun su categoria)
       fd[11] = formulaObjetivoElim("C" + n);
       fd[12] = formulaObjetivoElim("G" + n);
+
+      // Fecha y hora: se digitan a mano, como en FIXTURE_GRUPOS
+      fd[13] = "";
+      fd[14] = "";
     }
   }
 
@@ -206,6 +213,8 @@ function CrearEliminacionSimple() {
   wsE.setColumnWidth(11, 190);  // K Ganador
   wsE.setColumnWidth(12, 85);   // L Objetivo A
   wsE.setColumnWidth(13, 85);   // M Objetivo B
+  wsE.setColumnWidth(14, 100);  // N Fecha
+  wsE.setColumnWidth(15, 100);  // O Hora
 
   wsE.setFrozenRows(1);
 
@@ -227,7 +236,9 @@ function CrearEliminacionSimple() {
     detalle.join("\n") + "\n\n" +
     "Todas las rondas quedaron creadas con sus fórmulas.\n" +
     "Solo hay que digitar Entradas y Carambolas:\n" +
-    "el ganador y la ronda siguiente se llenan solos."
+    "el ganador y la ronda siguiente se llenan solos.\n\n" +
+    "Las columnas N (Fecha) y O (Hora) quedan en blanco:\n" +
+    "llénalas para que cada ronda salga en el calendario de la web."
   );
 }
 
@@ -358,6 +369,11 @@ function Formato_Ronda(wsE, filaTitulo, filaIniDatos, filaFinDatos) {
     .setFontColor(rgbToHex(89, 89, 89))
     .setNumberFormat("0");
 
+  // Fecha y hora: se digitan, por eso van en blanco
+  wsE.getRange(filaIniDatos, 14, numRows, 2)
+    .setBackground("#FFFFFF")
+    .setNumberFormat("@");
+
   // Bordes del bloque completo (encabezados + partidos)
   wsE.getRange(filaTitulo, 1, filaFinDatos - filaTitulo + 1, ELIM_COLS)
     .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
@@ -366,7 +382,7 @@ function Formato_Ronda(wsE, filaTitulo, filaIniDatos, filaFinDatos) {
   wsE.getRange(filaIniDatos, 1, numRows, 2).setHorizontalAlignment("center");
   wsE.getRange(filaIniDatos, 4, numRows, 3).setHorizontalAlignment("center");
   wsE.getRange(filaIniDatos, 8, numRows, 3).setHorizontalAlignment("center");
-  wsE.getRange(filaIniDatos, 11, numRows, 3).setHorizontalAlignment("center");
+  wsE.getRange(filaIniDatos, 11, numRows, 5).setHorizontalAlignment("center");
 
   // Jugadores
   wsE.getRange(filaIniDatos, 3, numRows, 1).setFontWeight("bold").setHorizontalAlignment("left");

@@ -1,4 +1,5 @@
-import { fetchFixture, fetchResults, fetchConfig } from '../lib/sheets';
+import { fetchFixture, fetchResults, fetchEliminationMatches, fetchConfig } from '../lib/sheets';
+import { construirCalendario } from '../lib/calendar';
 import CalendarioClient from './CalendarioClient';
 
 // ISR: la página se regenera cada 15 s como mucho, y al instante
@@ -6,10 +7,17 @@ import CalendarioClient from './CalendarioClient';
 export const revalidate = 15;
 
 export default async function CalendarioPage() {
-  const [fixture, results, config] = await Promise.all([
+  const [fixture, results, elimination, config] = await Promise.all([
     fetchFixture().catch(() => []),
     fetchResults().catch(() => []),
+    fetchEliminationMatches().catch(() => []),
     fetchConfig(),
   ]);
-  return <CalendarioClient fixture={fixture} results={results} config={config} />;
+
+  return (
+    <CalendarioClient
+      partidos={construirCalendario(fixture, results, elimination)}
+      config={config}
+    />
+  );
 }
