@@ -80,6 +80,16 @@ wsF.getRange(filaF, 6).setFormula("=CONFIGURACION!$B$8");
 ```
 Sin esto la columna Entradas del fixture mostraría las carambolas de 2ª categoría.
 
+### B6 · M7 — columnas N (Fecha) y O (Hora) en la eliminación
+El paso 7 ya programa el cuadro: reparte las rondas en horas seguidas
+respetando que una ronda no empieza hasta que acaba la anterior y que solo
+hay `ELIM_MESAS` mesas a la vez. Los BYE quedan sin fecha porque no se
+juegan. Las dos columnas se pueden editar a mano en la hoja.
+
+Ajustes al principio del archivo: `ELIM_FECHA`, `ELIM_HORA_INICIO`,
+`ELIM_HORA_FIN`, `ELIM_MESAS` y `ELIM_HORAS_POR_PARTIDA`. Si el cuadro no
+cabe en un día, sigue al siguiente (comprobado con 42 y 64 jugadores).
+
 ### B4 · M7/M8/M9 — Eliminación Simple reescrita
 `CrearEliminacionSimple`, `Crear_Rondas_Eliminacion_Automatica`, `Formato_Ronda`.
 Código completo en `apps-script/M7-M9-eliminacion-simple.gs`.

@@ -14,11 +14,31 @@
 // A:K se mantiene igual que siempre (la web lee A1:K200).
 // L, M, N y O se anaden AL FINAL para no mover nada.
 //
-// N y O se digitan a mano, igual que en FIXTURE_GRUPOS, y son las que
-// colocan cada ronda en el calendario de la web.
+// N y O vienen ya llenas con la fecha y la hora de cada ronda: son las
+// que colocan el cuadro en el calendario de la web. Se pueden editar a
+// mano en la hoja cuando haga falta, y para el torneo siguiente basta
+// con cambiar los cuatro ajustes de aqui abajo.
 // ============================================================
 
 var ELIM_HOJA = "Eliminación Simple";
+
+// ---------- AJUSTES DE LA ELIMINACION -----------------------
+// Dia en que se juega el cuadro. Dejar "" para no poner fecha.
+var ELIM_FECHA = "18/09/2026";
+
+// Hora a la que arranca, en formato de 24 horas: 17 = 5:00 p. m.
+var ELIM_HORA_INICIO = 17;
+
+// Mesas disponibles a la vez.
+var ELIM_MESAS = 5;
+
+// Cuanto dura cada partida, en horas.
+var ELIM_HORAS_POR_PARTIDA = 1;
+
+// Ultima hora a la que puede empezar una partida (23 = 11:00 p. m.).
+// Si el cuadro no cabe en un dia, sigue al dia siguiente a ELIM_HORA_INICIO.
+var ELIM_HORA_FIN = 23;
+// ------------------------------------------------------------
 
 var ELIM_ENCABEZADOS = [
   "Ronda", "Partido",
@@ -41,6 +61,45 @@ function nombreRondaElim(partidos, numeroRonda) {
   if (partidos === 32) return "TREINTAIDOSAVOS DE FINAL";
   if (partidos === 64) return "SESENTAICUATROAVOS DE FINAL";
   return "RONDA " + numeroRonda;
+}
+
+/**
+ * Pasa una hora de 24 a 12 horas: 17 -> "5:00 PM", 23 -> "11:00 PM".
+ */
+function horaElimTexto_(h) {
+  h = ((h % 24) + 24) % 24;
+  var sufijo = h < 12 ? "AM" : "PM";
+  var h12 = h % 12;
+  if (h12 === 0) h12 = 12;
+  return h12 + ":00 " + sufijo;
+}
+
+/**
+ * ELIM_FECHA mas los dias que haga falta, en el mismo formato dd/mm/aaaa.
+ * Sirve para los cuadros grandes, que no caben en una sola jornada.
+ */
+function fechaElimMasDias_(texto, dias) {
+  if (texto === "") return "";
+  var p = (texto + "").trim().split(/[\/\-\.\s]+/);
+  if (p.length !== 3) return texto;          // formato raro: se deja igual
+  var d, m, a;
+  if (p[0].length === 4) { a = parseInt(p[0], 10); m = parseInt(p[1], 10); d = parseInt(p[2], 10); }
+  else { d = parseInt(p[0], 10); m = parseInt(p[1], 10); a = parseInt(p[2], 10); }
+  if (isNaN(d) || isNaN(m) || isNaN(a)) return texto;
+  if (a < 100) a += 2000;
+  var f = new Date(a, m - 1, d + dias);
+  var dd = f.getDate(), mm = f.getMonth() + 1;
+  return (dd < 10 ? "0" + dd : dd) + "/" + (mm < 10 ? "0" + mm : mm) + "/" + f.getFullYear();
+}
+
+/** Pasa a la hora siguiente; si ya es tarde, al dia siguiente. */
+function avanzarHoraElim_(reloj) {
+  reloj.hora += ELIM_HORAS_POR_PARTIDA;
+  reloj.mesas = 0;
+  if (reloj.hora > ELIM_HORA_FIN) {
+    reloj.dia += 1;
+    reloj.hora = ELIM_HORA_INICIO;
+  }
 }
 
 function CrearEliminacionSimple() {
@@ -130,6 +189,12 @@ function CrearEliminacionSimple() {
 
   datos[0][0] = "ELIMINACIÓN SIMPLE";
 
+  // Reparto de horas: las rondas van una detras de otra, y dentro de cada
+  // ronda caben ELIM_MESAS partidas por hora. Los BYE no ocupan mesa.
+  var reloj = { hora: ELIM_HORA_INICIO, dia: 0, mesas: 0 };
+  var colocadosAntes = 0;
+  var horarioRondas = [];   // solo para el informe final
+
   for (var b = 0; b < bloques.length; b++) {
     var bl = bloques[b];
     var prev = b > 0 ? bloques[b - 1] : null;
@@ -140,12 +205,21 @@ function CrearEliminacionSimple() {
       datos[bl.header - 1][c] = ELIM_ENCABEZADOS[c];
     }
 
+    // Cada ronda arranca en una hora nueva: no puede empezar hasta que
+    // termine la anterior.
+    if (colocadosAntes > 0) avanzarHoraElim_(reloj);
+    reloj.mesas = 0;
+    var desde = null, hasta = null;
+    var realesEnRonda = 0;
+
     for (var p = 1; p <= bl.partidos; p++) {
       var n = bl.ini + p - 1;      // fila real en la hoja
       var fd = datos[n - 1];
 
       fd[0] = bl.ronda;
       fd[1] = p;
+
+      var esBye = false;
 
       if (bl.ronda === 1) {
         // Siembra "espejo": 1 vs cupo, 2 vs cupo-1, ...
@@ -157,6 +231,7 @@ function CrearEliminacionSimple() {
         fd[6] = seedB <= totalJugadores
           ? "=GRUPOS!" + getCellA1(seedB + 1, colRankingJug)
           : "BYE";
+        esBye = (seedA > totalJugadores) || (seedB > totalJugadores);
       } else {
         // Los ganadores de la ronda anterior, tambien en espejo
         var rango = "$K$" + prev.ini + ":$K$" + prev.fin;
@@ -175,11 +250,37 @@ function CrearEliminacionSimple() {
       fd[11] = formulaObjetivoElim("C" + n);
       fd[12] = formulaObjetivoElim("G" + n);
 
-      // Fecha y hora: se digitan a mano, como en FIXTURE_GRUPOS
-      fd[13] = "";
-      fd[14] = "";
+      // Fecha y hora. Un BYE no se juega, asi que va sin fecha.
+      if (esBye || ELIM_FECHA === "") {
+        fd[13] = "";
+        fd[14] = "";
+      } else {
+        if (reloj.mesas >= ELIM_MESAS) avanzarHoraElim_(reloj);
+        var fechaTxt = fechaElimMasDias_(ELIM_FECHA, reloj.dia);
+        var horaTxt = horaElimTexto_(reloj.hora);
+        fd[13] = fechaTxt;
+        fd[14] = horaTxt;
+        reloj.mesas++;
+        realesEnRonda++;
+        colocadosAntes++;
+        if (desde === null) desde = { fecha: fechaTxt, hora: horaTxt };
+        hasta = { fecha: fechaTxt, hora: horaTxt };
+      }
+    }
+
+    if (realesEnRonda > 0) {
+      horarioRondas.push({
+        nombre: nombreRondaElim(bl.partidos, bl.ronda),
+        partidos: realesEnRonda,
+        desde: desde,
+        hasta: hasta
+      });
     }
   }
+
+  // Fecha y hora como TEXTO: si no, Sheets convierte 18/09/2026 en un
+  // numero de serie y la hora deja de leerse bien.
+  wsE.getRange(1, 14, totalFilas, 2).setNumberFormat("@");
 
   // UNA sola escritura
   wsE.getRange(1, 1, totalFilas, ELIM_COLS).setValues(datos);
@@ -214,7 +315,7 @@ function CrearEliminacionSimple() {
   wsE.setColumnWidth(12, 85);   // L Objetivo A
   wsE.setColumnWidth(13, 85);   // M Objetivo B
   wsE.setColumnWidth(14, 100);  // N Fecha
-  wsE.setColumnWidth(15, 100);  // O Hora
+  wsE.setColumnWidth(15, 95);   // O Hora
 
   wsE.setFrozenRows(1);
 
@@ -228,18 +329,44 @@ function CrearEliminacionSimple() {
                  bloques[b3].ini + "-" + bloques[b3].fin + "]");
   }
 
-  ui.alert(
-    "ELIMINACIÓN SIMPLE CREADA\n\n" +
-    "Jugadores clasificados: " + totalJugadores + "\n" +
-    "Cuadro: " + cupo + "   BYEs: " + byes + "\n" +
-    "Rondas: " + rondas + "   Partidos: " + (cupo - 1) + "\n\n" +
-    detalle.join("\n") + "\n\n" +
-    "Todas las rondas quedaron creadas con sus fórmulas.\n" +
-    "Solo hay que digitar Entradas y Carambolas:\n" +
-    "el ganador y la ronda siguiente se llenan solos.\n\n" +
-    "Las columnas N (Fecha) y O (Hora) quedan en blanco:\n" +
-    "llénalas para que cada ronda salga en el calendario de la web."
-  );
+  var horario = [];
+  var variosDias = false;
+  for (var h = 0; h < horarioRondas.length; h++) {
+    var hr = horarioRondas[h];
+    if (hr.desde.fecha !== ELIM_FECHA || hr.hasta.fecha !== ELIM_FECHA) variosDias = true;
+    var ini = (hr.desde.fecha === hr.hasta.fecha ? "" : hr.desde.fecha + " ") + hr.desde.hora;
+    var fin = (hr.desde.fecha === hr.hasta.fecha ? "" : hr.hasta.fecha + " ") + hr.hasta.hora;
+    horario.push("  " + hr.nombre + ": " +
+                 (hr.desde.fecha !== ELIM_FECHA ? hr.desde.fecha + "  " : "") + ini +
+                 (hr.desde.hora === hr.hasta.hora && hr.desde.fecha === hr.hasta.fecha ? "" : " a " + fin) +
+                 "   (" + hr.partidos + " partida" + (hr.partidos === 1 ? "" : "s") + ")");
+  }
+
+  var msg = "ELIMINACIÓN SIMPLE CREADA\n\n" +
+            "Jugadores clasificados: " + totalJugadores + "\n" +
+            "Cuadro: " + cupo + "   BYEs: " + byes + "\n" +
+            "Rondas: " + rondas + "   Partidos: " + (cupo - 1) + "\n\n" +
+            detalle.join("\n") + "\n\n" +
+            "Todas las rondas quedaron creadas con sus fórmulas.\n" +
+            "Solo hay que digitar Entradas y Carambolas:\n" +
+            "el ganador y la ronda siguiente se llenan solos.";
+
+  if (horario.length > 0) {
+    msg += "\n\nPROGRAMACIÓN (columnas N y O), desde el " + ELIM_FECHA + ":\n" +
+           horario.join("\n");
+    if (variosDias) {
+      msg += "\n\nEl cuadro no cabe en un solo día (la última partida\n" +
+             "empezaría después de las " + horaElimTexto_(ELIM_HORA_FIN) + "),\n" +
+             "así que sigue al día siguiente.";
+    }
+    msg += "\n\nSe puede cambiar a mano en la hoja, o arriba del código\n" +
+           "en ELIM_FECHA, ELIM_HORA_INICIO, ELIM_HORA_FIN y ELIM_MESAS.";
+  } else {
+    msg += "\n\nLas columnas N (Fecha) y O (Hora) quedaron en blanco.\n" +
+           "Llénalas para que el cuadro salga en el calendario de la web.";
+  }
+
+  ui.alert(msg);
 }
 
 /**
@@ -369,10 +496,10 @@ function Formato_Ronda(wsE, filaTitulo, filaIniDatos, filaFinDatos) {
     .setFontColor(rgbToHex(89, 89, 89))
     .setNumberFormat("0");
 
-  // Fecha y hora: se digitan, por eso van en blanco
+  // Fecha y hora: se pueden editar, por eso van en blanco
   wsE.getRange(filaIniDatos, 14, numRows, 2)
     .setBackground("#FFFFFF")
-    .setNumberFormat("@");
+    .setFontColor(rgbToHex(64, 64, 64));
 
   // Bordes del bloque completo (encabezados + partidos)
   wsE.getRange(filaTitulo, 1, filaFinDatos - filaTitulo + 1, ELIM_COLS)
