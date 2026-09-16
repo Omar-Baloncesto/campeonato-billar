@@ -358,6 +358,33 @@ Con esto el paso 7 puede recrear la hoja las veces que quiera: la web se
 arregla sola. Los gid de `SHEET_GIDS` se quedan como atajo, para no pedir el
 htmlview en cada arranque.
 
+### B9 · M16 — el W.O. no puede preguntar nada
+
+`onEditResultadosWO` abría una ventana con `ui.prompt()` para preguntar quién
+no se presentó. Funciona cuando edita el dueño con la hoja abierta, pero:
+
+**Un trigger instalable se dispara con la edición de CUALQUIER editor y corre
+en un servidor de Google en nombre de quien lo instaló. Ahí no hay pantalla.**
+`SpreadsheetApp.getUi()` falla y la función se corta en esa línea.
+
+Con César digitando: escribe `SI`, no pasa nada, y nadie ve ningún error. Un
+W.O. sin registrar en mitad del torneo. Tampoco funcionaría desde el celular,
+donde las ventanas de Apps Script no existen.
+
+Arreglo: no preguntar. Quien digita escribe directamente en la columna W.O.
+**quién** no se presentó — `A`, `B` o `AB` — y el trigger llena las carambolas
+y las entradas y deja la celda en `SI`, que es lo que esperan la fórmula de
+Resultado y el paso 6. Quién faltó queda en las carambolas y en una nota de la
+celda (`setNote` sí funciona sin pantalla).
+
+Si alguien escribe `SI` a secas, no se adivina nada: se deja una nota en la
+celda explicando qué escribir.
+
+Probado con un simulador cuyo `getUi()` lanza el error real: los siete casos
+(`A`, `B`, `AB`, minúsculas, con puntos, `SI`, borrar) salen bien y **no se
+llama a `getUi()` ni una vez**. Comprobado además que no reacciona en otras
+hojas, ni en la fila de encabezados, ni en otras columnas.
+
 ## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 
 Todo lo de esta sección está aplicado y verificado contra una copia local
