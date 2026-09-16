@@ -38,6 +38,38 @@ var WO_PRESENTE  = 1;    // Carambolas del que SI se presento
 var WO_AUSENTE   = 0;    // Carambolas del que NO se presento
 var WO_ENTRADAS  = 0;    // Entradas: 0 para los dos en un W.O.
 
+/**
+ * Instala el trigger automaticamente. Solo hace falta UNA VEZ.
+ *
+ * Esta funcion SI puede abrir ventanas: la ejecutas tu a mano desde el
+ * editor o desde el menu, con la hoja delante. El problema de getUi()
+ * es solo dentro del trigger, que corre sin pantalla.
+ */
+function instalarTriggerWO() {
+  // Eliminar triggers anteriores de esta funcion para no duplicar
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "onEditResultadosWO") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+
+  ScriptApp.newTrigger("onEditResultadosWO")
+    .forSpreadsheet(SpreadsheetApp.getActive())
+    .onEdit()
+    .create();
+
+  SpreadsheetApp.getUi().alert(
+    "Trigger W.O. instalado correctamente.\n\n" +
+    "Para registrar un W.O., en la columna L (W.O.) de RESULTADOS\n" +
+    "se escribe QUIEN NO se presento:\n\n" +
+    "   A    no se presento el Jugador A\n" +
+    "   B    no se presento el Jugador B\n" +
+    "   AB   no se presento ninguno de los dos\n\n" +
+    "Las carambolas y las entradas se llenan solas."
+  );
+}
+
 function onEditResultadosWO(e) {
   if (!e || !e.range) return;
 
