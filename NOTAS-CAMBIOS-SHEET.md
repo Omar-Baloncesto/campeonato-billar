@@ -146,6 +146,62 @@ Fórmula para arreglar las filas que ya existen (pegar en K2 y arrastrar):
 
 ---
 
+### C13 · La página de Grupos salía vacía  ← el fallo del 16/09
+
+Síntoma: `/grupos` decía «La hoja GRUPOS todavía no tiene datos» con la hoja
+llena de datos.
+
+No era el parser. Leyendo el Sheet de verdad (vía Drive) y pasándolo por
+`parseGroupStandings` salían los 5 grupos perfectos. El fallo estaba en la
+descarga.
+
+`SHEET_GIDS` solo tiene gid de CONFIGURACION y JUGADORES. Para el resto,
+`candidateUrls` pedía la pestaña por nombre metido dentro de `range`:
+
+```
+/export?format=csv&range='GRUPOS'!A1:AZ400
+```
+
+Google **no siempre respeta ese nombre**: cuando no lo respeta devuelve la
+PRIMERA hoja del libro (aquí, `Base de Datos`). Llega un CSV impecable, con
+cientos de filas, y `fetchSheet` lo daba por bueno. El parser no encontraba
+ningún «GRUPO n» y devolvía cero grupos.
+
+Tres arreglos:
+
+1. **Comprobación de identidad** (`SENAS` en `app/lib/sheets.ts`). Cada
+   pestaña tiene una seña que no aparece en ninguna otra —GRUPOS necesita una
+   celda `GRUPO n` y un encabezado `TOTAL PTS`— y una respuesta que no la
+   cumple se descarta y se prueba la siguiente URL. Más vale una página que
+   dice «no hay datos» que una que enseña datos de otra hoja.
+2. **gviz con `headers=0`**. Sin ese parámetro gviz se come la primera fila
+   para usarla de encabezado, y la fila «GRUPO 1» desaparecía.
+3. **Orden de intentos**: gid (exacto y sin caché) → gviz por nombre →
+   `range` con nombre de pestaña, que pasa a ser el último recurso.
+
+Probado con un servidor falso que imita el fallo: pide GRUPOS por `range` y
+devuelve `Base de Datos`. Antes: 0 grupos. Ahora: los 5.
+
+**Pendiente de Omar:** meter los gid del resto de pestañas en `SHEET_GIDS`.
+Con gid no hace falta ninguna de estas defensas y además no hay caché.
+
+### C14 · Grupos: la tabla completa del Sheet
+
+`GroupStandingsTable` enseñaba un resumen (PJ, CA, CR, Dif, Pts) y escondía el
+detalle tras un «Ver detalle por partido». Ahora es la tabla de la hoja entera
+y a la vista: Nº, Jugador, CA P1..Pn, TOTAL CA, CR P1..Pn, TOTAL CR, DIF %,
+PTS P1..Pn, TOTAL PTS y CLASIF GRAL, con las tres cabeceras de bloque.
+
+- Los grupos pasan a ocupar el ancho completo, uno debajo de otro.
+- En móvil la tabla se desplaza y las columnas Nº y Jugador se quedan fijas.
+  La columna Nº lleva ancho fijo de 40 px, que es exactamente el `left-10` de
+  la columna Jugador: sin eso se colaba contenido por el hueco al desplazar.
+- **ORDEN GRUPO solo se usa cuando el Sheet ya lo ha calculado.** Antes de
+  jugar nada la hoja pone 1 a todos; pintar cinco medallas de oro sería
+  mentir, así que mientras tanto se enseña el Nº de inscripción.
+- La leyenda va una sola vez al pie, no repetida en cada grupo.
+
+
 ## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 
 Todo lo de esta sección está aplicado y verificado contra una copia local

@@ -183,6 +183,7 @@ decir *"La web quedó avisada"*.
 |---|---|---|
 | La web no muestra un marcador recién digitado | Los 15 s de refresco | Esperar y recargar |
 | La web muestra datos de otro torneo | El Sheet no es el que cree | Comprobar el ID en `app/lib/sheets.ts` |
+| Una página dice «no hay datos» con la hoja llena | Google devolvió otra pestaña | Meter el gid de esa pestaña en `SHEET_GIDS` |
 | `AvisarALaWebAhora` da error | La clave no es idéntica en los dos lados | Revisar espacios sobrantes al final |
 | `#DIV/0!` en un promedio | Entradas en 0 sin ser W.O. | Revisar la fila |
 | Un partido sin jugar aparece como EMPATE | Fórmula vieja de la columna K | Correr el paso 5 (solo antes de empezar) |

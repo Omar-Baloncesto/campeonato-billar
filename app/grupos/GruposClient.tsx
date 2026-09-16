@@ -99,7 +99,7 @@ export default function GruposClient({
   if (groups.length === 0) {
     return (
       <div className="animate-fade-in px-4 py-6 md:px-8">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text mb-6">Grupos</h2>
           <EmptyState message="La hoja GRUPOS todavía no tiene datos. Corre el paso 6 del menú «Torneo Billar» en el Google Sheets." />
         </div>
@@ -109,7 +109,7 @@ export default function GruposClient({
 
   return (
     <div className="animate-fade-in px-4 py-6 md:px-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h2 className="text-xl md:text-2xl font-black tracking-wider uppercase gradient-text">
             Fase de Grupos
@@ -148,11 +148,33 @@ export default function GruposClient({
                 onReset={() => setGroupFilter('all')}
               />
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 stagger-children">
-                {filtered.map(group => (
-                  <GroupStandingsTable key={group.number} group={group} />
-                ))}
-              </div>
+              <>
+                <div className="flex flex-col gap-4 stagger-children">
+                  {filtered.map(group => (
+                    <GroupStandingsTable key={group.number} group={group} />
+                  ))}
+                </div>
+
+                {/* La leyenda, una sola vez para toda la página */}
+                <p className="mt-4 px-1 text-[11px] text-text-muted/70 leading-relaxed">
+                  Las tablas son las mismas de la hoja GRUPOS del Google Sheets, columna por
+                  columna. <span className="font-mono">{EMPTY}</span> es un partido que todavía no se
+                  ha jugado; un <span className="font-mono">0</span> es un cero de verdad.{' '}
+                  {groups[0]?.differentialIsPercent ? (
+                    <>
+                      <span className="font-semibold text-text-muted">DIF %</span> compara el
+                      rendimiento sobre el objetivo de cada jugador: sus{' '}
+                      <span className="font-mono">carambolas ÷ objetivo</span> menos las del rival.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-text-muted">DIF</span> es la diferencia
+                      entre carambolas a favor y en contra.
+                    </>
+                  )}{' '}
+                  Los dos primeros de cada grupo van resaltados en verde.
+                </p>
+              </>
             )}
           </>
         )}

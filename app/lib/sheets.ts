@@ -16,7 +16,7 @@
  *  solo como último recurso.
  * ================================================================== */
 
-import { parseCSV } from './csv';
+import { parseCSV, normalizeKey } from './csv';
 import {
   parseConfig, parseTargets, parsePlayers, parseResults,
   parseGroupStandings, parseGlobalRanking, parseElimination,
@@ -70,19 +70,26 @@ function candidateUrls(sheetName: string, range?: string): string[] {
   const urls: string[] = [];
   const gid = SHEET_GIDS[sheetName];
 
+  // 1. Por gid: es el único que devuelve SIEMPRE la pestaña pedida y
+  //    además sin caché. Cuando se conoce el gid, no hace falta nada más.
   if (gid) {
     let u = `${base}/export?format=csv&gid=${gid}`;
     if (range) u += `&range=${encodeURIComponent(range)}`;
     urls.push(u);
   }
 
-  // Exportar por nombre de hoja: funciona en muchos libros y es fresco.
-  urls.push(`${base}/export?format=csv&range=${encodeURIComponent(`'${sheetName}'!${range || 'A1:BZ500'}`)}`);
-
-  // Último recurso.
-  let gviz = `${base}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  // 2. Por nombre, con gviz. `headers=0` es obligatorio: sin él, gviz se
+  //    come la primera fila para usarla de encabezado y adivina el tipo de
+  //    cada columna, con lo que la fila «GRUPO 1» desaparece.
+  let gviz = `${base}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(sheetName)}`;
   if (range) gviz += `&range=${encodeURIComponent(range)}`;
   urls.push(gviz);
+
+  // 3. Último recurso. Google no siempre respeta el nombre de la pestaña
+  //    dentro de `range`, y cuando no lo respeta devuelve la PRIMERA hoja
+  //    del libro como si tal cosa. Por eso va la última y por eso existe
+  //    la comprobación de abajo.
+  urls.push(`${base}/export?format=csv&range=${encodeURIComponent(`'${sheetName}'!${range || 'A1:BZ500'}`)}`);
 
   return urls;
 }
@@ -95,27 +102,88 @@ function looksLikeCsv(text: string): boolean {
 }
 
 /**
+ * Señas de identidad de cada pestaña: algo que aparece en ella y en
+ * ninguna otra.
+ *
+ * Esto no es una manía de programador. Si se le pide a Google la hoja
+ * GRUPOS por nombre y Google decide devolver la primera pestaña del
+ * libro, el CSV llega perfecto, con cientos de filas, y la web se lo
+ * cree: la página de Grupos sale vacía y nadie entiende por qué. Con
+ * esta comprobación, una hoja que no es la pedida se descarta y se
+ * prueba la siguiente forma de pedirla.
+ */
+const SENAS: Record<string, (rows: string[][]) => boolean> = {
+  'Base de Datos': rows => tieneEncabezados(rows, ['nombre del jugador', 'carambolas']),
+  CONFIGURACION: rows => buscaEtiqueta(rows, 'Numero total de jugadores', 40),
+  JUGADORES: rows => tieneEncabezados(rows, ['grupo', 'activo']),
+  FIXTURE_GRUPOS: rows => tieneEncabezados(rows, ['grupo', 'partido', 'jugador a']),
+  RESULTADOS: rows => tieneEncabezados(rows, ['resultado', 'jugador a']),
+  GRUPOS: rows => buscaTexto(rows, /^GRUPO\s+\d+$/i, 400) && tieneEncabezados(rows, ['total pts']),
+  'Eliminación Simple': rows => tieneEncabezados(rows, ['ronda', 'ganador']),
+  RankingGrupos: rows => tieneEncabezados(rows, ['ranking', 'promedio']),
+  RankingFinal: rows => tieneEncabezados(rows, ['ranking', 'ronda alcanzada']),
+};
+
+/** ¿Existe una fila que contenga TODAS estas etiquetas de encabezado? */
+function tieneEncabezados(rows: string[][], etiquetas: string[]): boolean {
+  for (const row of rows.slice(0, 400)) {
+    const celdas = row.map(c => normalizeKey(c));
+    if (etiquetas.every(e => celdas.includes(normalizeKey(e)))) return true;
+  }
+  return false;
+}
+
+/** ¿Alguna celda de las primeras `limite` filas casa con el patrón? */
+function buscaTexto(rows: string[][], patron: RegExp, limite: number): boolean {
+  for (const row of rows.slice(0, limite)) {
+    for (const c of row) if (patron.test((c || '').trim())) return true;
+  }
+  return false;
+}
+
+/** Igual, pero comparando etiquetas sin tildes ni mayúsculas. */
+function buscaEtiqueta(rows: string[][], etiqueta: string, limite: number): boolean {
+  const k = normalizeKey(etiqueta);
+  for (const row of rows.slice(0, limite)) {
+    for (const c of row) if (normalizeKey(c) === k) return true;
+  }
+  return false;
+}
+
+function esLaHoja(sheetName: string, rows: string[][]): boolean {
+  const senas = SENAS[sheetName];
+  return senas ? senas(rows) : rows.length > 0;
+}
+
+/**
  * Nunca lanza: si Google no responde devuelve una lista vacía y la
  * página enseña su estado vacío. Un fallo puntual de Google no debe
  * tumbar el build ni dejar la web en blanco.
+ *
+ * Devuelve la hoja pedida o nada. Nunca otra hoja: más vale una página
+ * que dice «todavía no hay datos» que una que enseña datos de otro sitio.
  */
-async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
+export async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
+  const intentos: string[] = [];
+
   for (const url of candidateUrls(sheetName, range)) {
     try {
       const res = await fetch(url, {
         next: { revalidate: SHEET_TTL, tags: [SHEET_TAG] },
       });
-      if (!res.ok) continue;
+      if (!res.ok) { intentos.push(`HTTP ${res.status}`); continue; }
       const csv = await res.text();
-      if (!looksLikeCsv(csv)) continue;
+      if (!looksLikeCsv(csv)) { intentos.push('no es CSV'); continue; }
       const rows = parseCSV(csv);
-      if (rows.length > 0) return rows;
+      if (rows.length === 0) { intentos.push('vacío'); continue; }
+      if (!esLaHoja(sheetName, rows)) { intentos.push(`otra hoja (${rows.length} filas)`); continue; }
+      return rows;
     } catch {
-      // se prueba la siguiente forma de pedir la hoja
+      intentos.push('error de red');
     }
   }
 
-  console.warn(`[sheets] no se pudo leer la hoja "${sheetName}"`);
+  console.warn(`[sheets] no se pudo leer "${sheetName}": ${intentos.join(' · ')}`);
   return [];
 }
 
