@@ -488,30 +488,38 @@ export function parseFixture(rows: string[][]): FixtureMatch[] {
   return out;
 }
 
-/** "30-01-2026", "30/01/2026" o "2026-01-30" → "2026-01-30" */
+/**
+ * Lee la fecha venga como venga desde el Sheet y la devuelve como
+ * "2026-09-16". Aguanta "16/09/2026", "16-09-2026", "16.09.2026",
+ * "16 09 26" y "2026-09-16", porque cada quien la digita distinto.
+ */
 export function parseDateAny(dateStr: string): string {
   const s = (dateStr || '').trim();
   if (!s) return '';
-  const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
-  const dmy = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
-  if (dmy) {
-    let day = Number(dmy[1]);
-    let month = Number(dmy[2]);
+
+  const partes = s.split(/[-/.\s]+/);
+  if (partes.length !== 3 || partes.some(p => !/^\d{1,4}$/.test(p))) return '';
+
+  let day: number, month: number, year: number;
+  if (partes[0].length === 4) {
+    [year, month, day] = partes.map(Number);
+  } else {
+    [day, month, year] = partes.map(Number);
     // El Sheet está en español, así que lo normal es día/mes. Pero si el
     // primer número no puede ser un mes y el segundo sí, viene al revés.
     if (day <= 12 && month > 12) { const t = day; day = month; month = t; }
-    if (month < 1 || month > 12 || day < 1 || day > 31) return '';
-    return `${dmy[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    if (year < 100) year += 2000;
   }
-  return '';
+
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900) return '';
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /** "9:00 a. m." → "09:00" · "2:00 p. m." → "14:00" · "" → "" */
 export function parseTime24(timeStr: string): string {
   const clean = (timeStr || '').replace(/\s+/g, ' ').trim().toLowerCase();
   if (!clean) return '';
-  const m = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?|m\.?)?$/);
+  const m = clean.match(/^(\d{1,2})[:.](\d{2})(?::\d{2})?\s*(a\.?\s*m\.?|p\.?\s*m\.?|am|pm|m\.?)?$/);
   if (!m) return '';
   let hours = parseInt(m[1], 10);
   const minutes = m[2];
