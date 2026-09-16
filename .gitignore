@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claves: nunca al repositorio (es publico)
+CLAVES-TORNEO.txt
+CLAVES*.txt
