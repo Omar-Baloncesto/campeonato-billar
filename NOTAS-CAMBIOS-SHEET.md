@@ -260,6 +260,32 @@ En la web, `GroupStandingsTable` enseña las dos columnas (PTS x P y VENT x P).
 No hace falta tocar el parser: las calcula con `totalPts / matchesPerPlayer`,
 que es exactamente el mismo divisor.
 
+### B8 · M7 — la hoja se reutiliza, no se recrea  ← el gid muerto
+
+Síntoma: tras correr el paso 7, `/eliminacion` decía «El cuadro todavía no
+está creado» con la hoja perfectamente creada.
+
+Causa, y es un fallo de diseño mío: `CrearEliminacionSimple` hacía
+`deleteSheet` + `insertSheet`. **Al borrar una pestaña y crear otra, Google le
+asigna un gid nuevo.** Como `SHEET_GIDS` lleva el gid escrito a mano, el que
+había apuntaba a una pestaña que ya no existe, y las lecturas por nombre no
+recuperaron la situación (el acento de «Eliminación Simple» no ayuda).
+
+Los demás módulos no tienen el problema: M5 y M6 usan `getOrCreateSheet` y
+M18 solo inserta si no existe, así que sus gid son estables.
+
+Arreglo: el paso 7 ya no borra la hoja. Si existe, la limpia a fondo
+(`breakApart` de las celdas combinadas, `clear`, `clearDataValidations`,
+`setConditionalFormatRules([])`) y la reutiliza. Mismo resultado en pantalla,
+y el gid no vuelve a cambiar nunca.
+
+Comprobado con el simulador ejecutando el paso 7 dos veces seguidas: la
+segunda no llama a `deleteSheet` ni a `insertSheet`, y el objeto hoja es el
+mismo. El cuadro sale idéntico (31 partidos, 5 rondas, 10 BYE).
+
+**Pendiente:** actualizar el gid de `Eliminación Simple` en `SHEET_GIDS` con
+el que tiene ahora, porque el paso 7 ya se corrió una vez con el código viejo.
+
 ## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 
 Todo lo de esta sección está aplicado y verificado contra una copia local

@@ -102,6 +102,20 @@ function avanzarHoraElim_(reloj) {
   }
 }
 
+/**
+ * Deja la hoja como recien creada, pero SIN cambiarle el gid:
+ * deshace las celdas combinadas del cuadro anterior y borra contenido,
+ * formato, validaciones y formato condicional.
+ */
+function limpiarHojaElim_(ws) {
+  var todo = ws.getRange(1, 1, ws.getMaxRows(), ws.getMaxColumns());
+  todo.breakApart();
+  todo.clear();
+  todo.clearDataValidations();
+  ws.setConditionalFormatRules([]);
+  ws.setFrozenRows(0);
+}
+
 function CrearEliminacionSimple() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ui = SpreadsheetApp.getUi();
@@ -163,16 +177,32 @@ function CrearEliminacionSimple() {
   }
   var totalFilas = bloques[bloques.length - 1].fin;
 
-  // --- 4. Recrear la hoja -------------------------------------------------
-  var nombresViejos = [ELIM_HOJA, "Eliminacion Simple", "ELIMINACION SIMPLE", "ELIMINACIÓN SIMPLE"];
+  // --- 4. Preparar la hoja ------------------------------------------------
+  //
+  // OJO: la hoja NO se borra para volver a crearla. Al borrarla, Google le
+  // da un gid NUEVO a la que se crea en su lugar, y el gid es lo que usa la
+  // web para pedir esta pestaña: con un gid muerto, la página de Eliminación
+  // se queda en blanco aunque la hoja esté perfecta.
+  //
+  // Se limpia a fondo y se reutiliza. El resultado es el mismo y el gid no
+  // cambia nunca más.
+  var nombresViejos = ["Eliminacion Simple", "ELIMINACION SIMPLE", "ELIMINACIÓN SIMPLE"];
   for (var v = 0; v < nombresViejos.length; v++) {
+    if (nombresViejos[v] === ELIM_HOJA) continue;   // esa es la buena
     var vieja = ss.getSheetByName(nombresViejos[v]);
     if (vieja) {
       desprotegerHoja(vieja);
       ss.deleteSheet(vieja);
     }
   }
-  var wsE = ss.insertSheet(ELIM_HOJA);
+
+  var wsE = ss.getSheetByName(ELIM_HOJA);
+  if (!wsE) {
+    wsE = ss.insertSheet(ELIM_HOJA);
+  } else {
+    desprotegerHoja(wsE);
+    limpiarHojaElim_(wsE);
+  }
 
   if (wsE.getMaxColumns() < ELIM_COLS) {
     wsE.insertColumnsAfter(wsE.getMaxColumns(), ELIM_COLS - wsE.getMaxColumns());
