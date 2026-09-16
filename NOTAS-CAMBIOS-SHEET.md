@@ -197,7 +197,7 @@ nueva y se olvida su gid.
 | Calendario | 739589239 |
 | RESULTADOS | 1802098051 |
 | GRUPOS | 331979390 |
-| Eliminación Simple | 1544967020 |
+| Eliminación Simple | 24087976 |
 | RankingGrupos | 77690621 |
 | RankingFinal | 860732655 |
 
@@ -283,8 +283,10 @@ Comprobado con el simulador ejecutando el paso 7 dos veces seguidas: la
 segunda no llama a `deleteSheet` ni a `insertSheet`, y el objeto hoja es el
 mismo. El cuadro sale idéntico (31 partidos, 5 rondas, 10 BYE).
 
-**Pendiente:** actualizar el gid de `Eliminación Simple` en `SHEET_GIDS` con
-el que tiene ahora, porque el paso 7 ya se corrió una vez con el código viejo.
+**Resuelto:** el gid de `Eliminación Simple` pasó de `1544967020` a
+`24087976` al correr el paso 7 con el código viejo. Ya está actualizado en
+`SHEET_GIDS`, y todos los demás gid salieron idénticos, lo que confirma el
+diagnóstico: solo cambia el de la pestaña que se borraba y se recreaba.
 
 ## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 

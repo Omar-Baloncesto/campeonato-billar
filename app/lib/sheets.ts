@@ -59,7 +59,7 @@ export const SHEET_GIDS: Record<string, string> = {
   Calendario: '739589239',
   RESULTADOS: '1802098051',
   GRUPOS: '331979390',
-  'Eliminación Simple': '1544967020',
+  'Eliminación Simple': '24087976',
   RankingGrupos: '77690621',
   RankingFinal: '860732655',
 };
