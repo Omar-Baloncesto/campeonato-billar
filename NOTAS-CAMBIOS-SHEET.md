@@ -279,9 +279,28 @@ Arreglo: el paso 7 ya no borra la hoja. Si existe, la limpia a fondo
 `setConditionalFormatRules([])`) y la reutiliza. Mismo resultado en pantalla,
 y el gid no vuelve a cambiar nunca.
 
-Comprobado con el simulador ejecutando el paso 7 dos veces seguidas: la
-segunda no llama a `deleteSheet` ni a `insertSheet`, y el objeto hoja es el
-mismo. El cuadro sale idéntico (31 partidos, 5 rondas, 10 BYE).
+**Y aun así volvió a cambiar**, porque el primer arreglo tenía otro fallo:
+
+```javascript
+if (nombresViejos[v] === ELIM_HOJA) continue;   // MAL
+```
+
+`getSheetByName` **no distingue mayúsculas de minúsculas**, así que buscar
+`"ELIMINACIÓN SIMPLE"` devuelve la hoja buena, `"Eliminación Simple"`. Pero
+la guarda comparaba los NOMBRES como texto, y `"ELIMINACIÓN SIMPLE"` no es
+igual a `"Eliminación Simple"`, así que no la reconocía y la borraba. Luego
+`insertSheet` creaba otra con gid nuevo.
+
+Ahora se compara `getSheetId()`, que es único y no engaña:
+
+```javascript
+if (wsE && vieja.getSheetId() === wsE.getSheetId()) continue;
+```
+
+Comprobado con un simulador cuyo `getSheetByName` ignora mayúsculas, igual
+que el de Google: cuatro ejecuciones seguidas del paso 7 y el gid no se
+mueve, sin `deleteSheet` ni `insertSheet`. Y una hoja sobrante de verdad
+(«Eliminacion Simple», sin tilde) sí se borra.
 
 **Resuelto:** el gid de `Eliminación Simple` pasó de `1544967020` a
 `24087976` al correr el paso 7 con el código viejo. Ya está actualizado en

@@ -186,17 +186,25 @@ function CrearEliminacionSimple() {
   //
   // Se limpia a fondo y se reutiliza. El resultado es el mismo y el gid no
   // cambia nunca más.
+  var wsE = ss.getSheetByName(ELIM_HOJA);
+
+  // Hojas sobrantes de versiones antiguas, con el nombre mal escrito.
+  //
+  // CUIDADO: getSheetByName NO distingue mayusculas de minusculas, asi que
+  // buscar "ELIMINACIÓN SIMPLE" devuelve la hoja "Eliminación Simple", la
+  // buena. Comparar los NOMBRES como texto no basta: hay que comparar el
+  // identificador de la hoja, que es unico. Si no, se borra la hoja buena
+  // y la que se crea en su lugar estrena gid, que es exactamente lo que
+  // dejaba la pagina de Eliminacion en blanco.
   var nombresViejos = ["Eliminacion Simple", "ELIMINACION SIMPLE", "ELIMINACIÓN SIMPLE"];
   for (var v = 0; v < nombresViejos.length; v++) {
-    if (nombresViejos[v] === ELIM_HOJA) continue;   // esa es la buena
     var vieja = ss.getSheetByName(nombresViejos[v]);
-    if (vieja) {
-      desprotegerHoja(vieja);
-      ss.deleteSheet(vieja);
-    }
+    if (!vieja) continue;
+    if (wsE && vieja.getSheetId() === wsE.getSheetId()) continue;   // es la buena
+    desprotegerHoja(vieja);
+    ss.deleteSheet(vieja);
   }
 
-  var wsE = ss.getSheetByName(ELIM_HOJA);
   if (!wsE) {
     wsE = ss.insertSheet(ELIM_HOJA);
   } else {
