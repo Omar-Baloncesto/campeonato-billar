@@ -102,13 +102,75 @@ function candidateUrls(sheetName: string, range?: string): string[] {
   if (range) gviz += `&range=${encodeURIComponent(range)}`;
   urls.push(gviz);
 
-  // 3. Último recurso. Google no siempre respeta el nombre de la pestaña
-  //    dentro de `range`, y cuando no lo respeta devuelve la PRIMERA hoja
-  //    del libro como si tal cosa. Por eso va la última y por eso existe
-  //    la comprobación de abajo.
-  urls.push(`${base}/export?format=csv&range=${encodeURIComponent(`'${sheetName}'!${range || 'A1:BZ500'}`)}`);
-
   return urls;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Descubrir los gid solos                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * El problema de escribir los gid a mano: el paso 7 del Apps Script borra
+ * la hoja «Eliminación Simple» y crea otra en su lugar, y Google le da un
+ * gid nuevo. El gid del código se queda viejo y la página sale vacía.
+ *
+ * Y por nombre no hay salvación:
+ *   · /export con el nombre dentro de `range`  -> HTTP 400, no existe.
+ *   · /gviz por nombre                          -> responde, pero ADIVINA
+ *     el tipo de cada columna y borra el texto de las columnas numéricas:
+ *     en la hoja de eliminación se come los encabezados «Ronda» y
+ *     «Partido», y además junta las filas de título. Los datos llegan
+ *     dañados, así que no vale como fuente fiable.
+ *
+ * Solución: preguntarle a Google los gid de verdad. La vista `htmlview` de
+ * un libro público trae la lista de pestañas con su gid. Se lee una vez,
+ * se guarda, y así la web se arregla sola pase lo que pase en el Sheet.
+ */
+let gidsDescubiertos: Record<string, string> | null = null;
+let descubriendo: Promise<Record<string, string>> | null = null;
+
+export function extraerGids(html: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const marca = 'sheet-button-';
+  let i = html.indexOf(marca);
+  while (i !== -1) {
+    const desde = i + marca.length;
+    let j = desde;
+    while (j < html.length && html[j] >= '0' && html[j] <= '9') j++;
+    const gid = html.slice(desde, j);
+    // El nombre es el primer texto entre > y < que venga detrás
+    const trozo = html.slice(j, j + 400);
+    const m = trozo.match(/>([^<>]*[^\s<>][^<>]*)</);
+    if (gid && m) {
+      const nombre = m[1].replace(/&amp;/g, '&').replace(/&#39;/g, "'").trim();
+      if (nombre) out[nombre] = gid;
+    }
+    i = html.indexOf(marca, j);
+  }
+  return out;
+}
+
+async function descubrirGids(): Promise<Record<string, string>> {
+  if (gidsDescubiertos) return gidsDescubiertos;
+  if (descubriendo) return descubriendo;
+
+  descubriendo = (async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/spreadsheets/d/${SPREADSHEET_ID}/htmlview`, {
+        next: { revalidate: 300, tags: [SHEET_TAG] },
+      });
+      if (!res.ok) return {};
+      const encontrados = extraerGids(await res.text());
+      if (Object.keys(encontrados).length > 0) gidsDescubiertos = encontrados;
+      return encontrados;
+    } catch {
+      return {};
+    } finally {
+      descubriendo = null;
+    }
+  })();
+
+  return descubriendo;
 }
 
 /** Una respuesta HTML es una página de error de Google, no un CSV. */
@@ -183,20 +245,39 @@ function esLaHoja(sheetName: string, rows: string[][]): boolean {
 export async function fetchSheet(sheetName: string, range?: string): Promise<string[][]> {
   const intentos: string[] = [];
 
-  for (const url of candidateUrls(sheetName, range)) {
-    try {
-      const res = await fetch(url, {
-        next: { revalidate: SHEET_TTL, tags: [SHEET_TAG] },
-      });
-      if (!res.ok) { intentos.push(`HTTP ${res.status}`); continue; }
-      const csv = await res.text();
-      if (!looksLikeCsv(csv)) { intentos.push('no es CSV'); continue; }
-      const rows = parseCSV(csv);
-      if (rows.length === 0) { intentos.push('vacío'); continue; }
-      if (!esLaHoja(sheetName, rows)) { intentos.push(`otra hoja (${rows.length} filas)`); continue; }
-      return rows;
-    } catch {
-      intentos.push('error de red');
+  async function intentar(urls: string[]): Promise<string[][] | null> {
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          next: { revalidate: SHEET_TTL, tags: [SHEET_TAG] },
+        });
+        if (!res.ok) { intentos.push(`HTTP ${res.status}`); continue; }
+        const csv = await res.text();
+        if (!looksLikeCsv(csv)) { intentos.push('no es CSV'); continue; }
+        const rows = parseCSV(csv);
+        if (rows.length === 0) { intentos.push('vacío'); continue; }
+        if (!esLaHoja(sheetName, rows)) { intentos.push(`otra hoja (${rows.length} filas)`); continue; }
+        return rows;
+      } catch {
+        intentos.push('error de red');
+      }
+    }
+    return null;
+  }
+
+  const primero = await intentar(candidateUrls(sheetName, range));
+  if (primero) return primero;
+
+  // El gid escrito a mano ya no vale: se le pregunta a Google cuál es.
+  const reales = await descubrirGids();
+  const gidReal = reales[sheetName];
+  if (gidReal && gidReal !== SHEET_GIDS[sheetName]) {
+    let u = `${BASE_URL}/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gidReal}`;
+    if (range) u += `&range=${encodeURIComponent(range)}`;
+    const segundo = await intentar([u]);
+    if (segundo) {
+      console.warn(`[sheets] "${sheetName}": el gid del código (${SHEET_GIDS[sheetName]}) está caduco, el bueno es ${gidReal}`);
+      return segundo;
     }
   }
 

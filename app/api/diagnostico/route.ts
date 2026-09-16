@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SPREADSHEET_ID, SHEET_GIDS } from '../../lib/sheets';
+import { SPREADSHEET_ID, SHEET_GIDS, extraerGids } from '../../lib/sheets';
 import { parseCSV, normalizeKey } from '../../lib/csv';
 
 /* ==================================================================
@@ -71,22 +71,20 @@ async function probar(nombre: string, etiqueta: string, url: string) {
   }
 }
 
-/** Intenta sacar los gid de verdad de la vista HTML del libro. */
-async function gidsReales(): Promise<Record<string, string> | { error: string }> {
+/** Saca los gid de verdad de la vista HTML del libro. */
+async function gidsReales(): Promise<Record<string, string> | { error: string; pista?: string }> {
   try {
     const res = await fetch(`${BASE}/spreadsheets/d/${SPREADSHEET_ID}/htmlview`, { cache: 'no-store' });
     if (!res.ok) return { error: `htmlview HTTP ${res.status}` };
     const html = await res.text();
-    const out: Record<string, string> = {};
-    // Los enlaces de las pestañas llevan  #gid=NNN ... >Nombre<
-    const re = /id="sheet-button-(\d+)"[^>]*>([^<]+)</g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(html)) !== null) out[m[2].trim()] = m[1];
-    if (Object.keys(out).length === 0) {
-      const re2 = /\{"name":"([^"]+)"[^}]*?"sheetId":(\d+)/g;
-      while ((m = re2.exec(html)) !== null) out[m[1]] = m[2];
-    }
-    return Object.keys(out).length ? out : { error: 'no se encontraron pestañas en el HTML' };
+    const out = extraerGids(html);
+    if (Object.keys(out).length > 0) return out;
+    // Si no aparece, se devuelve un trozo del HTML para poder adaptarlo
+    const i = html.indexOf('gid=');
+    return {
+      error: 'no se encontraron pestañas en el HTML',
+      pista: i >= 0 ? html.slice(Math.max(0, i - 200), i + 200) : html.slice(0, 300),
+    };
   } catch (e) {
     return { error: String(e).slice(0, 120) };
   }

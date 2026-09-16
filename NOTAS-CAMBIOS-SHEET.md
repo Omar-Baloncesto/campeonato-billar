@@ -288,6 +288,40 @@ mismo. El cuadro sale idéntico (31 partidos, 5 rondas, 10 BYE).
 `SHEET_GIDS`, y todos los demás gid salieron idénticos, lo que confirma el
 diagnóstico: solo cambia el de la pestaña que se borraba y se recreaba.
 
+### C15 · La web descubre los gid sola
+
+El gid de `Eliminación Simple` caducó DOS veces en una tarde, y las dos hubo
+que perseguirlo a mano. Con `/api/diagnostico` (nueva ruta, probada desde el
+propio servidor de Vercel) por fin se vio qué pasa de verdad con cada forma
+de pedir una pestaña:
+
+| Forma | Resultado |
+|---|---|
+| `export?format=csv&gid=N` | **HTTP 400** con el gid caduco. Es la única buena cuando el gid vale. |
+| `export?format=csv&range='Hoja'!A1:BZ500` | **HTTP 400 siempre.** Google no acepta el nombre dentro de `range`. Candidato eliminado. |
+| `gviz/tq?...&sheet=Nombre&headers=0` | HTTP 200, pero **los datos llegan dañados** |
+| `gviz/tq?...&sheet=Nombre` | HTTP 200, **también dañados** |
+
+Lo de gviz merece detalle, porque parecía la salvación: **gviz adivina el tipo
+de cada columna y borra el texto que no encaje**. En la hoja de eliminación
+las columnas A y B son numéricas (Ronda, Partido), así que se come sus
+encabezados «Ronda» y «Partido» — que es justo lo que la comprobación de
+identidad busca. Además junta las filas de título en una sola y devuelve 36
+filas donde la hoja tiene 46. No sirve como fuente.
+
+Así que el gid es imprescindible, y escribirlo a mano no es sostenible.
+Ahora, cuando el gid del código falla, la web **le pregunta a Google cuál es**:
+lee `/htmlview` del libro, que trae la lista de pestañas con su gid, y usa el
+bueno. El resultado se guarda en memoria, así que se pide una vez.
+
+`extraerGids()` está probada con el HTML real de la barra de pestañas, con
+saltos de línea y atributos de por medio, y saca las 10 pestañas con sus
+acentos.
+
+Con esto el paso 7 puede recrear la hoja las veces que quiera: la web se
+arregla sola. Los gid de `SHEET_GIDS` se quedan como atajo, para no pedir el
+htmlview en cada arranque.
+
 ## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 
 Todo lo de esta sección está aplicado y verificado contra una copia local
