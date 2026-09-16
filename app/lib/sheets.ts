@@ -131,6 +131,34 @@ let descubriendo: Promise<Record<string, string>> | null = null;
 
 export function extraerGids(html: string): Record<string, string> {
   const out: Record<string, string> = {};
+
+  const desescapar = (t: string) =>
+    t
+      .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/\\\//g, '/')
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\')
+      .replace(/&amp;/g, '&')
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .trim();
+
+  // Forma 1, la que usa Google hoy: un trozo de JavaScript con la lista
+  // de pestañas.  items.push({nombre: "GRUPOS", pageUrl: "...#gid=331979390"})
+  //
+  // La clave del nombre viene TRADUCIDA segun el idioma con que Google
+  // sirva la pagina ("name" en ingles, "nombre" en español), asi que no se
+  // busca por su nombre: se coge el texto entrecomillado que va justo
+  // antes de la URL que lleva el gid.
+  const re1 = /"((?:[^"\\]|\\.)*)"\s*,\s*\w+\s*:\s*"([^"]*[#&?]gid=(-?\d+)[^"]*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re1.exec(html)) !== null) {
+    const nombre = desescapar(m[1]);
+    if (nombre && !(nombre in out)) out[nombre] = m[3];
+  }
+  if (Object.keys(out).length > 0) return out;
+
+  // Forma 2, la barra de pestañas clasica: <li id="sheet-button-N"><a>Nombre</a>
   const marca = 'sheet-button-';
   let i = html.indexOf(marca);
   while (i !== -1) {
@@ -138,12 +166,11 @@ export function extraerGids(html: string): Record<string, string> {
     let j = desde;
     while (j < html.length && html[j] >= '0' && html[j] <= '9') j++;
     const gid = html.slice(desde, j);
-    // El nombre es el primer texto entre > y < que venga detrás
     const trozo = html.slice(j, j + 400);
-    const m = trozo.match(/>([^<>]*[^\s<>][^<>]*)</);
-    if (gid && m) {
-      const nombre = m[1].replace(/&amp;/g, '&').replace(/&#39;/g, "'").trim();
-      if (nombre) out[nombre] = gid;
+    const t = trozo.match(/>([^<>]*[^\s<>][^<>]*)</);
+    if (gid && t) {
+      const nombre = desescapar(t[1]);
+      if (nombre && !(nombre in out)) out[nombre] = gid;
     }
     i = html.indexOf(marca, j);
   }

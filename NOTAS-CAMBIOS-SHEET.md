@@ -333,9 +333,26 @@ Ahora, cuando el gid del código falla, la web **le pregunta a Google cuál es**
 lee `/htmlview` del libro, que trae la lista de pestañas con su gid, y usa el
 bueno. El resultado se guarda en memoria, así que se pide una vez.
 
-`extraerGids()` está probada con el HTML real de la barra de pestañas, con
-saltos de línea y atributos de por medio, y saca las 10 pestañas con sus
-acentos.
+`extraerGids()` falló al primer intento porque yo esperaba la barra de
+pestañas clásica (`<li id="sheet-button-N">`). El `/api/diagnostico` devuelve
+un trozo del HTML cuando no encuentra nada, y ahí se vio la forma real:
+
+```javascript
+items.push({nombre: "Base de Datos", pageUrl: "https:\/\/...#gid=2016460506"});
+```
+
+Dos sorpresas: es JavaScript, no marcado HTML; y **la clave del nombre viene
+traducida** según el idioma con que Google sirva la página (`nombre` en
+español, `name` en inglés — y el mismo libro llegó en los dos idiomas en
+peticiones seguidas). Por eso el extractor no busca la clave por su nombre:
+coge el texto entrecomillado que va justo antes de la URL con el gid.
+
+También hay que deshacer los escapes: las barras van como `\/` y los acentos
+como `\u00f3`, así que «Eliminación Simple» llega escrita
+`Eliminaci\u00f3n Simple`.
+
+Probado con las tres formas —español, inglés y la barra clásica, que se deja
+como respaldo— y las diez pestañas salen bien en las tres.
 
 Con esto el paso 7 puede recrear la hoja las veces que quiera: la web se
 arregla sola. Los gid de `SHEET_GIDS` se quedan como atajo, para no pedir el
