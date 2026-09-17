@@ -75,8 +75,8 @@ function GenerarRankingFinal() {
   //    F Prom A | G Jugador B | H Entradas B | I Carambolas B | J Prom B
   //    K Ganador | L Objetivo A | M Objetivo B | N Fecha | O Hora
   //
-    //  OJO con D y E: aqui van al reves que en RESULTADOS. En el cuadro
-    //  la columna D son las ENTRADAS y la E las CARAMBOLAS.
+  //  OJO con D y E: aqui van al reves que en RESULTADOS. En el cuadro
+  //  la columna D son las ENTRADAS y la E las CARAMBOLAS.
   // ----------------------------------------------------------
   var ultFilaE = wsE.getLastRow();
   if (ultFilaE < 2) { avisoRF_("La hoja 'Eliminación Simple' esta vacia."); return; }
