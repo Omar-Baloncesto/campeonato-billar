@@ -50,11 +50,11 @@
 //     carambolas, entradas, rendimiento, hasta donde llego y una
 //     columna "Orden" que resume el primer criterio.
 //
-//   · La TABLA VISIBLE (A a M), que es UNA SOLA formula en B3:
-//         ARRAY_CONSTRAIN(SORT(bloque; Orden; desc; Rendimiento; desc;
-//                              Puesto; asc); filas; 12)
+//   · La TABLA VISIBLE (A a L), que es UNA SOLA formula en B3:
+//         ARRAY_CONSTRAIN(SORT(bloque; Orden;desc; Rendimiento;desc;
+//                              Promedio;desc; Siembra;asc); filas; 11)
 //     SORT devuelve el bloque ya ordenado y ARRAY_CONSTRAIN se queda
-//     con las 12 primeras columnas, que son justo las que se ensenan.
+//     con las 11 primeras columnas, que son justo las que se ensenan.
 //
 // Cuando se anota una carambola, el bloque de calculo se recalcula, el
 // SORT reordena y la tabla cambia sola. Nadie tiene que correr nada.
@@ -76,12 +76,11 @@
 // guarda ni un dato propio, todo lo saca del cuadro.
 // ============================================================
 
-var RF_HOJA     = "RankingFinal";
-var RF_ANCHO    = 12;   // A..L, la tabla visible
+var RF_HOJA      = "RankingFinal";
+var RF_ANCHO     = 12;  // A..L, la tabla visible
 var RF_AUX_INI   = 16;  // P, donde empieza el bloque de calculo
 var RF_AUX_DATOS = 14;  // P..AC, una columna por dato de cada jugador
 var RF_AUX_COLS  = 15;  // P..AD, contando la columna de las constantes
-var RF_AUX_SORT  = 13;  // P..AB, lo que entra en el SORT
 var RF_VISIBLES  = 11;  // P..Z, lo que se copia a la tabla (B..L)
 
 // AD guarda dos constantes (ultima ronda y campeon) y NO forma parte de
@@ -89,8 +88,8 @@ var RF_VISIBLES  = 11;  // P..Z, lo que se copia a la tabla (B..L)
 // y nadie sale como CAMPEÓN.
 
 // Columnas del bloque de calculo, en el mismo orden en que se ensenan.
-// Las 12 primeras son las que ve la gente; Orden y Empates son de uso
-// interno y se quedan fuera del ARRAY_CONSTRAIN.
+// Las 11 primeras son las que ve la gente; Orden, Siembra y Empates son
+// de uso interno y se quedan fuera del ARRAY_CONSTRAIN.
 var RF_AUX = {
   jugador: "P", categoria: "Q", objetivo: "R", hasta: "S", ronda: "T",
   rendimiento: "U", promedio: "V", partidos: "W", ganados: "X",
