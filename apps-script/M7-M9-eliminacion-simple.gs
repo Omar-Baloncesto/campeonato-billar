@@ -18,6 +18,19 @@
 // que colocan el cuadro en el calendario de la web. Se pueden editar a
 // mano en la hoja cuando haga falta, y para el torneo siguiente basta
 // con cambiar los cuatro ajustes de aqui abajo.
+//
+// NOVEDAD: la hoja ya NO se borra para volver a crearla. Borrarla le
+// cambiaba el gid y dejaba la pagina de Eliminacion de la web en blanco.
+// Ahora se limpia y se reutiliza: mismo resultado, gid estable.
+//
+// NOVEDAD 2: EN LA ELIMINACION YA NO PUEDE SALIR "EMPATE". Siempre hay
+// un ganador, porque alguien tiene que pasar a la ronda siguiente. Ver
+// formulaGanadorElim, mas abajo.
+//
+// Y OJO: CrearEliminacionSimple REHACE el cuadro y BORRA los marcadores.
+// Con el torneo en juego NO se puede correr. Para meter formulas nuevas
+// en un cuadro que ya esta rodando esta ActualizarGanadoresElim, que
+// solo reescribe la columna Ganador y no toca nada de lo anotado.
 // ============================================================
 
 var ELIM_HOJA = "Eliminación Simple";
@@ -103,7 +116,7 @@ function avanzarHoraElim_(reloj) {
 }
 
 /**
- * Deja la hoja como recien creada, pero SIN cambiarle el gid:
+ * NUEVA. Deja la hoja como recien creada, pero SIN cambiarle el gid:
  * deshace las celdas combinadas del cuadro anterior y borra contenido,
  * formato, validaciones y formato condicional.
  */
@@ -177,15 +190,12 @@ function CrearEliminacionSimple() {
   }
   var totalFilas = bloques[bloques.length - 1].fin;
 
-  // --- 4. Preparar la hoja ------------------------------------------------
+    // --- 4. Preparar la hoja ------------------------------------------------
   //
   // OJO: la hoja NO se borra para volver a crearla. Al borrarla, Google le
   // da un gid NUEVO a la que se crea en su lugar, y el gid es lo que usa la
   // web para pedir esta pestaña: con un gid muerto, la página de Eliminación
   // se queda en blanco aunque la hoja esté perfecta.
-  //
-  // Se limpia a fondo y se reutiliza. El resultado es el mismo y el gid no
-  // cambia nunca más.
   var wsE = ss.getSheetByName(ELIM_HOJA);
 
   // Hojas sobrantes de versiones antiguas, con el nombre mal escrito.
@@ -210,13 +220,6 @@ function CrearEliminacionSimple() {
   } else {
     desprotegerHoja(wsE);
     limpiarHojaElim_(wsE);
-  }
-
-  if (wsE.getMaxColumns() < ELIM_COLS) {
-    wsE.insertColumnsAfter(wsE.getMaxColumns(), ELIM_COLS - wsE.getMaxColumns());
-  }
-  if (wsE.getMaxRows() < totalFilas) {
-    wsE.insertRowsAfter(wsE.getMaxRows(), totalFilas - wsE.getMaxRows());
   }
 
   // --- 5. Construir TODO en memoria --------------------------------------
@@ -409,7 +412,11 @@ function CrearEliminacionSimple() {
 
 /**
  * Formula que trae el ganador nº idx del rango de la ronda anterior,
- * dejando la celda vacia si todavia no hay ganador o si hubo EMPATE.
+ * dejando la celda vacia si todavia no hay ganador.
+ *
+ * El "EMPATE" ya no lo puede producir formulaGanadorElim, pero se sigue
+ * mirando por si queda alguno escrito de un cuadro viejo: asi no sube a
+ * la ronda siguiente un jugador que no ha ganado nada.
  */
 function formulaGanadorPrevio(rango, idx) {
   var ref = "INDEX(" + rango + ";" + idx + ")";
@@ -432,11 +439,14 @@ function formulaObjetivoElim(celdaJugador) {
  * ganador, porque alguien tiene que pasar a la ronda siguiente. Antes
  * esta formula escribia "EMPATE" y el cuadro se quedaba bloqueado.
  *
- * Y pasaba de verdad: en una partida con handicap, los dos pueden
- * cumplir su objetivo en las mismas entradas (17 de 17 y 20 de 20 son
- * las dos 100%), que es justo lo que el handicap dice que es estar
- * igualados. Con la entrada de igualada, ademas, que coincidan las
- * entradas es lo normal, no lo raro.
+ * Y pasaba de verdad. En la semifinal:
+ *
+ *     OMAR ALVAREZ     Segunda   17 de 17   en 30 entradas  -> 100 %
+ *     ANDRES GONZALEZ  Primera   20 de 20   en 30 entradas  -> 100 %
+ *
+ * Los dos cumplieron su objetivo completo, que es justo lo que el
+ * handicap dice que es estar igualados. Y con la entrada de igualada,
+ * que coincidan las entradas es lo normal, no lo raro.
  *
  * Orden de decision:
  *   1. Si no hay jugador A todavia   -> vacio
@@ -448,16 +458,25 @@ function formulaObjetivoElim(celdaJugador) {
  *                                       se siembra el cuadro es el que
  *                                       venia mejor colocado
  *
- * Las comparaciones van cruzadas (E*M contra I*L en vez de E/L contra
+ * Sobre el paso 5: con las MISMAS entradas, el de Primera siempre gana
+ * un doble 100 %, porque hizo mas carambolas. Si las entradas no
+ * coinciden, el de Segunda si puede ganar: 17 en 25 entradas (0,680)
+ * le gana a 20 en 30 (0,667).
+ *
+ * Las comparaciones van CRUZADAS (E*M contra I*L en vez de E/L contra
  * I/M) para no dividir nunca: asi da igual que una celda venga en cero
  * o vacia, no hay forma de sacar un #DIV/0!.
+ *
+ * Cuando los dos objetivos son iguales, comparar el % y comparar las
+ * carambolas dan exactamente lo mismo, asi que la formula sirve para un
+ * torneo de una sola categoria y para uno de primera contra segunda.
  */
 function formulaGanadorElim(n) {
   var C = "C" + n, D = "D" + n, E = "E" + n;
   var G = "G" + n, H = "H" + n, I = "I" + n;
   var L = "L" + n, M = "M" + n;
 
-  // Paso 5 y 6: promedio (carambolas/entradas) y, si tambien empata, A.
+  // Pasos 5 y 6: promedio (carambolas/entradas) y, si tambien empata, A.
   //   E/D > I/H   <=>   E*H > I*D
   var desempate =
     "IF(" + E + "*" + H + ">" + I + "*" + D + ";" + C + ";" +
@@ -496,25 +515,26 @@ function formulaGanadorElim(n) {
  */
 function ActualizarGanadoresElim() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
   var ws = ss.getSheetByName(ELIM_HOJA);
+
   if (!ws) {
-    SpreadsheetApp.getUi().alert("No se encontro la hoja '" + ELIM_HOJA + "'.");
+    ui.alert("No se encontro la hoja '" + ELIM_HOJA + "'.");
     return;
   }
 
   var ultFila = ws.getLastRow();
   if (ultFila < 2) {
-    SpreadsheetApp.getUi().alert("La hoja '" + ELIM_HOJA + "' esta vacia.");
+    ui.alert("La hoja '" + ELIM_HOJA + "' esta vacia.");
     return;
   }
 
   // Las filas de partido son las que tienen un numero de ronda en A.
   // Los titulos y los encabezados llevan texto, asi que quedan fuera.
   var colA = ws.getRange(1, 1, ultFila, 1).getValues();
+  var ganadores = ws.getRange(1, 11, ultFila, 1).getValues();
   var cambiadas = 0;
   var empatesAntes = 0;
-
-  var ganadores = ws.getRange(1, 11, ultFila, 1).getValues();
 
   for (var r = 0; r < colA.length; r++) {
     var v = colA[r][0];
@@ -526,6 +546,7 @@ function ActualizarGanadoresElim() {
   }
 
   SpreadsheetApp.flush();
+  ss.setActiveSheet(ws);
 
   var msg = "Columna Ganador actualizada en " + cambiadas + " partidas.\n\n" +
             "NO se toco ningun marcador: jugadores, entradas, carambolas,\n" +
@@ -534,11 +555,10 @@ function ActualizarGanadoresElim() {
             "en las mismas entradas, pasa el de mejor promedio\n" +
             "(carambolas / entradas).";
   if (empatesAntes > 0) {
-    msg += "\n\nHabia " + empatesAntes + " partida(s) en EMPATE. Ya tienen ganador:\n" +
-           "revisa el cuadro y comprueba que paso quien debia pasar.";
+    msg += "\n\nHabia " + empatesAntes + " partida(s) en EMPATE. Ya tienen\n" +
+           "ganador: revisa el cuadro y comprueba que paso quien debia pasar.";
   }
-  SpreadsheetApp.getUi().alert(msg);
-  ss.setActiveSheet(ws);
+  ui.alert(msg);
 }
 
 /**
