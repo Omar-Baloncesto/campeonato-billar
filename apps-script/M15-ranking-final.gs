@@ -563,12 +563,6 @@ function nombreRondaFinal_(partidos, numero) {
   return "Ronda " + numero;
 }
 
-/** Quita espacios de sobra y unifica mayusculas, para comparar nombres. */
-function normNombreRF_(v) {
-  if (v === null || v === undefined) return "";
-  return String(v).replace(/ /g, " ").replace(/\s+/g, " ").trim().toLowerCase();
-}
-
 /* ============================================================
  *  FORMATO
  * ============================================================ */
