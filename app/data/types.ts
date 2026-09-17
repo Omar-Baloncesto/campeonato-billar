@@ -140,7 +140,6 @@ export interface RankingFinalRow {
   reachedLabel?: string;
   /** Carambolas hechas ÷ carambolas que debía hacer. 1 = cumplió. */
   performance?: number | null;
-  groupRank?: number | null;
   matches?: number | null;
   won?: number | null;
   carambolas?: number | null;
