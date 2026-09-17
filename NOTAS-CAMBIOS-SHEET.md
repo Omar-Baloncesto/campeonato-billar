@@ -385,6 +385,59 @@ Probado con un simulador cuyo `getUi()` lanza el error real: los siete casos
 llama a `getUi()` ni una vez**. Comprobado además que no reacciona en otras
 hojas, ni en la fila de encabezados, ni en otras columnas.
 
+### B10 · M16 — `RankingGrupos` pasa a ser una hoja viva
+
+`apps-script/M16-ranking-grupos.gs`. Antes la hoja era una **foto**: el código
+leía GRUPOS y RESULTADOS, calculaba en memoria y escribía números fijos. En
+cuanto se anotaba una partida, la hoja quedaba vieja hasta que alguien volviera
+a correr el botón del menú.
+
+Ahora **cada celda es una fórmula**. Se corre el botón una sola vez y la hoja se
+recalcula sola durante todo el torneo.
+
+Layout nuevo, con dos rótulos de color en la fila 1 y los encabezados en la 2:
+
+| | A | B | C | D | E | F | G | H | I | J | K |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Fila 1 | QUIEN ES ||| ESTO DECIDE EL ORDEN (verde) ||||| SOLO INFORMATIVO (ámbar) |||
+| Fila 2 | Ranking | Jugador | Categoría | Grupo | Puesto | Puntos | Pts x Partido | Ventaja x Partido | Carambolas | Entradas | Promedio |
+
+El motivo del rótulo: el orden de esta hoja se copia de «Ranking Jugadores» de
+GRUPOS, que sale de CLASIF GRAL (ORDEN GRUPO → PTS x PARTIDO → VENTAJA x
+PARTIDO → TOTAL CA). La columna **Promedio** (carambolas ÷ entradas) **no pinta
+nada** en ese orden: ordenando por ella cambiarían de puesto 21 de los 22
+jugadores. Antes iba sola al lado del ranking y parecía explicarlo.
+
+De dónde sale cada columna:
+
+| Columna | Fórmula |
+|---|---|
+| Jugador | `GRUPOS!<col Ranking Jugadores><fila>` |
+| Categoría | `VLOOKUP` en `'Base de Datos'` B→C, si no F→G, si no J→K (igual que antes) |
+| Grupo | `VLOOKUP` en `JUGADORES!$B:$C` |
+| Puesto · Puntos · Pts x Partido · Ventaja x Partido | `VLOOKUP` en `GRUPOS!$B:$<última>`, con el índice que el script calcula leyendo los encabezados |
+| Carambolas · Entradas | `SUMIF` del total − `SUMIFS` de lo marcado `SI` en la columna L (W.O.) |
+| Promedio | `carambolas ÷ entradas`, con guarda contra `#DIV/0!` |
+
+Se resta lo marcado `SI` en vez de usar el criterio `"<>SI"` porque el trato que
+le da Sheets a las celdas vacías con ese criterio no es de fiar.
+
+La hoja **no se borra ni se vuelve a crear**: se limpia por dentro, para que no
+cambie su `gid` y la web la siga encontrando.
+
+Probado con un simulador de `SpreadsheetApp` y un evaluador de fórmulas de
+Sheets (IF, IFERROR, OR, SUMIF, SUMIFS, VLOOKUP, celda vacía ≠ texto vacío):
+los 11 valores de los 9 jugadores de la prueba coinciden con el cálculo de
+referencia; se anota una partida en RESULTADOS **sin volver a correr nada** y
+la hoja cambia sola; marcar esa partida como W.O. la saca del promedio de los
+dos; cambiar el orden en GRUPOS reordena la hoja con su categoría y sus
+carambolas detrás; repetir el botón da exactamente lo mismo y reutiliza la
+misma hoja. El CSV resultante pasa por `parseRankingGroups` con las 11 columnas
+completas.
+
+Un GRUPOS de una versión vieja (sin `PTS x PARTIDO`) no rompe nada: esas dos
+columnas quedan vacías y el resto funciona.
+
 ## C · LA WEB, YA ARREGLADA SEGÚN EL SHEET
 
 Todo lo de esta sección está aplicado y verificado contra una copia local
