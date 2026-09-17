@@ -372,6 +372,14 @@ a, button {
   color: #059669 !important;
 }
 
+/* Amber-400 text → darker, igual que el emerald: el ámbar claro sobre
+   fondo blanco casi no se lee. Lo usa el rótulo «solo informativo» del
+   ranking de grupos. */
+[data-theme="light"] .text-amber-400,
+[data-theme="light"] [class*="text-amber-400"] {
+  color: #b45309 !important;
+}
+
 /* Fix shadow on light backgrounds */
 [data-theme="light"] [class*="shadow-black"] {
   --tw-shadow-color: rgba(0, 0, 0, 0.06) !important;

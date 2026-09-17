@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { getCityColor } from '../lib/constants';
 import FilterPills from '../components/FilterPills';
 import EmptyState from '../components/EmptyState';
@@ -59,8 +59,11 @@ export default function RankingClient({
           Ranking
         </h2>
         <p className="text-sm text-text-muted mb-6">
-          Estas dos tablas son fotos que genera el Google Sheets: se actualizan cuando se corre
-          el paso correspondiente del menú «Torneo Billar».
+          El <strong className="text-text-primary font-semibold">Ranking de Grupos</strong> se
+          actualiza solo: en el Google Sheets cada celda es una fórmula, así que cambia en
+          cuanto se anota una carambola. El{' '}
+          <strong className="text-text-primary font-semibold">Ranking Final</strong> es una foto
+          que se genera al terminar la eliminación.
         </p>
 
         <div className="mb-6">
@@ -121,95 +124,266 @@ export default function RankingClient({
           rankingGroups.length === 0 ? (
             <EmptyState message="El ranking de grupos todavía no está generado." />
           ) : (
-            <div className="glass-card rounded-xl overflow-hidden">
-              <div className="bg-bg-header px-4 py-3 border-b border-border-light">
-                <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase">
-                  Ranking de la Fase de Grupos
-                </h3>
-                <p className="text-[11px] text-text-muted mt-1">
-                  {rankingGroups.length} jugadores · ordenados como se siembra la eliminación
-                  {detalleOrden && <> · primero los 1.º de cada grupo, luego los 2.º…</>}
-                </p>
-              </div>
-              <div className="overflow-x-auto scrollbar-hide">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-text-muted/70 text-xs border-b border-border-subtle">
-                      <th className="px-3 py-3 text-left w-10">#</th>
-                      <th className="px-3 py-3 text-left">Jugador</th>
-                      <th className="px-3 py-3 text-left hidden sm:table-cell">Categoría</th>
-                      <th className="px-3 py-3 text-left hidden lg:table-cell">Club</th>
-                      <th className="px-2 py-3 text-center" title="Grupo">Gr</th>
-                      {detalleOrden && (
-                        <th className="px-2 py-3 text-center" title="Puesto dentro del grupo">Pos</th>
-                      )}
-                      <th className="px-2 py-3 text-center" title="Carambolas a favor">Car</th>
-                      <th className="px-2 py-3 text-center hidden sm:table-cell" title="Entradas">Ent</th>
-                      <th className="px-2 py-3 text-center" title="Carambolas por entrada">Prom</th>
-                      <th className="px-2 py-3 text-center">Pts</th>
-                      {detalleOrden && (
-                        <>
-                          <th className="px-2 py-3 text-center hidden md:table-cell" title="Puntos ÷ partidos del grupo">
-                            Pts/P
-                          </th>
-                          <th className="px-2 py-3 text-center hidden md:table-cell" title="Ventaja ÷ partidos del grupo">
-                            Vent/P
-                          </th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingGroups.map(r => {
-                      const p = byName.get(normalize(r.player));
-                      // La columna C de RankingGrupos trae la categoría. Se usa
-                      // la de JUGADORES y esa queda de respaldo.
-                      const category = p?.category || r.categoryOrCity;
-                      const city = p?.city || '';
-                      return (
-                        <tr
-                          key={`${r.ranking}-${r.player}`}
-                          className={`table-row-hover border-b border-border-subtle ${r.ranking <= 3 ? 'bg-emerald/[0.03]' : ''}`}
-                        >
-                          <td className="px-3 py-3">{medal(r.ranking)}</td>
-                          <td className="px-3 py-3 font-semibold">{r.player}</td>
-                          <td className="px-3 py-3 text-xs text-text-muted hidden sm:table-cell">{category || EMPTY}</td>
-                          <td className="px-3 py-3 hidden lg:table-cell">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: getCityColor(city) }} />
-                              <span className="text-xs text-text-muted">{city || EMPTY}</span>
-                            </div>
-                          </td>
-                          <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">{r.group ?? p?.group ?? EMPTY}</td>
-                          {detalleOrden && (
-                            <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">
-                              {r.groupOrder ? `${r.groupOrder}º` : EMPTY}
-                            </td>
-                          )}
-                          <td className="px-2 py-3 text-center font-mono text-emerald-400 tabular-nums">{r.carambolas}</td>
-                          <td className="px-2 py-3 text-center font-mono text-text-muted hidden sm:table-cell tabular-nums">{r.entries}</td>
-                          <td className="px-2 py-3 text-center font-mono text-text-primary tabular-nums">{fmtAvg(r.average)}</td>
-                          <td className="px-2 py-3 text-center font-mono font-bold text-text-primary tabular-nums">{r.points}</td>
-                          {detalleOrden && (
-                            <>
-                              <td className="px-2 py-3 text-center font-mono text-text-muted/80 italic tabular-nums hidden md:table-cell">
-                                {r.pointsPerMatch != null ? fmtAvg(r.pointsPerMatch) : EMPTY}
-                              </td>
-                              <td className="px-2 py-3 text-center font-mono text-text-muted/80 italic tabular-nums hidden md:table-cell">
-                                {r.advantagePerMatch != null ? fmtSigned(r.advantagePerMatch) : EMPTY}
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <TablaRankingGrupos
+              filas={rankingGroups}
+              detalleOrden={detalleOrden}
+              byName={byName}
+            />
           )
         )}
+
       </div>
+    </div>
+  );
+}
+
+/* ==================================================================
+ *  RANKING DE LA FASE DE GRUPOS
+ *
+ *  Calcada de la hoja RankingGrupos: mismo orden de columnas y los
+ *  mismos tres rótulos de color encima. El del medio dice qué decide
+ *  el orden y el de la derecha avisa de lo que NO lo decide, porque
+ *  ver el Promedio pegado al ranking hacía pensar que ordenaba, y no
+ *  ordena: por promedio cambiarían de puesto casi todos.
+ *
+ *  Nada se esconde en pantalla estrecha: la tabla se desliza y las
+ *  dos primeras columnas se quedan fijas, igual que en Grupos. Si se
+ *  escondieran columnas, los rótulos de arriba dejarían de cuadrar
+ *  con lo que hay debajo.
+ * ================================================================== */
+
+/** Separador entre bloques de columnas. */
+const SEP = 'border-l border-border-light';
+
+function TablaRankingGrupos({
+  filas,
+  detalleOrden,
+  byName,
+}: {
+  filas: RankingGroupRow[];
+  detalleOrden: boolean;
+  byName: Map<string, Player>;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [fade, setFade] = useState(false);
+  const [desborda, setDesborda] = useState(false);
+
+  const check = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setDesborda(el.scrollWidth > el.clientWidth + 4);
+    setFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    check();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => {
+      el.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, [check]);
+
+  // Columnas fijas al desplazar: # y Jugador.
+  const stickyNo = 'sticky left-0 z-20 bg-bg-card w-12 min-w-12 max-w-12 box-border';
+  const stickyName = 'sticky left-12 z-20 bg-bg-card';
+
+  return (
+    <div className="glass-card rounded-xl overflow-hidden">
+      <div className="bg-bg-header px-4 py-3 border-b border-border-light flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase">
+          Ranking de la Fase de Grupos
+        </h3>
+        <p className="text-[11px] text-text-muted">
+          {filas.length} jugadores · ordenados como se siembra la eliminación
+          {detalleOrden && <> · primero los 1.º de cada grupo, luego los 2.º…</>}
+          {desborda && <span className="text-text-muted/50"> · desliza →</span>}
+        </p>
+      </div>
+
+      <div className="relative">
+        {fade && (
+          <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-bg-card to-transparent z-30 pointer-events-none" />
+        )}
+
+        <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              {/* Fila 1: los rótulos, los mismos que en el Sheet */}
+              {detalleOrden && (
+                <tr className="text-[9px] uppercase tracking-[0.14em] font-bold">
+                  {/* El bloque fijo de la izquierda tiene que medir EXACTAMENTE
+                      lo que miden las columnas fijas de abajo. Si se le mete
+                      aquí un colSpan que alcance a Categoría, al deslizar se
+                      queda clavado un trozo ancho que tapa el rótulo verde. */}
+                  <th className={`${stickyNo} py-1.5`} />
+                  <th className={`${stickyName} py-1.5 text-center text-text-muted/70`}>
+                    Quién es
+                  </th>
+                  <th className="py-1.5" />
+                  {/* En pantalla estrecha el rótulo se acorta en vez de
+                      partirse en tres renglones. El número de columnas no
+                      cambia, así que los colSpan siguen cuadrando. */}
+                  <th
+                    className={`${SEP} px-2 py-1.5 text-center text-emerald-400 bg-emerald/[0.08] whitespace-nowrap`}
+                    colSpan={5}
+                    title="Estas cinco columnas, en este orden, son las que deciden el puesto."
+                  >
+                    <span className="sm:hidden">Decide el orden</span>
+                    <span className="hidden sm:inline">Esto decide el orden</span>
+                  </th>
+                  <th
+                    className={`${SEP} px-2 py-1.5 text-center text-amber-400 bg-amber-400/[0.08] whitespace-nowrap`}
+                    colSpan={3}
+                    title="Datos de interés que NO influyen en el puesto."
+                  >
+                    <span className="sm:hidden">No ordena</span>
+                    <span className="hidden sm:inline">Solo informativo · no ordena</span>
+                  </th>
+                </tr>
+              )}
+
+              {/* Fila 2: los encabezados */}
+              <tr className="text-text-muted/70 text-xs border-b border-border-subtle">
+                <th className={`${stickyNo} px-3 py-3 text-left`}>#</th>
+                <th className={`${stickyName} px-3 py-3 text-left min-w-[150px]`}>Jugador</th>
+                <th className="px-3 py-3 text-left">Categoría</th>
+
+                {detalleOrden ? (
+                  <>
+                    <th className={`${SEP} px-2 py-3 text-center`} title="Grupo">Gr</th>
+                    <th className="px-2 py-3 text-center" title="1er criterio: puesto dentro de su grupo">
+                      Pos
+                    </th>
+                    <th className="px-2 py-3 text-center" title="Puntos del grupo: 2 por partido ganado, 1 por empate">
+                      Pts
+                    </th>
+                    <th className="px-2 py-3 text-center" title="2º criterio: puntos ÷ partidos que juega su grupo">
+                      Pts/P
+                    </th>
+                    <th className="px-2 py-3 text-center" title="3er criterio: ventaja ÷ partidos que juega su grupo">
+                      Vent/P
+                    </th>
+                    <th className={`${SEP} px-2 py-3 text-center`} title="Carambolas a favor. No cuenta los W.O.">
+                      Car
+                    </th>
+                    <th className="px-2 py-3 text-center" title="Entradas jugadas. No cuenta los W.O.">
+                      Ent
+                    </th>
+                    <th className="px-2 py-3 text-center" title="Carambolas ÷ entradas. No ordena esta tabla.">
+                      Prom
+                    </th>
+                  </>
+                ) : (
+                  <>
+                    <th className={`${SEP} px-2 py-3 text-center`} title="Grupo">Gr</th>
+                    <th className="px-2 py-3 text-center">Car</th>
+                    <th className="px-2 py-3 text-center">Ent</th>
+                    <th className="px-2 py-3 text-center">Prom</th>
+                    <th className="px-2 py-3 text-center">Pts</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+
+            <tbody>
+              {filas.map(r => {
+                const p = byName.get(normalize(r.player));
+                // La columna C de RankingGrupos trae la categoría. Se usa
+                // la de JUGADORES y esa queda de respaldo.
+                const category = p?.category || r.categoryOrCity;
+                // Los dos primeros de cada grupo son los que pasan a la
+                // eliminación, igual que el verde de la hoja.
+                const clasifica = r.groupOrder != null && r.groupOrder <= 2;
+                return (
+                  <tr
+                    key={`${r.ranking}-${r.player}`}
+                    className={`table-row-hover border-b border-border-subtle ${
+                      clasifica ? 'bg-emerald/[0.07]' : ''
+                    }`}
+                  >
+                    <td
+                      className={`${stickyNo} px-3 py-3 ${
+                        clasifica ? 'shadow-[inset_2px_0_0_0_var(--color-emerald)]' : ''
+                      }`}
+                    >
+                      {medal(r.ranking)}
+                    </td>
+                    <td className={`${stickyName} px-3 py-3 font-semibold whitespace-nowrap`}>
+                      {r.player}
+                    </td>
+                    <td className="px-3 py-3 text-xs text-text-muted whitespace-nowrap">
+                      {category || EMPTY}
+                    </td>
+
+                    {detalleOrden ? (
+                      <>
+                        <td className={`${SEP} px-2 py-3 text-center font-mono text-text-muted tabular-nums`}>
+                          {r.group ?? p?.group ?? EMPTY}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-primary tabular-nums">
+                          {r.groupOrder ? `${r.groupOrder}º` : EMPTY}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono font-bold text-text-primary tabular-nums">
+                          {r.points}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-primary tabular-nums">
+                          {r.pointsPerMatch != null ? fmtAvg(r.pointsPerMatch) : EMPTY}
+                        </td>
+                        <td
+                          className={`px-2 py-3 text-center font-mono tabular-nums whitespace-nowrap ${
+                            r.advantagePerMatch == null
+                              ? 'text-text-muted'
+                              : r.advantagePerMatch > 0
+                                ? 'text-positive'
+                                : r.advantagePerMatch < 0
+                                  ? 'text-negative'
+                                  : 'text-text-muted'
+                          }`}
+                        >
+                          {r.advantagePerMatch != null ? fmtSigned(r.advantagePerMatch) : EMPTY}
+                        </td>
+
+                        <td className={`${SEP} px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums`}>
+                          {r.carambolas}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
+                          {r.entries}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
+                          {fmtAvg(r.average)}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className={`${SEP} px-2 py-3 text-center font-mono text-text-muted tabular-nums`}>
+                          {r.group ?? p?.group ?? EMPTY}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-emerald-400 tabular-nums">{r.carambolas}</td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">{r.entries}</td>
+                        <td className="px-2 py-3 text-center font-mono text-text-primary tabular-nums">{fmtAvg(r.average)}</td>
+                        <td className="px-2 py-3 text-center font-mono font-bold text-text-primary tabular-nums">{r.points}</td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {detalleOrden && (
+        <div className="bg-bg-header px-4 py-2.5 border-t border-border-light text-[11px] text-text-muted leading-relaxed">
+          <span className="inline-block w-2 h-2 rounded-sm bg-emerald align-middle mr-1.5" />
+          Pasan a la eliminación los <strong className="text-text-primary font-semibold">dos primeros de cada grupo</strong>.
+          El orden se decide mirando, en este orden: puesto en el grupo → puntos por partido →
+          ventaja por partido → carambolas a favor.
+        </div>
+      )}
     </div>
   );
 }

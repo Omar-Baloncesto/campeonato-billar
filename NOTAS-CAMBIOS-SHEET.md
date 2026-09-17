@@ -543,6 +543,46 @@ cuadraba con el dato. Corregido en el Apps Script (M16): C1 ahora dice
 
 ---
 
+### C13 · La web enseña el ranking de grupos igual que la hoja
+
+`app/ranking/RankingClient.tsx`. La tabla llevaba las columnas en otro orden
+que la hoja (Car · Ent · Prom · Pts · Pts/P · Vent/P), con el **Promedio pegado
+al ranking**: quien la miraba daba por hecho que ordenaba por ahí, y no ordena.
+
+Ahora es calcada de la hoja RankingGrupos:
+
+`# · Jugador · Categoría ‖ Gr · Pos · Pts · Pts/P · Vent/P ‖ Car · Ent · Prom`
+
+con los mismos tres rótulos encima — **Quién es**, **Esto decide el orden**
+(verde) y **Solo informativo · no ordena** (ámbar) — y los dos primeros de cada
+grupo con el filete verde, como el verde de la hoja. Debajo, una línea que
+explica qué pasa a la eliminación y en qué orden se mira.
+
+Detalles que costaron una vuelta:
+
+- **No se esconde ninguna columna en móvil.** Si se escondieran, los `colSpan`
+  de los rótulos dejarían de cuadrar con las columnas de abajo. En su lugar la
+  tabla se desliza y se quedan fijas `#` y `Jugador`, igual que en Grupos.
+- El bloque fijo de la fila de rótulos mide **exactamente** lo que miden las
+  columnas fijas. Con un `colSpan` que alcanzaba a Categoría, al deslizar se
+  quedaba clavado un trozo ancho que tapaba el rótulo verde.
+- Los rótulos se acortan en pantalla estrecha (`Decide el orden`, `No ordena`)
+  en vez de partirse en tres renglones. El número de columnas no cambia.
+- Fuera la columna **Club**: no está en la hoja, en este torneo todos son del
+  mismo club y se comía 130 px. Sigue en la página Jugadores.
+- `text-amber-400` sobre fondo blanco casi no se leía: override en
+  `globals.css` para el tema claro, igual que ya había para el emerald.
+
+El texto de arriba ya no dice que las dos tablas son fotos: el ranking de
+grupos se actualiza solo (B10), el final sigue siendo una foto.
+
+Probado contra el servidor falso de Sheets con los datos reales del torneo, en
+1340 px y en 390 px, tema oscuro y claro, y con una hoja **vieja de 7 columnas**
+para comprobar que si Omar todavía no ha regenerado la hoja la web no se rompe:
+en ese caso enseña la tabla de antes, sin rótulos. Sin errores de consola.
+
+---
+
 ## E · Copia de seguridad
 
 `COPIA SEGURIDAD 2026-09-15 — Programa Billar 3 bandas Club Tennis`
