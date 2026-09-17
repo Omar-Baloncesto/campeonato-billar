@@ -611,6 +611,76 @@ hace nada y se acaba probando contra datos viejos sin enterarse.
 
 ---
 
+### B11 · M15 — el Ranking Final pasa a decir algo
+
+`apps-script/M15-ranking-final.gs`. La versión anterior sacaba tres columnas
+—Ranking, Jugador y «Ronda Alcanzada»— y esa última decía `2` o decía `1`.
+
+Y había un fallo de fondo: **dentro de una misma ronda no existía ningún
+criterio**. El orden salía de cómo JavaScript recorre un objeto, o sea el orden
+en que aparecían los nombres en el cuadro. Por eso el puesto 1 lo tenía quien
+salía primero en la hoja y no quien mejor jugó.
+
+Ahora ordena con tres criterios en cascada:
+
+| | Criterio |
+|---|---|
+| 1º | Hasta dónde llegó (campeón, subcampeón, semifinal…) |
+| 2º | **Rendimiento** = carambolas hechas ÷ carambolas que debía hacer |
+| 3º | Puesto con el que salió de la fase de grupos |
+
+El 3º garantiza que nunca queden dos empatados. El 2º es el que **iguala a las
+dos categorías**, que es lo que pidió Omar: Primera juega a 20 y Segunda a 17,
+así que 17 de 17 (100 %) rinde más que 18 de 20 (90 %). Es exactamente el mismo
+criterio con el que la columna K del cuadro decide cada partido, así que el
+ranking final no se contradice con el resto del torneo.
+
+Columnas: `Ranking · Jugador · Categoría · Objetivo ‖ Hasta dónde llegó · Ronda
+Alcanzada · Rendimiento · Puesto en Grupos ‖ Partidos · Ganados · Carambolas ·
+Entradas · Promedio`, con los mismos rótulos de color que RankingGrupos, podio
+en oro/plata/bronce, línea gruesa al cambiar de ronda y un pie que explica los
+criterios dentro de la propia hoja.
+
+Detalles que importan:
+
+- **En el cuadro, D son las ENTRADAS y E las CARAMBOLAS** — al revés que en
+  RESULTADOS. Fácil de confundir y de meter un dato por otro.
+- Las partidas de **BYE no cuentan** como jugadas: nadie tiró una bola, así que
+  no pueden ensuciar el rendimiento. Un partido cuenta solo si los dos anotaron
+  carambolas, que es la misma condición de la fórmula del ganador.
+- El campeón sale del ganador de la última ronda; el que pierde esa ronda es el
+  subcampeón. Si la final aún no tiene ganador, los que siguen vivos salen como
+  **EN JUEGO** y van los primeros, así que la hoja también sirve a mitad de
+  torneo.
+- El encabezado **«Ronda Alcanzada» se conserva con ese nombre** porque es el
+  que usa la comprobación de identidad de la web (`SENAS`).
+- La hoja no se borra ni se vuelve a crear: no cambia el `gid`.
+
+Probado con un simulador que monta el cuadro con la misma forma que deja el M7:
+cuadro de 16 con 8 BYE (el campeón sale con 3 partidas, no 4), cuadro de 32 con
+22 jugadores terminado (22 puestos del 1 al 22 sin repetirse, y dentro de cada
+ronda el rendimiento de mayor a menor), y el mismo cuadro a medias (nadie
+coronado, los vivos como EN JUEGO). Comprobado también el caso que da sentido a
+todo: **Álvaro (Segunda, 16 carambolas) queda por encima de Esaú (Primera, 16
+carambolas)** porque 16/17 = 94,1 % y 16/20 = 80 %.
+
+### C15 · La web enseña el Ranking Final igual que la hoja
+
+`parseRankingFinal` pasa a leer por encabezados —igual que `parseRankingGroups`,
+y ahora los dos comparten `buscaFilaEncabezados` y `mapaColumnas`— y trae las
+columnas nuevas. `RankingFinalRow` las lleva opcionales, así que una hoja vieja
+de tres columnas sigue funcionando y enseña la tabla de siempre.
+
+La tabla nueva es calcada de la hoja, con los tres rótulos, el campeón con 🏆 en
+dorado, el subcampeón en plata, `EN JUEGO` con su punto verde, y bandas
+«CAYERON EN CUARTOS DE FINAL» separando los bloques. Debajo, la explicación del
+rendimiento con el ejemplo de 17 de 17 contra 18 de 20.
+
+Probado en 1340 px y 390 px con el cuadro de 22 terminado, y con la hoja vieja
+de 3 columnas: 5 columnas, sin rótulos, sin bandas, sin errores.
+
+---
+
 ## E · Copia de seguridad
 
 `COPIA SEGURIDAD 2026-09-15 — Programa Billar 3 bandas Club Tennis`

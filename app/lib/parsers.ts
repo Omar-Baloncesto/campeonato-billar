@@ -438,15 +438,97 @@ export function parseElimination(rows: string[][], targets?: Map<string, number>
 /*  RANKINGS                                                           */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/*  RANKINGS: leer por encabezados, no por posición                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Las dos hojas de ranking han cambiado de columnas y pueden volver a
+ * cambiar. Por eso nunca se leen posiciones fijas: se busca la fila de
+ * encabezados (la primera que trae "Ranking" y "Jugador") y a partir de
+ * ahí cada columna por su nombre. Así da igual que encima haya una fila
+ * de rótulos, o que se añada una columna en medio.
+ */
+function buscaFilaEncabezados(rows: string[][]): number {
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const celdas = rows[i].map(c => normalizeKey(c));
+    if (celdas.includes('ranking') && celdas.includes('jugador')) return i;
+  }
+  return -1;
+}
+
+/** Devuelve una función que da el índice de una columna por su nombre. */
+function mapaColumnas(encabezados: string[]) {
+  const col: Record<string, number> = {};
+  encabezados.forEach((c, i) => {
+    const k = normalizeKey(c);
+    if (k && !(k in col)) col[k] = i;
+  });
+  return (...nombres: string[]) => {
+    for (const n of nombres) {
+      const k = normalizeKey(n);
+      if (k in col) return col[k];
+    }
+    return -1;
+  };
+}
+
+/**
+ * RankingFinal.
+ *
+ * La hoja existe en dos formatos, igual que RankingGrupos, y hay que
+ * leer los dos porque el Sheet puede ir por delante o por detrás:
+ *
+ *   · el viejo, tres columnas:
+ *       Ranking | Jugador | Ronda Alcanzada
+ *   · el nuevo, con lo que explica el orden y una fila de rótulos:
+ *       Ranking | Jugador | Categoría | Objetivo | Hasta dónde llegó |
+ *       Ronda Alcanzada | Rendimiento | Puesto en Grupos |
+ *       Partidos | Ganados | Carambolas | Entradas | Promedio
+ */
 export function parseRankingFinal(rows: string[][]): RankingFinalRow[] {
-  return rows
-    .slice(1)
-    .filter(r => cell(r, 0) && cell(r, 1))
-    .map(r => ({
-      ranking: num(cell(r, 0)),
-      player: cell(r, 1),
-      roundReached: num(cell(r, 2)),
-    }));
+  const filaEnc = buscaFilaEncabezados(rows);
+  if (filaEnc < 0) return [];
+  const idx = mapaColumnas(rows[filaEnc]);
+
+  const cRank = idx('Ranking');
+  const cJug = idx('Jugador');
+  const cRonda = idx('Ronda Alcanzada', 'Ronda');
+  const cCat = idx('Categoría', 'Categoria');
+  const cObj = idx('Objetivo');
+  const cHasta = idx('Hasta dónde llegó', 'Hasta donde llego');
+  const cRend = idx('Rendimiento');
+  const cGrupo = idx('Puesto en Grupos', 'Puesto en grupos');
+  const cPJ = idx('Partidos');
+  const cPG = idx('Ganados');
+  const cCar = idx('Carambolas');
+  const cEnt = idx('Entradas');
+  const cProm = idx('Promedio');
+
+  const out: RankingFinalRow[] = [];
+  for (let r = filaEnc + 1; r < rows.length; r++) {
+    const fila = rows[r];
+    const ranking = numOrNull(cell(fila, cRank));
+    const player = cell(fila, cJug);
+    if (ranking === null || !player) continue;
+
+    out.push({
+      ranking,
+      player,
+      roundReached: num(cell(fila, cRonda)),
+      category: cell(fila, cCat),
+      target: numOrNull(cell(fila, cObj)),
+      reachedLabel: cell(fila, cHasta),
+      performance: pctOrNull(cell(fila, cRend)),
+      groupRank: numOrNull(cell(fila, cGrupo)),
+      matches: numOrNull(cell(fila, cPJ)),
+      won: numOrNull(cell(fila, cPG)),
+      carambolas: numOrNull(cell(fila, cCar)),
+      entries: numOrNull(cell(fila, cEnt)),
+      average: numOrNull(cell(fila, cProm)),
+    });
+  }
+  return out;
 }
 
 /**
@@ -466,27 +548,9 @@ export function parseRankingFinal(rows: string[][]): RankingFinalRow[] {
  * cada columna por su nombre.
  */
 export function parseRankingGroups(rows: string[][]): RankingGroupRow[] {
-  // La fila de encabezados es la primera que trae "Ranking" y "Jugador".
-  let filaEnc = -1;
-  for (let i = 0; i < Math.min(rows.length, 10); i++) {
-    const celdas = rows[i].map(c => normalizeKey(c));
-    if (celdas.includes('ranking') && celdas.includes('jugador')) { filaEnc = i; break; }
-  }
+  const filaEnc = buscaFilaEncabezados(rows);
   if (filaEnc < 0) return [];
-
-  const col: Record<string, number> = {};
-  rows[filaEnc].forEach((c, i) => {
-    const k = normalizeKey(c);
-    if (k && !(k in col)) col[k] = i;
-  });
-
-  const idx = (...nombres: string[]) => {
-    for (const n of nombres) {
-      const k = normalizeKey(n);
-      if (k in col) return col[k];
-    }
-    return -1;
-  };
+  const idx = mapaColumnas(rows[filaEnc]);
 
   const cRank = idx('Ranking');
   const cJug  = idx('Jugador');

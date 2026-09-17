@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, useCallback, Fragment } from 'rea
 import { getCityColor } from '../lib/constants';
 import FilterPills from '../components/FilterPills';
 import EmptyState from '../components/EmptyState';
-import { fmtAvg, EMPTY, fmtSigned } from '../lib/format';
+import { fmtAvg, EMPTY, fmtSigned, fmtPct } from '../lib/format';
 import { shortRoundName } from '../lib/rounds';
 import type { RankingFinalRow, RankingGroupRow, Player } from '../data/types';
 
@@ -46,12 +46,6 @@ export default function RankingClient({
     { key: 'groups', label: 'Ranking de Grupos' },
   ];
 
-  const roundLabel = (round: number) => {
-    const name = roundNames[round];
-    if (name) return `Llegó a ${shortRoundName(name).toLowerCase()}`;
-    return `Ronda ${round}`;
-  };
-
   return (
     <div className="animate-fade-in px-4 py-6 md:px-8">
       <div className="max-w-5xl mx-auto">
@@ -74,49 +68,11 @@ export default function RankingClient({
           rankingFinal.length === 0 ? (
             <EmptyState message="El ranking final todavía no está generado. Se crea al terminar la eliminación, desde el menú «Torneo Billar»." />
           ) : (
-            <div className="glass-card rounded-xl overflow-hidden">
-              <div className="bg-bg-header px-4 py-3 border-b border-border-light">
-                <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase">
-                  Ranking Final por Ronda Alcanzada
-                </h3>
-                <p className="text-[11px] text-text-muted mt-1">{rankingFinal.length} jugadores</p>
-              </div>
-              <div className="overflow-x-auto scrollbar-hide">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-text-muted/70 text-xs border-b border-border-subtle">
-                      <th className="px-4 py-3 text-left w-12">#</th>
-                      <th className="px-4 py-3 text-left">Jugador</th>
-                      <th className="px-3 py-3 text-left hidden sm:table-cell">Categoría</th>
-                      <th className="px-3 py-3 text-left hidden md:table-cell">Club</th>
-                      <th className="px-4 py-3 text-left">Etapa alcanzada</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankingFinal.map(r => {
-                      const p = byName.get(normalize(r.player));
-                      return (
-                        <tr
-                          key={`${r.ranking}-${r.player}`}
-                          className={`table-row-hover border-b border-border-subtle ${r.ranking <= 3 ? 'bg-emerald/[0.03]' : ''}`}
-                        >
-                          <td className="px-4 py-3">{medal(r.ranking)}</td>
-                          <td className="px-4 py-3 font-semibold">{r.player}</td>
-                          <td className="px-3 py-3 text-xs text-text-muted hidden sm:table-cell">{p?.category || EMPTY}</td>
-                          <td className="px-3 py-3 hidden md:table-cell">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: getCityColor(p?.city || '') }} />
-                              <span className="text-xs text-text-muted">{p?.city || EMPTY}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-text-primary">{roundLabel(r.roundReached)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <TablaRankingFinal
+              filas={rankingFinal}
+              roundNames={roundNames}
+              byName={byName}
+            />
           )
         )}
 
@@ -412,4 +368,280 @@ function TablaRankingGrupos({
       )}
     </div>
   );
+}
+
+/* ==================================================================
+ *  RANKING FINAL
+ *
+ *  Calcada de la hoja RankingFinal, con los mismos rótulos de color.
+ *
+ *  Lo que de verdad importa aquí es el RENDIMIENTO: carambolas hechas
+ *  entre las que tenía que hacer. Es lo que iguala a las dos
+ *  categorías, porque Primera juega a 20 y Segunda a 17, así que 17 de
+ *  17 (100 %) rinde más que 18 de 20 (90 %) aunque sean menos
+ *  carambolas. Ese es el criterio que separa a los que cayeron en la
+ *  misma ronda, y por eso va en el bloque verde.
+ *
+ *  Con la hoja vieja de tres columnas no hay nada de esto, así que se
+ *  enseña la tabla de siempre.
+ * ================================================================== */
+
+function TablaRankingFinal({
+  filas,
+  roundNames,
+  byName,
+}: {
+  filas: RankingFinalRow[];
+  roundNames: Record<number, string>;
+  byName: Map<string, Player>;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [fade, setFade] = useState(false);
+  const [desborda, setDesborda] = useState(false);
+
+  const check = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setDesborda(el.scrollWidth > el.clientWidth + 4);
+    setFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    check();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => {
+      el.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
+  }, [check]);
+
+  // La hoja nueva trae la etiqueta de hasta dónde llegó; la vieja no.
+  const detalle = filas.some(r => !!r.reachedLabel);
+
+  const roundLabel = (round: number) => {
+    const name = roundNames[round];
+    if (name) return `Llegó a ${shortRoundName(name).toLowerCase()}`;
+    return `Ronda ${round}`;
+  };
+
+  const stickyNo = 'sticky left-0 z-20 bg-bg-card w-12 min-w-12 max-w-12 box-border';
+  const stickyName = 'sticky left-12 z-20 bg-bg-card';
+
+  return (
+    <div className="glass-card rounded-xl overflow-hidden">
+      <div className="bg-bg-header px-4 py-3 border-b border-border-light flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="text-sm font-bold tracking-wider text-emerald-400 uppercase">
+          Ranking Final del Torneo
+        </h3>
+        <p className="text-[11px] text-text-muted">
+          {filas.length} jugadores
+          {detalle && <> · hasta dónde llegó cada uno, y cómo rindió</>}
+          {desborda && <span className="text-text-muted/50"> · desliza →</span>}
+        </p>
+      </div>
+
+      <div className="relative">
+        {fade && (
+          <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-bg-card to-transparent z-30 pointer-events-none" />
+        )}
+
+        <div ref={scrollRef} className="overflow-x-auto scrollbar-hide">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              {detalle && (
+                <tr className="text-[9px] uppercase tracking-[0.14em] font-bold">
+                  <th className={`${stickyNo} py-1.5`} />
+                  <th className={`${stickyName} py-1.5 text-center text-text-muted/70`}>
+                    Quién es
+                  </th>
+                  <th className="py-1.5" colSpan={2} />
+                  <th
+                    className={`${SEP} px-2 py-1.5 text-center text-emerald-400 bg-emerald/[0.08] whitespace-nowrap`}
+                    colSpan={3}
+                    title="Estas tres columnas, en este orden, son las que deciden el puesto."
+                  >
+                    <span className="sm:hidden">Decide el orden</span>
+                    <span className="hidden sm:inline">Esto decide el orden</span>
+                  </th>
+                  <th
+                    className={`${SEP} px-2 py-1.5 text-center text-amber-400 bg-amber-400/[0.08] whitespace-nowrap`}
+                    colSpan={5}
+                    title="Datos de interés que NO influyen en el puesto."
+                  >
+                    <span className="sm:hidden">No ordena</span>
+                    <span className="hidden sm:inline">Solo informativo · no ordena</span>
+                  </th>
+                </tr>
+              )}
+
+              <tr className="text-text-muted/70 text-xs border-b border-border-subtle">
+                <th className={`${stickyNo} px-3 py-3 text-left`}>#</th>
+                <th className={`${stickyName} px-3 py-3 text-left min-w-[150px]`}>Jugador</th>
+                <th className="px-3 py-3 text-left">Categoría</th>
+
+                {detalle ? (
+                  <>
+                    <th className="px-2 py-3 text-center" title="Carambolas que tiene que hacer para ganar una partida">
+                      Obj
+                    </th>
+                    <th className={`${SEP} px-3 py-3 text-left`}>Hasta dónde llegó</th>
+                    <th
+                      className="px-2 py-3 text-center"
+                      title="Carambolas hechas ÷ carambolas que debía hacer. 17 de 17 (100 %) rinde más que 18 de 20 (90 %)."
+                    >
+                      Rendim.
+                    </th>
+                    <th className="px-2 py-3 text-center" title="Puesto con el que salió de la fase de grupos">
+                      Gr
+                    </th>
+                    <th className={`${SEP} px-2 py-3 text-center`} title="Partidas jugadas. Los BYE no cuentan.">PJ</th>
+                    <th className="px-2 py-3 text-center" title="Partidas ganadas">PG</th>
+                    <th className="px-2 py-3 text-center" title="Carambolas hechas en toda la eliminación">Car</th>
+                    <th className="px-2 py-3 text-center" title="Entradas jugadas en toda la eliminación">Ent</th>
+                    <th className="px-2 py-3 text-center" title="Carambolas ÷ entradas. No ordena esta tabla.">Prom</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="px-3 py-3 text-left hidden md:table-cell">Club</th>
+                    <th className="px-4 py-3 text-left">Etapa alcanzada</th>
+                  </>
+                )}
+              </tr>
+            </thead>
+
+            <tbody>
+              {filas.map((r, i) => {
+                const p = byName.get(normalize(r.player));
+                const category = r.category || p?.category || '';
+                // Los bloques son «hasta dónde llegó»: sin separarlos, el
+                // rendimiento parece desordenado cuando en realidad solo
+                // desempata DENTRO de cada bloque.
+                const abreBloque =
+                  detalle && r.reachedLabel &&
+                  (i === 0 || filas[i - 1].reachedLabel !== r.reachedLabel)
+                    ? r.reachedLabel
+                    : null;
+                const podio = r.ranking <= 3;
+                return (
+                  <Fragment key={`${r.ranking}-${r.player}`}>
+                  {abreBloque != null && i > 1 && (
+                    <tr className="border-t border-border-light">
+                      <td colSpan={12} className="p-0">
+                        <div className="sticky left-0 w-fit px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-text-muted/70 whitespace-nowrap">
+                          {abreBloque.toUpperCase() === 'EN JUEGO'
+                            ? 'Siguen en carrera'
+                            : `Cayeron en ${abreBloque.toLowerCase()}`}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  <tr
+                    className={`table-row-hover border-b border-border-subtle ${
+                      podio ? 'bg-emerald/[0.05]' : ''
+                    }`}
+                  >
+                    <td className={`${stickyNo} px-3 py-3`}>{medal(r.ranking)}</td>
+                    <td className={`${stickyName} px-3 py-3 font-semibold whitespace-nowrap ${podio ? 'text-text-primary' : ''}`}>
+                      {r.player}
+                    </td>
+                    <td className="px-3 py-3 text-xs text-text-muted whitespace-nowrap">
+                      {category || EMPTY}
+                    </td>
+
+                    {detalle ? (
+                      <>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">
+                          {r.target ?? EMPTY}
+                        </td>
+                        <td className={`${SEP} px-3 py-3 whitespace-nowrap`}>
+                          <EtapaBadge etiqueta={r.reachedLabel || ''} />
+                        </td>
+                        <td
+                          className={`px-2 py-3 text-center font-mono font-bold tabular-nums whitespace-nowrap ${
+                            r.performance != null && r.performance >= 1
+                              ? 'text-positive'
+                              : 'text-text-primary'
+                          }`}
+                        >
+                          {fmtPct(r.performance)}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">
+                          {r.groupRank ?? EMPTY}
+                        </td>
+                        <td className={`${SEP} px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums`}>
+                          {r.matches ?? EMPTY}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
+                          {r.won ?? EMPTY}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
+                          {r.carambolas ?? EMPTY}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
+                          {r.entries ?? EMPTY}
+                        </td>
+                        <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
+                          {fmtAvg(r.average)}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-3 py-3 hidden md:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ background: getCityColor(p?.city || '') }}
+                            />
+                            <span className="text-xs text-text-muted">{p?.city || EMPTY}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-text-primary">
+                          {roundLabel(r.roundReached)}
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {detalle && (
+        <div className="bg-bg-header px-4 py-2.5 border-t border-border-light text-[11px] text-text-muted leading-relaxed">
+          Orden: <strong className="text-text-primary font-semibold">hasta dónde llegó</strong> →{' '}
+          <strong className="text-text-primary font-semibold">rendimiento</strong> → puesto en la
+          fase de grupos. El rendimiento son las carambolas que hizo entre las que debía hacer, y
+          es lo que iguala a las dos categorías: Primera juega a 20 y Segunda a 17, así que{' '}
+          <strong className="text-text-primary font-semibold">17 de 17 (100 %) rinde más que 18 de 20 (90 %)</strong>,
+          aunque sean menos carambolas.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** La etapa, con el color que le corresponde. */
+function EtapaBadge({ etiqueta }: { etiqueta: string }) {
+  const e = etiqueta.toUpperCase();
+  if (e === 'CAMPEÓN' || e === 'CAMPEON') {
+    return <span className="medal-gold font-bold tracking-wide">🏆 CAMPEÓN</span>;
+  }
+  if (e === 'SUBCAMPEÓN' || e === 'SUBCAMPEON') {
+    return <span className="medal-silver font-bold tracking-wide">SUBCAMPEÓN</span>;
+  }
+  if (e === 'EN JUEGO') {
+    return (
+      <span className="text-emerald-400 font-semibold">
+        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald align-middle mr-1.5" />
+        EN JUEGO
+      </span>
+    );
+  }
+  return <span className="text-xs text-text-muted">{etiqueta}</span>;
 }

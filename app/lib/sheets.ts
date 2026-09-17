@@ -368,7 +368,7 @@ export async function fetchEliminationMatches(): Promise<EliminationMatch[]> {
 }
 
 export async function fetchRankingFinal(): Promise<RankingFinalRow[]> {
-  return parseRankingFinal(await fetchSheet(SHEETS.rankingFinal, 'A1:C300'));
+  return parseRankingFinal(await fetchSheet(SHEETS.rankingFinal, 'A1:N300'));
 }
 
 export async function fetchRankingGroups(): Promise<RankingGroupRow[]> {
