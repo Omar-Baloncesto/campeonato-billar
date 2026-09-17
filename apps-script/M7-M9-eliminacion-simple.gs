@@ -428,25 +428,50 @@ function formulaObjetivoElim(celdaJugador) {
 /**
  * Ganador del partido de la fila n.
  *
- *  - Si no hay jugador A todavia          -> vacio
- *  - BYE                                  -> pasa el otro
- *  - Falta digitar carambolas             -> vacio (no adelanta a nadie)
- *  - Hay objetivos (L y M)                -> gana el mayor PROMEDIO
- *                                            carambolas / objetivo
- *  - No hay objetivos                     -> gana el que mas carambolas hizo
+ * EN LA ELIMINACION NO PUEDE HABER EMPATES: siempre tiene que salir un
+ * ganador, porque alguien tiene que pasar a la ronda siguiente. Antes
+ * esta formula escribia "EMPATE" y el cuadro se quedaba bloqueado.
  *
- * Cuando los dos objetivos son iguales las dos comparaciones dan
- * exactamente lo mismo, asi que la formula sirve para un torneo de una
- * sola categoria y para uno de primera contra segunda.
+ * Y pasaba de verdad: en una partida con handicap, los dos pueden
+ * cumplir su objetivo en las mismas entradas (17 de 17 y 20 de 20 son
+ * las dos 100%), que es justo lo que el handicap dice que es estar
+ * igualados. Con la entrada de igualada, ademas, que coincidan las
+ * entradas es lo normal, no lo raro.
+ *
+ * Orden de decision:
+ *   1. Si no hay jugador A todavia   -> vacio
+ *   2. BYE                           -> pasa el otro
+ *   3. Falta digitar carambolas      -> vacio (no adelanta a nadie)
+ *   4. Mayor % DE SU OBJETIVO        carambolas / objetivo
+ *   5. Si empatan: mayor PROMEDIO    carambolas / entradas
+ *   6. Si tambien empatan            -> pasa el Jugador A, que por como
+ *                                       se siembra el cuadro es el que
+ *                                       venia mejor colocado
+ *
+ * Las comparaciones van cruzadas (E*M contra I*L en vez de E/L contra
+ * I/M) para no dividir nunca: asi da igual que una celda venga en cero
+ * o vacia, no hay forma de sacar un #DIV/0!.
  */
 function formulaGanadorElim(n) {
-  var C = "C" + n, E = "E" + n, G = "G" + n, I = "I" + n, L = "L" + n, M = "M" + n;
+  var C = "C" + n, D = "D" + n, E = "E" + n;
+  var G = "G" + n, H = "H" + n, I = "I" + n;
+  var L = "L" + n, M = "M" + n;
 
-  var cmpHandicap = "IF(" + E + "/" + L + ">" + I + "/" + M + ";" + C + ";" +
-                    "IF(" + I + "/" + M + ">" + E + "/" + L + ";" + G + ';"EMPATE"))';
+  // Paso 5 y 6: promedio (carambolas/entradas) y, si tambien empata, A.
+  //   E/D > I/H   <=>   E*H > I*D
+  var desempate =
+    "IF(" + E + "*" + H + ">" + I + "*" + D + ";" + C + ";" +
+    "IF(" + I + "*" + D + ">" + E + "*" + H + ";" + G + ";" + C + "))";
 
-  var cmpDirecto = "IF(" + E + ">" + I + ";" + C + ";" +
-                   "IF(" + I + ">" + E + ";" + G + ';"EMPATE"))';
+  // Paso 4 con objetivos:  E/L > I/M   <=>   E*M > I*L
+  var cmpHandicap =
+    "IF(" + E + "*" + M + ">" + I + "*" + L + ";" + C + ";" +
+    "IF(" + I + "*" + L + ">" + E + "*" + M + ";" + G + ";" + desempate + "))";
+
+  // Paso 4 sin objetivos: gana el que mas carambolas hizo.
+  var cmpDirecto =
+    "IF(" + E + ">" + I + ";" + C + ";" +
+    "IF(" + I + ">" + E + ";" + G + ";" + desempate + "))";
 
   var sinObjetivo = "OR(" + L + '="";' + M + '="";' + L + "=0;" + M + "=0)";
 
@@ -456,6 +481,64 @@ function formulaGanadorElim(n) {
   var conA = "IF(" + C + '="BYE";IF(' + G + '="BYE";"";' + G + ");" + conB + ")";
 
   return "=IF(" + C + '="";"";' + conA + ")";
+}
+
+/**
+ * ACTUALIZAR SOLO LA COLUMNA GANADOR, SIN TOCAR LOS MARCADORES.
+ *
+ * CrearEliminacionSimple rehace el cuadro entero y BORRA lo anotado, asi
+ * que no se puede correr con el torneo en juego. Esta funcion en cambio
+ * solo reescribe la formula de la columna K en las filas de partido que
+ * ya existen. Los jugadores, las entradas, las carambolas, las fechas y
+ * las horas se quedan exactamente como estan.
+ *
+ * Sirve para meter el desempate nuevo en un cuadro que ya esta rodando.
+ */
+function ActualizarGanadoresElim() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = ss.getSheetByName(ELIM_HOJA);
+  if (!ws) {
+    SpreadsheetApp.getUi().alert("No se encontro la hoja '" + ELIM_HOJA + "'.");
+    return;
+  }
+
+  var ultFila = ws.getLastRow();
+  if (ultFila < 2) {
+    SpreadsheetApp.getUi().alert("La hoja '" + ELIM_HOJA + "' esta vacia.");
+    return;
+  }
+
+  // Las filas de partido son las que tienen un numero de ronda en A.
+  // Los titulos y los encabezados llevan texto, asi que quedan fuera.
+  var colA = ws.getRange(1, 1, ultFila, 1).getValues();
+  var cambiadas = 0;
+  var empatesAntes = 0;
+
+  var ganadores = ws.getRange(1, 11, ultFila, 1).getValues();
+
+  for (var r = 0; r < colA.length; r++) {
+    var v = colA[r][0];
+    if (v === "" || v === null || isNaN(v)) continue;
+    var fila = r + 1;
+    if (String(ganadores[r][0]).trim().toUpperCase() === "EMPATE") empatesAntes++;
+    ws.getRange(fila, 11).setFormula(formulaGanadorElim(fila));
+    cambiadas++;
+  }
+
+  SpreadsheetApp.flush();
+
+  var msg = "Columna Ganador actualizada en " + cambiadas + " partidas.\n\n" +
+            "NO se toco ningun marcador: jugadores, entradas, carambolas,\n" +
+            "fechas y horas siguen igual.\n\n" +
+            "Desde ahora nunca sale EMPATE. Si los dos cumplen su objetivo\n" +
+            "en las mismas entradas, pasa el de mejor promedio\n" +
+            "(carambolas / entradas).";
+  if (empatesAntes > 0) {
+    msg += "\n\nHabia " + empatesAntes + " partida(s) en EMPATE. Ya tienen ganador:\n" +
+           "revisa el cuadro y comprueba que paso quien debia pasar.";
+  }
+  SpreadsheetApp.getUi().alert(msg);
+  ss.setActiveSheet(ws);
 }
 
 /**

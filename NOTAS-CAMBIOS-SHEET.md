@@ -698,6 +698,59 @@ cero):
 - Dos jugadores con **16 carambolas cada uno**: el de Segunda (16/17 = 94,1 %)
   por encima del de Primera (16/20 = 80 %).
 
+### B12 · M7 — en la eliminación no puede haber EMPATE
+
+Omar vio esto en la semifinal:
+
+| | Categoría | Objetivo | Carambolas | Entradas | % |
+|---|---|---|---|---|---|
+| OMAR ALVAREZ | Segunda | 17 | 17 | 30 | **100,0 %** |
+| ANDRES GONZALEZ | Primera | 20 | 20 | 30 | **100,0 %** |
+
+Ganador: `EMPATE`. **No era un fallo: era el hándicap funcionando.** Hacer 17
+siendo de Segunda es la misma tarea que hacer 20 siendo de Primera, y los dos la
+completaron en las mismas entradas. Con la entrada de igualada, además, que
+coincidan las entradas es lo normal, no lo raro — así que iba a repetirse.
+
+Pero el cuadro se bloquea: nadie pasa a la final. **En la eliminación siempre
+tiene que haber un ganador.**
+
+Decisión de Omar (es regla del torneo, no detalle técnico): **gana el de mejor
+promedio** (carambolas ÷ entradas). Cascada nueva en `formulaGanadorElim`:
+
+1. Mayor **% de su objetivo**
+2. Si empatan, mayor **promedio**
+3. Si también empatan, pasa el **Jugador A** (por el plegado del cuadro, el
+   mejor sembrado)
+
+Ojo con lo que significa el 2º: con las **mismas entradas**, el de Primera
+siempre gana un doble 100 %, porque hizo más carambolas. Si las entradas no
+coinciden, el de Segunda sí puede ganar (17/25 = 0,680 > 20/30 = 0,667).
+
+Las comparaciones van **cruzadas** (`E*M > I*L` en vez de `E/L > I/M`) para no
+dividir nunca: así una celda en cero o vacía no puede sacar un `#DIV/0!`.
+
+### B13 · `ActualizarGanadoresElim` — arreglar el cuadro sin borrarlo
+
+**`CrearEliminacionSimple` rehace el cuadro entero y BORRA los marcadores.** Con
+el torneo en juego eso es inaceptable, así que no se le puede decir a Omar «corre
+otra vez el paso 7».
+
+La función nueva recorre las filas de partido que ya existen (las que tienen
+número de ronda en A) y reescribe **solo la columna K**. Jugadores, entradas,
+carambolas, fechas y horas se quedan intactos. Al terminar avisa de cuántas
+partidas estaban en EMPATE, para que se revise que pasó quien debía pasar.
+
+Probado con un evaluador de fórmulas: los 12 casos con nombre (el real de Omar,
+el hándicap en los dos sentidos, empate total, sin objetivos, BYE en cada lado,
+sin digitar, medio digitado, entradas en cero) y un barrido de **13.689
+combinaciones** de objetivo × carambolas × entradas: **0 empates, 0 errores, y
+ninguna se queda sin ganador** cuando los dos marcadores están puestos.
+
+**Orden importante:** primero `ActualizarGanadoresElim`, después el M15. Si
+queda un EMPATE en la hoja, el Ranking Final cuenta a los dos como eliminados en
+esa ronda, que no es verdad.
+
 ### C15 · La web enseña el Ranking Final igual que la hoja
 
 `parseRankingFinal` pasa a leer por encabezados —igual que `parseRankingGroups`,
