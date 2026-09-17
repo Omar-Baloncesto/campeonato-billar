@@ -54,7 +54,7 @@ function PlayerSlot({
       <span className="w-5 shrink-0 flex justify-center">
         {isWinner && (
           <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-            <span className="text-[8px] font-black text-white">W</span>
+            <span className="text-[8px] font-black text-white">G</span>
           </span>
         )}
       </span>
