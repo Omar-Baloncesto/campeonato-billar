@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, Fragment } from 'react';
 import { getCityColor } from '../lib/constants';
 import FilterPills from '../components/FilterPills';
 import EmptyState from '../components/EmptyState';
@@ -290,7 +290,7 @@ function TablaRankingGrupos({
             </thead>
 
             <tbody>
-              {filas.map(r => {
+              {filas.map((r, i) => {
                 const p = byName.get(normalize(r.player));
                 // La columna C de RankingGrupos trae la categoría. Se usa
                 // la de JUGADORES y esa queda de respaldo.
@@ -298,9 +298,34 @@ function TablaRankingGrupos({
                 // Los dos primeros de cada grupo son los que pasan a la
                 // eliminación, igual que el verde de la hoja.
                 const clasifica = r.groupOrder != null && r.groupOrder <= 2;
+                // Primero van todos los 1.º de cada grupo, luego todos los
+                // 2.º… Sin separar los bloques, las 22 filas se leen como
+                // una lista sola y entonces la ventaja por partido parece
+                // desordenada: en realidad solo desempata DENTRO del bloque.
+                const abreBloque =
+                  detalleOrden && r.groupOrder != null &&
+                  (i === 0 || filas[i - 1].groupOrder !== r.groupOrder)
+                    ? r.groupOrder
+                    : null;
                 return (
+                  <Fragment key={`${r.ranking}-${r.player}`}>
+                  {abreBloque != null && (
+                    <tr className="border-t border-border-light">
+                      <td colSpan={11} className="p-0">
+                        {/* El texto va pegado a la izquierda aunque se
+                            deslice la tabla, como las columnas fijas. */}
+                        <div className="sticky left-0 w-fit px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-text-muted/70 whitespace-nowrap">
+                          Los {abreBloque}.º de cada grupo
+                          {abreBloque <= 2 && (
+                            <span className="text-emerald-400 normal-case tracking-normal ml-2">
+                              · pasan a la eliminación
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   <tr
-                    key={`${r.ranking}-${r.player}`}
                     className={`table-row-hover border-b border-border-subtle ${
                       clasifica ? 'bg-emerald/[0.07]' : ''
                     }`}
@@ -369,6 +394,7 @@ function TablaRankingGrupos({
                       </>
                     )}
                   </tr>
+                  </Fragment>
                 );
               })}
             </tbody>

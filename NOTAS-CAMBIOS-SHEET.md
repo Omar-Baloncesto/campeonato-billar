@@ -583,6 +583,34 @@ en ese caso enseña la tabla de antes, sin rótulos. Sin errores de consola.
 
 ---
 
+### C14 · Ranking de grupos: bloques separados por puesto
+
+Omar preguntó por qué aparecían ventajas positivas debajo de negativas. No era
+un fallo: **Vent/P es el 3er criterio**, solo desempata entre quienes ya están
+empatados en Pos y en Pts/P. Comprobado fila por fila contra los cuatro
+criterios: el orden de las 22 filas es exactamente el correcto, y ningún empate
+llegó a necesitar el 4º (carambolas).
+
+Pero se leía mal: la tabla son cinco bloques (los 1.º, los 2.º…) y nada los
+separaba, así que la vista leía 22 filas seguidas y la ventaja parecía
+desordenada. Ahora cada bloque abre con una banda:
+
+`LOS 2.º DE CADA GRUPO · pasan a la eliminación`
+
+El «· pasan a la eliminación», en verde, solo en los bloques 1.º y 2.º. El texto
+de la banda va dentro de un `div` con `sticky left-0`, así que se queda pegado a
+la izquierda al deslizar la tabla en el móvil, igual que las columnas fijas.
+
+Las bandas solo salen con la hoja nueva (`detalleOrden`). Comprobado con la hoja
+vieja de 7 columnas: 1 fila de encabezado, 0 bandas, 22 filas de jugador, sin
+errores.
+
+**Nota para la próxima vez:** Next 16 guarda la caché de `fetch` del modo dev en
+`.next/dev/cache/fetch-cache`, **no** en `.next/cache`. Borrar `.next/cache` no
+hace nada y se acaba probando contra datos viejos sin enterarse.
+
+---
+
 ## E · Copia de seguridad
 
 `COPIA SEGURIDAD 2026-09-15 — Programa Billar 3 bandas Club Tennis`
