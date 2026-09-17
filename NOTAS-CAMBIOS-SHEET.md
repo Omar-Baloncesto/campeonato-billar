@@ -611,79 +611,92 @@ hace nada y se acaba probando contra datos viejos sin enterarse.
 
 ---
 
-### B11 · M15 — el Ranking Final: vivo, y solo del cuadro
+### B11 · M15 — el Ranking Final: vivo, del cuadro, y en 9 columnas
 
 `apps-script/M15-ranking-final.gs`. La versión anterior sacaba tres columnas
 —Ranking, Jugador y «Ronda Alcanzada»— y esa última decía `2` o decía `1`. Y
-había un fallo de fondo: **dentro de una misma ronda no existía ningún
-criterio**. El orden salía de cómo JavaScript recorre un objeto, o sea el orden
-en que aparecían los nombres en el cuadro.
+**dentro de una misma ronda no existía ningún criterio**: el orden salía de cómo
+JavaScript recorre un objeto.
 
-**De dónde sale:** SOLO de `Eliminación Simple`. Omar lo corrigió a tiempo — el
-primer intento usaba el puesto de la fase de grupos como desempate, y eso mezcla
-dos torneos distintos. Quien entró al cuadro sembrado 22 puede acabar campeón, y
-entonces es campeón y punto.
+Tres correcciones de Omar, en tres rondas:
+
+1. **Que se actualice sola**, sin volver a correr nada.
+2. **No tiene nada que ver con la fase de grupos.** El primer intento usaba el
+   puesto de grupos como desempate: eso mezcla dos torneos distintos.
+3. **En la eliminación no hay empates**, y la tabla no se entendía.
+
+**De dónde sale:** SOLO de `Eliminación Simple`.
 
 | | Criterio |
 |---|---|
 | 1º | Hasta dónde llegó (campeón, subcampeón, semifinal…) |
-| 2º | **Rendimiento** = carambolas hechas ÷ carambolas que debía hacer |
+| 2º | **% de su objetivo** = carambolas hechas ÷ las que debía hacer |
 | 3º | Promedio = carambolas ÷ entradas |
-| 4º | Orden del cuadro (la siembra) — solo para que nunca queden dos empatados |
+| 4º | Orden del cuadro — solo para que nunca queden dos empatados |
 
-El 2º es el que **iguala a las dos categorías**: Primera juega a 20 y Segunda a
-17, así que 17 de 17 (100 %) rinde más que 18 de 20 (90 %). Es el mismo criterio
-con el que la columna K del cuadro decide cada partido.
+El 2º es el que iguala a las dos categorías: 17 de 17 (100 %) rinde más que 18
+de 20 (90 %). Es el mismo criterio con el que la columna K del cuadro decide
+cada partida.
 
-**La hoja es VIVA.** Se corre una vez por torneo y se actualiza sola. Como una
-tabla ordenada no se puede escribir celda a celda con fórmulas, la hoja tiene
-dos zonas:
+**Sin empates, dos columnas se caen solas:**
 
-- Un **bloque de cálculo oculto** (P..AD), una fila por jugador sin ordenar, con
-  todas las cuentas y una columna `Orden`.
-- La **tabla visible** (A..L), que es **una sola fórmula** en B3:
-  `ARRAY_CONSTRAIN(SORT(bloque; Orden;desc; Rendimiento;desc; Promedio;desc; Siembra;asc); filas; 11)`
+- **«Ganados»** era ruido: si no hay empates, cada jugador pierde exactamente una
+  vez, así que ganadas = jugadas − 1 para todos menos el campeón. No decía nada
+  que no dijera ya «hasta dónde llegó».
+- **«Ronda Alcanzada»** decía lo mismo que «Hasta dónde llegó», en número.
+
+Y `condPerdio` se simplifica a `ganadas < partidas`: quien pierde una, está fuera.
+
+De 13 columnas a **9, en tres bloques de tres**:
+
+```
+QUIÉN ES           ASÍ SE DECIDE EL PUESTO    CÓMO JUGÓ · NO ORDENA
+Ranking            Hasta dónde llegó          Partidas
+Jugador            % de su objetivo           Carambolas
+Categoría          Promedio                   Entradas
+```
+
+**Sirve para cualquier torneo.** No hay ni un número fijo: jugadores, rondas y
+nombres de ronda salen de leer el cuadro, y los objetivos de `Base de Datos`.
+
+**La hoja es VIVA.** Como una tabla ordenada no se puede escribir celda a celda
+con fórmulas, hay dos zonas: un **bloque de cálculo oculto** (P..AB), una fila
+por jugador sin ordenar, y la **tabla visible**, que es **una sola fórmula** en
+B3: `ARRAY_CONSTRAIN(SORT(bloque; Orden;desc; %;desc; Promedio;desc; Siembra;asc); filas; 8)`
 
 Detalles que importan:
 
 - **En el cuadro, D son las ENTRADAS y E las CARAMBOLAS** — al revés que en
   RESULTADOS.
-- Un cruce cuenta como jugado si **los dos anotaron entradas** (`">0"`). Así
-  quedan fuera los BYE y lo que no se ha jugado, sin adivinar nada. Se piden
-  entradas y no carambolas porque un jugador sí puede quedarse en cero
-  carambolas, pero nunca en cero entradas.
-- Los EMPATES no cuentan como derrota: hay que repetir la partida.
-- Se escribe `+1/2` y no `+0,5` para no depender de si el libro usa coma o punto
-  como separador decimal.
-- `AD1` y `AD2` guardan la última ronda y el campeón. **La fila de encabezados
+- Una partida cuenta como jugada si **los dos anotaron entradas** (`">0"`). Así
+  quedan fuera los BYE y lo que no se ha jugado. Se piden entradas y no
+  carambolas porque un jugador sí puede quedarse en cero carambolas, pero nunca
+  en cero entradas.
+- Se escribe `+1/2` y no `+0,5` para no depender del separador decimal del libro.
+- `AB1` y `AB2` guardan la última ronda y el campeón. **La fila de encabezados
   del bloque auxiliar las pisaba** y nadie salía como CAMPEÓN: por eso la fila de
-  datos llega hasta AC y no hasta AD.
+  datos llega hasta AA y no hasta AB.
 - El podio va con **formato condicional** (`=$A3=1`), no pintando filas: las
   filas cambian de dueño solas cuando cambia el ranking.
-- El encabezado **«Ronda Alcanzada» se conserva** porque es el que usa la
-  comprobación de identidad de la web (`SENAS`).
 
 **La hoja se comprueba a sí misma.** Como no se puede probar contra Google de
-verdad, el código calcula además el ranking por su cuenta en JavaScript y lo
-compara con lo que dieron las fórmulas. Si no coinciden, lo dice en el aviso.
+verdad, el código calcula además el ranking en JavaScript y lo compara con lo
+que dieron las fórmulas. Si no coinciden, lo dice en el aviso.
 
-Probado con un simulador que monta el cuadro igual que lo deja el M7, y con el
-evaluador de fórmulas ampliado (SORT, ARRAY_CONSTRAIN, COUNTIFS, MAXIFS,
-INDEX/MATCH, `&`, y criterios con operador como `">0"`, donde una celda vacía
-**no** cuenta como cero):
+Probado con un simulador que monta el cuadro igual que el M7, y con el evaluador
+de fórmulas ampliado (SORT, ARRAY_CONSTRAIN, COUNTIFS, MAXIFS, INDEX/MATCH, `&`,
+y criterios con operador como `">0"`, donde una celda vacía **no** cuenta como
+cero):
 
-- Cuadro de 16 con 8 BYE: el campeón sale con 3 partidas, no 4.
-- Cuadro de 32 con 22 jugadores, terminado: 22 puestos del 1 al 22 sin
-  repetirse, y dentro de cada ronda el rendimiento de mayor a menor.
-- El mismo cuadro a medias: nadie coronado, los 4 vivos como EN JUEGO y primeros.
-- **Se le da la vuelta a la final en el cuadro y el campeón cambia solo**, sin
-  volver a correr nada. Se borra el marcador de un cuarto y ese jugador vuelve a
-  EN JUEGO con 0 partidas.
-- **Se le da la vuelta entera al RankingGrupos y el ranking final no se mueve ni
-  una fila** — que es justo lo que Omar pidió.
-- Repetir el botón da exactamente lo mismo y reutiliza la misma hoja.
-- Álvaro (Segunda, 16 carambolas) queda por encima de Esaú (Primera, 16
-  carambolas): 16/17 = 94,1 % contra 16/20 = 80 %.
+- **El mismo código con 6, 8, 22 y 40 jugadores** (cuadros de 8, 8, 32 y 64; de
+  3 a 6 rondas). En los cuatro: un solo campeón, puestos del 1 al N sin
+  repetirse, y la auto-comprobación en verde.
+- **Se le da la vuelta a la final y el campeón cambia solo.** Se borra el
+  marcador de la final y los dos finalistas vuelven a EN JUEGO, sin campeón; se
+  vuelve a anotar y vuelve a haber campeón.
+- **Se le da la vuelta al RankingGrupos y el ranking final no se mueve.**
+- Dos jugadores con **16 carambolas cada uno**: el de Segunda (16/17 = 94,1 %)
+  por encima del de Primera (16/20 = 80 %).
 
 ### C15 · La web enseña el Ranking Final igual que la hoja
 
@@ -692,12 +705,16 @@ y ahora los dos comparten `buscaFilaEncabezados` y `mapaColumnas`— y trae las
 columnas nuevas. `RankingFinalRow` las lleva opcionales, así que una hoja vieja
 de tres columnas sigue funcionando y enseña la tabla de siempre.
 
-`# · Jugador · Categoría · Obj ‖ Hasta dónde llegó · Rendim. · Prom ‖ PJ · PG · Car · Ent`
+`# · Jugador · Categoría ‖ Hasta dónde llegó · % objetivo · Prom ‖ Partidas · Car · Ent`
 
 con los tres rótulos, el campeón con 🏆 en dorado, el subcampeón en plata,
 `EN JUEGO` con su punto verde, y bandas «CAYERON EN CUARTOS DE FINAL» separando
-los bloques. Debajo, la explicación del rendimiento con el ejemplo de 17 de 17
-contra 18 de 20, y el aviso de que la fase de grupos no cuenta aquí.
+los bloques. Debajo, la explicación del % con el ejemplo de 17 de 17 contra 18
+de 20, y el aviso de que la fase de grupos no cuenta aquí.
+
+`SENAS` acepta las dos hojas: la nueva se reconoce por «Hasta dónde llegó» y la
+vieja por «Ronda Alcanzada», así que da igual el orden en que se actualicen el
+Sheet y la web.
 
 El texto de arriba ya no dice que el final sea una foto: las dos tablas se
 actualizan solas.

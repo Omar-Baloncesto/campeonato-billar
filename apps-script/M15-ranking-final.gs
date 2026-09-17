@@ -1,5 +1,5 @@
 // ============================================================
-// M15 - GENERAR RANKING FINAL   (hoja VIVA, se actualiza sola)
+// M15 - RANKING FINAL   (hoja VIVA, se actualiza sola)
 // ============================================================
 //
 // QUE HACE
@@ -8,25 +8,31 @@
 // corre UNA VEZ por torneo y a partir de ahi se actualiza sola: cada
 // celda es una formula, asi que en cuanto se anotan carambolas en
 // "Eliminación Simple" cambian los datos, las etiquetas y el ORDEN.
+// No hay que volver a correr nada hasta el torneo siguiente.
 //
 // DE DONDE SALE
 //
 // SOLO de la hoja "Eliminación Simple". El ranking final no tiene nada
 // que ver con la fase de grupos: son dos torneos distintos. Quien entro
-// al cuadro sembrado en el puesto 22 puede acabar campeon, y entonces
-// es campeon y punto.
+// al cuadro sembrado de ultimo puede acabar campeon, y entonces es
+// campeon y punto.
+//
+// SIRVE PARA CUALQUIER TORNEO
+//
+// No hay ni un numero fijo. Los jugadores, las rondas y los nombres de
+// las rondas salen de leer el cuadro, y los objetivos de carambolas de
+// 'Base de Datos'. Da igual que sean 8 jugadores o 64, dos categorias
+// o una sola, y que el cuadro tenga BYE o no.
 //
 // COMO ORDENA
 //
-//       1º  HASTA DONDE LLEGO    campeon, subcampeon, semifinal...
-//       2º  RENDIMIENTO          carambolas hechas / carambolas que
-//                                debia hacer (su objetivo)
-//       3º  PROMEDIO             carambolas / entradas
-//       4º  ORDEN DEL CUADRO     su sitio en la siembra
+//       1º  HASTA DONDE LLEGO     campeon, subcampeon, semifinal...
+//       2º  % DE SU OBJETIVO      carambolas hechas / las que debia
+//       3º  PROMEDIO              carambolas / entradas
+//       4º  ORDEN DEL CUADRO      su sitio en la siembra
 //
-// El 4º no es un criterio deportivo: esta para que NUNCA queden dos
-// empatados y el orden no dependa del azar. Con el 1º, el 2º y el 3º
-// ya es practicamente imposible llegar hasta ahi.
+// El 4º no es deportivo: esta para que NUNCA queden dos empatados y el
+// orden no dependa del azar.
 //
 // El 2º es el que iguala a las dos categorias. No compara carambolas
 // brutas, sino que porcentaje hizo cada uno DE LO SUYO:
@@ -36,8 +42,23 @@
 //
 // El de Segunda hizo MENOS carambolas y rindio MAS, porque cumplio su
 // objetivo. Es el mismo criterio con el que la columna K del cuadro
-// decide cada partido, asi que el ranking no se contradice con el
-// resto del torneo.
+// decide cada partida.
+//
+// EN LA ELIMINACION NO HAY EMPATES
+//
+// Siempre tiene que haber un ganador. De ahi salen dos cosas:
+//
+//   · Quien perdio una vez, esta fuera. No hace falta mirar nada mas.
+//   · La columna "Ganadas" sobraba: todos ganan las que jugaron menos
+//     una, y el campeon las gana todas. No decia nada que no dijera ya
+//     "hasta donde llego". Fuera.
+//
+// LA TABLA, EN TRES BLOQUES DE TRES
+//
+//    QUIEN ES              ASI SE DECIDE EL PUESTO      COMO JUGO
+//    Puesto                Hasta donde llego            Partidas
+//    Jugador               % de su objetivo             Carambolas
+//    Categoria             Promedio                     Entradas
 //
 // COMO ESTA HECHA POR DENTRO
 //
@@ -45,57 +66,45 @@
 // hay que calcular primero y ordenar despues. Asi que la hoja tiene
 // dos zonas:
 //
-//   · Un BLOQUE DE CALCULO oculto (columnas P a AD). Una fila por
-//     jugador, SIN ordenar, con todas las cuentas: partidos, ganados,
-//     carambolas, entradas, rendimiento, hasta donde llego y una
-//     columna "Orden" que resume el primer criterio.
+//   · Un BLOQUE DE CALCULO oculto (columnas P a AB). Una fila por
+//     jugador, SIN ordenar, con todas las cuentas.
 //
-//   · La TABLA VISIBLE (A a L), que es UNA SOLA formula en B3:
-//         ARRAY_CONSTRAIN(SORT(bloque; Orden;desc; Rendimiento;desc;
-//                              Promedio;desc; Siembra;asc); filas; 11)
-//     SORT devuelve el bloque ya ordenado y ARRAY_CONSTRAIN se queda
-//     con las 11 primeras columnas, que son justo las que se ensenan.
+//   · La TABLA VISIBLE (A a I), que es UNA SOLA formula en B3:
+//         ARRAY_CONSTRAIN(SORT(bloque; Orden;desc; %;desc;
+//                              Promedio;desc; Siembra;asc); filas; 8)
 //
-// Cuando se anota una carambola, el bloque de calculo se recalcula, el
-// SORT reordena y la tabla cambia sola. Nadie tiene que correr nada.
+// Cuando se anota una carambola, el bloque se recalcula, el SORT
+// reordena y la tabla cambia sola.
 //
 // AL FINAL SE COMPRUEBA SOLA
 //
 // El codigo calcula ademas el ranking por su cuenta, con JavaScript, y
 // lo compara con lo que dieron las formulas. Si no coinciden, lo dice
-// en el aviso. Asi no hay que fiarse de que las formulas esten bien:
-// la propia hoja lo verifica cada vez que se genera.
+// en el aviso.
 //
-// LO QUE NO CAMBIA
-//    - La columna "Ronda Alcanzada" sigue con ese nombre, porque es la
-//      que busca la web para reconocer la hoja.
-//    - La hoja NO se borra ni se vuelve a crear, para que no le cambie
-//      el identificador y la web la siga encontrando.
-//
-// Volver a correrlo no puede danar ningun marcador: esta hoja no
-// guarda ni un dato propio, todo lo saca del cuadro.
+// La hoja NO se borra ni se vuelve a crear, para que no le cambie el
+// identificador y la web la siga encontrando. Volver a correrlo no
+// puede danar ningun marcador: esta hoja no guarda ni un dato propio.
 // ============================================================
 
 var RF_HOJA      = "RankingFinal";
-var RF_ANCHO     = 12;  // A..L, la tabla visible
+var RF_ANCHO     = 9;   // A..I, la tabla visible
 var RF_AUX_INI   = 16;  // P, donde empieza el bloque de calculo
-var RF_AUX_DATOS = 14;  // P..AC, una columna por dato de cada jugador
-var RF_AUX_COLS  = 15;  // P..AD, contando la columna de las constantes
-var RF_VISIBLES  = 11;  // P..Z, lo que se copia a la tabla (B..L)
+var RF_AUX_SORT  = 12;  // P..AA, lo que entra en el SORT
+var RF_AUX_COLS  = 13;  // P..AB, contando la columna de las constantes
+var RF_VISIBLES  = 8;   // P..W, lo que se copia a la tabla (B..I)
 
-// AD guarda dos constantes (ultima ronda y campeon) y NO forma parte de
+// AB guarda dos constantes (ultima ronda y campeon) y NO forma parte de
 // la fila de datos: si se escribe encima, el campeon se queda en blanco
 // y nadie sale como CAMPEÓN.
-
-// Columnas del bloque de calculo, en el mismo orden en que se ensenan.
-// Las 11 primeras son las que ve la gente; Orden, Siembra y Empates son
-// de uso interno y se quedan fuera del ARRAY_CONSTRAIN.
 var RF_AUX = {
-  jugador: "P", categoria: "Q", objetivo: "R", hasta: "S", ronda: "T",
-  rendimiento: "U", promedio: "V", partidos: "W", ganados: "X",
-  carambolas: "Y", entradas: "Z", orden: "AA", siembra: "AB",
-  empates: "AC", constantes: "AD"
+  jugador: "P", categoria: "Q", hasta: "R", porcentaje: "S", promedio: "T",
+  partidas: "U", carambolas: "V", entradas: "W",
+  orden: "X", ronda: "Y", ganadas: "Z", siembra: "AA", constantes: "AB"
 };
+
+// Posicion de cada columna dentro del SORT (1 = la primera del bloque).
+var RF_POS = { porcentaje: 4, promedio: 5, orden: 9, siembra: 12 };
 
 // La hoja del cuadro, lista para meter en una formula.
 var RF_ELIM = "'Eliminación Simple'!";
@@ -110,17 +119,16 @@ function GenerarRankingFinal() {
   if (ultFilaE < 2) { avisoRF_("La hoja 'Eliminación Simple' esta vacia."); return; }
 
   // ----------------------------------------------------------
-  // 1. QUIENES JUEGAN EL CUADRO
+  // 1. LEER EL CUADRO
   //
   //    A Ronda | B Partido | C Jugador A | D Entradas A | E Carambolas A
   //    F Prom A | G Jugador B | H Entradas B | I Carambolas B | J Prom B
   //    K Ganador | L Objetivo A | M Objetivo B | N Fecha | O Hora
   //
-  //  OJO con D y E: aqui van al reves que en RESULTADOS. En el cuadro
-  //  la columna D son las ENTRADAS y la E las CARAMBOLAS.
+  //    OJO con D y E: aqui van al reves que en RESULTADOS. En el cuadro
+  //    la columna D son las ENTRADAS y la E las CARAMBOLAS.
   // ----------------------------------------------------------
-  var cuadro = wsE.getRange(1, 1, ultFilaE, 15).getValues();
-  var lectura = leerCuadroRF_(cuadro);
+  var lectura = leerCuadroRF_(wsE.getRange(1, 1, ultFilaE, 15).getValues());
 
   if (lectura.nombres.length === 0) {
     avisoRF_("En el cuadro todavia no hay jugadores.");
@@ -132,9 +140,6 @@ function GenerarRankingFinal() {
 
   // ----------------------------------------------------------
   // 2. PREPARAR LA HOJA SIN BORRARLA
-  //
-  //    Borrar y volver a insertar la hoja le cambia el identificador
-  //    (gid) y la web se queda ciega. Se limpia por dentro y ya.
   // ----------------------------------------------------------
   var creada = false;
   var wsR = ss.getSheetByName(RF_HOJA);
@@ -162,84 +167,81 @@ function GenerarRankingFinal() {
   var A = RF_AUX;
   var finAux = total + 2;
 
-  // Dos constantes que usan todas las filas.
   wsR.getRange(A.constantes + "1").setFormula("=MAX(" + RF_ELIM + "$A:$A)");
   wsR.getRange(A.constantes + "2").setFormula(
-    "=IFERROR(INDEX(" + RF_ELIM + "$K:$K;MATCH($" + A.constantes + "$1;" + RF_ELIM + "$A:$A;0));\"\")");
+    "=IFERROR(INDEX(" + RF_ELIM + "$K:$K;MATCH($" + A.constantes + "$1;" +
+    RF_ELIM + "$A:$A;0));\"\")");
 
   // Los encabezados del bloque llevan "Aux" delante a proposito: si se
   // llamaran igual que los de verdad, la web podria leer estos.
   var cabAux = [
-    "Aux Jugador", "Aux Categoria", "Aux Objetivo", "Aux Hasta", "Aux Ronda",
-    "Aux Rendimiento", "Aux Promedio", "Aux Partidos", "Aux Ganados",
-    "Aux Carambolas", "Aux Entradas", "Aux Orden", "Aux Siembra", "Aux Empates"
+    "Aux Jugador", "Aux Categoria", "Aux Hasta", "Aux Porcentaje", "Aux Promedio",
+    "Aux Partidas", "Aux Carambolas", "Aux Entradas",
+    "Aux Orden", "Aux Ronda", "Aux Ganadas", "Aux Siembra"
   ];
-  wsR.getRange(2, RF_AUX_INI, 1, RF_AUX_DATOS).setValues([cabAux]);
+  wsR.getRange(2, RF_AUX_INI, 1, RF_AUX_SORT).setValues([cabAux]);
 
   var aux = [];
   for (var i = 0; i < total; i++) {
-    var f = i + 3;                       // fila en la hoja
+    var f = i + 3;
     aux.push([
       nombres[i],
       formulaCategoriaRF_(f),
-      formulaObjetivoRF_(f),
       formulaHastaDondeRF_(f),
-      formulaRondaRF_(f),
-      formulaRendimientoRF_(f),
+      formulaPorcentajeRF_(f),
       formulaPromedioRF_(f),
-      formulaContarRF_(f, null),
-      formulaContarRF_(f, "ganados"),
+      formulaContarRF_(f, false),
       formulaSumarRF_(f, "E", "I"),      // carambolas
       formulaSumarRF_(f, "D", "H"),      // entradas
       formulaOrdenRF_(f),
-      i + 1,                             // sitio en la siembra del cuadro
-      formulaContarRF_(f, "empates")
+      formulaRondaRF_(f),
+      formulaContarRF_(f, true),         // ganadas
+      i + 1                              // sitio en la siembra
     ]);
   }
-  wsR.getRange(3, RF_AUX_INI, total, RF_AUX_DATOS).setValues(aux);
+  wsR.getRange(3, RF_AUX_INI, total, RF_AUX_SORT).setValues(aux);
 
   // ----------------------------------------------------------
   // 4. LA TABLA VISIBLE
   // ----------------------------------------------------------
-  var rotulos = ["", "", "", "", "", "", "", "", "", "", "", ""];
-  rotulos[0] = "QUIEN ES";                         // A..D
-  rotulos[4] = "ESTO DECIDE EL ORDEN";             // E..H
-  rotulos[8] = "SOLO INFORMATIVO · NO ORDENA";     // I..L
+  var rotulos = ["", "", "", "", "", "", "", "", ""];
+  rotulos[0] = "QUIÉN ES";                 // A..C
+  rotulos[3] = "ASÍ SE DECIDE EL PUESTO";  // D..F
+  rotulos[6] = "CÓMO JUGÓ · NO ORDENA";    // G..I
 
-  // OJO: "Ranking", "Jugador" y "Ronda Alcanzada" son los nombres que
-  // busca la web. Si se cambian hay que cambiar app/lib/parsers.ts.
+  // OJO: "Ranking", "Jugador" y "Hasta dónde llegó" son los nombres con
+  // los que la web reconoce esta hoja. Si se cambian hay que cambiar
+  // tambien app/lib/parsers.ts y app/lib/sheets.ts.
   var encabezados = [
-    "Ranking", "Jugador", "Categoría", "Objetivo",
-    "Hasta dónde llegó", "Ronda Alcanzada", "Rendimiento", "Promedio",
-    "Partidos", "Ganados", "Carambolas", "Entradas"
+    "Ranking", "Jugador", "Categoría",
+    "Hasta dónde llegó", "% de su objetivo", "Promedio",
+    "Partidas", "Carambolas", "Entradas"
   ];
 
   wsR.getRange(1, 1, 1, RF_ANCHO).setValues([rotulos]);
   wsR.getRange(2, 1, 1, RF_ANCHO).setValues([encabezados]);
 
-  // Columna A: el puesto. Se apoya en que la fila tenga jugador.
   var colA = [];
   for (var a = 0; a < total; a++) colA.push(['=IF($B' + (a + 3) + '="";"";ROW()-2)']);
   wsR.getRange(3, 1, total, 1).setFormulas(colA);
 
   // B3: UNA sola formula que trae la tabla entera ya ordenada.
-  //     12 = Orden (desc) · 6 = Rendimiento (desc) · 7 = Promedio (desc)
-  //     13 = Siembra (asc), solo para que nunca queden dos empatados.
   var rangoAux = "$" + A.jugador + "$3:$" + A.siembra + "$" + finAux;
   wsR.getRange("B3").setFormula(
-    "=IFERROR(ARRAY_CONSTRAIN(SORT(" + rangoAux + ";12;FALSE;6;FALSE;7;FALSE;13;TRUE);" +
+    "=IFERROR(ARRAY_CONSTRAIN(SORT(" + rangoAux + ";" +
+    RF_POS.orden + ";FALSE;" + RF_POS.porcentaje + ";FALSE;" +
+    RF_POS.promedio + ";FALSE;" + RF_POS.siembra + ";TRUE);" +
     total + ";" + RF_VISIBLES + ");\"\")");
 
   // ----------------------------------------------------------
   // 5. EL PIE QUE LO EXPLICA
   // ----------------------------------------------------------
   var pie = [
-    "CÓMO SE ORDENA ESTE RANKING",
-    "1º  Hasta dónde llegó en el cuadro.  ·  2º  Rendimiento sobre su objetivo.  ·  3º  Promedio (carambolas ÷ entradas).",
-    "Rendimiento = carambolas que hizo ÷ carambolas que debía hacer (su objetivo × partidas jugadas). Es lo que iguala a las dos categorías:",
-    "Primera juega a 20 y Segunda a 17, así que 17 de 17 (100,0 %) rinde más que 18 de 20 (90,0 %), aunque sean menos carambolas.",
-    "Todo sale de la hoja «Eliminación Simple»: la fase de grupos no cuenta aquí. Las partidas de BYE tampoco, porque no se jugaron.",
-    "Esta hoja se actualiza sola: no hay que volver a correr nada hasta el próximo torneo."
+    "CÓMO SE LEE ESTE RANKING",
+    "El puesto lo decide, en este orden:  1º hasta dónde llegó en el cuadro  ·  2º % de su objetivo  ·  3º promedio.",
+    "% de su objetivo = carambolas que hizo ÷ carambolas que debía hacer. Es lo que iguala a las dos categorías: Primera juega a 20 y",
+    "Segunda a 17, así que 17 de 17 (100,0 %) rinde más que 18 de 20 (90,0 %), aunque sean menos carambolas.",
+    "Todo sale de «Eliminación Simple»; la fase de grupos no cuenta aquí. Los BYE no cuentan como partida: no se jugaron."
   ];
   for (var q = 0; q < pie.length; q++) wsR.getRange(filaPie + q, 1).setValue(pie[q]);
 
@@ -248,40 +250,34 @@ function GenerarRankingFinal() {
 
   // ----------------------------------------------------------
   // 6. COMPROBARSE A SI MISMA
-  //
-  //    Las formulas las calcula Google; el mismo ranking se calcula
-  //    aqui con JavaScript y se comparan. Si no coinciden, se avisa.
   // ----------------------------------------------------------
   SpreadsheetApp.flush();
   var esperado = rankingCalculadoRF_(lectura);
   var salio = wsR.getRange(3, 2, total, 1).getValues();
   var diferencias = [];
-  for (var v = 0; v < total; v++) {
+  for (var v = 0; v < total && diferencias.length < 5; v++) {
     var dio = String(salio[v][0]).trim();
     if (dio !== esperado[v].nombre) {
       diferencias.push("  fila " + (v + 1) + ": la hoja dice «" + dio +
                        "» y deberia decir «" + esperado[v].nombre + "»");
     }
-    if (diferencias.length >= 5) break;
   }
 
   ss.setActiveSheet(wsR);
 
-  var campeon = esperado[0] && esperado[0].etiqueta === "CAMPEÓN"
+  var campeon = (esperado[0] && esperado[0].etiqueta === "CAMPEÓN")
     ? esperado[0].nombre : "(todavia no hay campeon)";
 
   var msg =
     "Ranking Final generado.\n\n" +
-    total + " jugadores.\n" +
+    total + " jugadores · " + lectura.rondaFinal + " rondas.\n" +
     "Campeon: " + campeon + "\n\n" +
     "La hoja quedo VIVA: se actualiza sola cada vez que se\n" +
     "anotan carambolas en 'Eliminación Simple'. No hay que\n" +
     "volver a correr esto hasta el proximo torneo.\n\n" +
-    "Todo sale del cuadro: la fase de grupos no cuenta aqui.\n\n" +
-    "Orden: 1º hasta donde llego · 2º rendimiento sobre su\n" +
-    "objetivo · 3º promedio.\n" +
-    "El rendimiento iguala Primera (20) con Segunda (17):\n" +
-    "17 de 17 rinde mas que 18 de 20.";
+    "El puesto lo decide: 1º hasta donde llego · 2º % de su\n" +
+    "objetivo · 3º promedio. Todo del cuadro; los grupos no\n" +
+    "cuentan aqui.";
 
   if (diferencias.length === 0) {
     msg += "\n\nCOMPROBADO: las formulas dan exactamente el mismo\n" +
@@ -301,68 +297,58 @@ function GenerarRankingFinal() {
 /* ============================================================
  *  LAS FORMULAS DEL BLOQUE DE CALCULO
  *
- *  Un cruce cuenta como JUGADO solo si los DOS anotaron entradas.
+ *  Una partida cuenta como JUGADA solo si los DOS anotaron entradas.
  *  Asi quedan fuera los BYE (que no tienen entradas) y los cruces que
- *  todavia no se han jugado, sin tener que adivinar nada. Se pide
+ *  todavia no se han jugado, sin tener que adivinar nada. Se piden
  *  entradas y no carambolas porque un jugador SI puede quedarse en
  *  cero carambolas, pero nunca en cero entradas.
  * ============================================================ */
 
-/** Las tres condiciones de "cruce jugado", vistas desde cada lado. */
-function condJugadoRF_(comoLocal) {
+/** Las condiciones de "partida jugada", vistas desde cada lado. */
+function condJugadaRF_(comoLocal) {
   var E = RF_ELIM;
   return comoLocal
     ? E + "$D:$D;\">0\";" + E + "$H:$H;\">0\""
     : E + "$H:$H;\">0\";" + E + "$D:$D;\">0\"";
 }
 
-/**
- * Cuenta cruces del jugador de la fila f.
- *   null       -> todos los jugados
- *   "ganados"  -> los que gano
- *   "empates"  -> los que quedaron en EMPATE (hay que repetirlos, asi
- *                 que NO cuentan como derrota)
- */
-function formulaContarRF_(f, que) {
-  var E = RF_ELIM;
-  var extra = "";
-  if (que === "ganados") extra = ";" + E + "$K:$K;$" + RF_AUX.jugador + f;
-  if (que === "empates") extra = ";" + E + "$K:$K;\"EMPATE\"";
-  return "=COUNTIFS(" + E + "$C:$C;$" + RF_AUX.jugador + f + ";" + condJugadoRF_(true) + extra + ")" +
-         "+COUNTIFS(" + E + "$G:$G;$" + RF_AUX.jugador + f + ";" + condJugadoRF_(false) + extra + ")";
+/** Partidas jugadas del jugador de la fila f, o solo las ganadas. */
+function formulaContarRF_(f, soloGanadas) {
+  var E = RF_ELIM, p = "$" + RF_AUX.jugador + f;
+  var extra = soloGanadas ? (";" + E + "$K:$K;" + p) : "";
+  return "=COUNTIFS(" + E + "$C:$C;" + p + ";" + condJugadaRF_(true) + extra + ")" +
+         "+COUNTIFS(" + E + "$G:$G;" + p + ";" + condJugadaRF_(false) + extra + ")";
 }
 
 /** Suma una columna del cuadro: colLocal cuando es A, colVisita cuando es B. */
 function formulaSumarRF_(f, colLocal, colVisita) {
-  var E = RF_ELIM;
-  var p = "$" + RF_AUX.jugador + f;
-  return "=SUMIFS(" + E + "$" + colLocal + ":$" + colLocal + ";" + E + "$C:$C;" + p + ";" + condJugadoRF_(true) + ")" +
-         "+SUMIFS(" + E + "$" + colVisita + ":$" + colVisita + ";" + E + "$G:$G;" + p + ";" + condJugadoRF_(false) + ")";
+  var E = RF_ELIM, p = "$" + RF_AUX.jugador + f;
+  return "=SUMIFS(" + E + "$" + colLocal + ":$" + colLocal + ";" + E + "$C:$C;" + p + ";" + condJugadaRF_(true) + ")" +
+         "+SUMIFS(" + E + "$" + colVisita + ":$" + colVisita + ";" + E + "$G:$G;" + p + ";" + condJugadaRF_(false) + ")";
 }
 
 /**
- * Rendimiento = carambolas hechas / carambolas que debia hacer.
- * El divisor es la suma de sus objetivos (columnas L y M) en los
- * cruces que jugo de verdad, asi que un BYE no lo penaliza.
+ * % de su objetivo = carambolas hechas / carambolas que debia hacer.
+ * El divisor es la suma de sus objetivos (columnas L y M) en las
+ * partidas que jugo de verdad, asi que un BYE no lo penaliza.
  */
-function formulaRendimientoRF_(f) {
-  var E = RF_ELIM;
-  var p = "$" + RF_AUX.jugador + f;
+function formulaPorcentajeRF_(f) {
+  var E = RF_ELIM, p = "$" + RF_AUX.jugador + f;
   var objetivos =
-    "(SUMIFS(" + E + "$L:$L;" + E + "$C:$C;" + p + ";" + condJugadoRF_(true) + ")" +
-    "+SUMIFS(" + E + "$M:$M;" + E + "$G:$G;" + p + ";" + condJugadoRF_(false) + "))";
+    "(SUMIFS(" + E + "$L:$L;" + E + "$C:$C;" + p + ";" + condJugadaRF_(true) + ")" +
+    "+SUMIFS(" + E + "$M:$M;" + E + "$G:$G;" + p + ";" + condJugadaRF_(false) + "))";
   return "=IF(" + objetivos + "=0;0;$" + RF_AUX.carambolas + f + "/" + objetivos + ")";
 }
 
-/** Promedio de billar: carambolas / entradas. Informativo. */
+/** Promedio de billar: carambolas / entradas. */
 function formulaPromedioRF_(f) {
-  return "=IF($" + RF_AUX.entradas + f + "=0;0;$" + RF_AUX.carambolas + f + "/$" + RF_AUX.entradas + f + ")";
+  var A = RF_AUX;
+  return "=IF($" + A.entradas + f + "=0;0;$" + A.carambolas + f + "/$" + A.entradas + f + ")";
 }
 
 /** La ronda mas lejos a la que llego, este de local o de visitante. */
 function formulaRondaRF_(f) {
-  var E = RF_ELIM;
-  var p = "$" + RF_AUX.jugador + f;
+  var E = RF_ELIM, p = "$" + RF_AUX.jugador + f;
   return "=MAX(IFERROR(MAXIFS(" + E + "$A:$A;" + E + "$C:$C;" + p + ");0);" +
          "IFERROR(MAXIFS(" + E + "$A:$A;" + E + "$G:$G;" + p + ");0))";
 }
@@ -376,20 +362,19 @@ function formulaCategoriaRF_(f) {
     "IFERROR(VLOOKUP(" + p + ";'Base de Datos'!$J:$K;2;FALSE);\"\"))))";
 }
 
-/** Carambolas que tiene que hacer. La misma busqueda que usa el cuadro. */
-function formulaObjetivoRF_(f) {
-  var p = "$" + RF_AUX.jugador + f;
-  return "=IF(" + p + "=\"\";\"\";IFERROR(VLOOKUP(" + p + ";'Base de Datos'!$B$3:$E;4;FALSE);\"\"))";
+/**
+ * En la eliminacion no hay empates: el que pierde una, esta fuera.
+ * Asi que "esta eliminado" es, simplemente, que gano menos partidas de
+ * las que jugo.
+ */
+function condPerdioRF_(f) {
+  var A = RF_AUX;
+  return "$" + A.ganadas + f + "<$" + A.partidas + f;
 }
 
 /**
- * Hasta donde llego.
- *
- *   - Es el campeon si es el ganador de la ultima ronda.
- *   - Esta eliminado si perdio algun cruce: partidos - ganados -
- *     empates > 0. En eliminacion directa solo se puede perder una vez.
- *   - Si perdio en la ultima ronda, es el subcampeon.
- *   - Si no perdio ninguno y no es campeon, sigue vivo.
+ * Hasta donde llego. El nombre de la ronda sale de cuantos cruces
+ * tiene, asi que vale para un cuadro de 8 y para uno de 64.
  */
 function formulaHastaDondeRF_(f) {
   var A = RF_AUX;
@@ -411,12 +396,6 @@ function formulaHastaDondeRF_(f) {
          "IF(" + condPerdioRF_(f) + ";" +
          "IF($" + A.ronda + f + "=$" + A.constantes + "$1;\"SUBCAMPEÓN\";" + nombreRonda + ");" +
          "\"EN JUEGO\")))";
-}
-
-/** Perdio algun cruce: partidos - ganados - empates > 0. */
-function condPerdioRF_(f) {
-  var A = RF_AUX;
-  return "($" + A.partidos + f + "-$" + A.ganados + f + "-$" + A.empates + f + ")>0";
 }
 
 /**
@@ -447,9 +426,9 @@ function esNumeroRF_(v) {
   return v !== "" && v !== null && v !== undefined && !isNaN(v);
 }
 
-/** Recorre el cuadro y devuelve los cruces y los jugadores. */
+/** Recorre el cuadro y devuelve las partidas y los jugadores. */
 function leerCuadroRF_(cuadro) {
-  var nombres = [], vistos = {}, cruces = [], partidosPorRonda = {}, rondaFinal = 0, campeon = "";
+  var nombres = [], vistos = {}, partidas = [], porRonda = {}, rondaFinal = 0, campeon = "";
 
   for (var r = 0; r < cuadro.length; r++) {
     var f = cuadro[r];
@@ -457,21 +436,19 @@ function leerCuadroRF_(cuadro) {
     var ronda = parseInt(f[0], 10);
     if (!ronda) continue;
 
-    partidosPorRonda[ronda] = (partidosPorRonda[ronda] || 0) + 1;
+    porRonda[ronda] = (porRonda[ronda] || 0) + 1;
     if (ronda > rondaFinal) rondaFinal = ronda;
 
-    var jugA = String(f[2]).trim(), jugB = String(f[6]).trim();
-    var ganador = String(f[10]).trim();
-    var jugado = esNumeroRF_(f[3]) && Number(f[3]) > 0 &&
+    var jugada = esNumeroRF_(f[3]) && Number(f[3]) > 0 &&
                  esNumeroRF_(f[7]) && Number(f[7]) > 0;
 
-    cruces.push({
-      ronda: ronda, jugado: jugado, ganador: ganador,
-      a: { nombre: jugA, ent: f[3], car: f[4], obj: f[11] },
-      b: { nombre: jugB, ent: f[7], car: f[8], obj: f[12] }
+    partidas.push({
+      ronda: ronda, jugada: jugada, ganador: String(f[10]).trim(),
+      a: { nombre: String(f[2]).trim(), ent: f[3], car: f[4], obj: f[11] },
+      b: { nombre: String(f[6]).trim(), ent: f[7], car: f[8], obj: f[12] }
     });
 
-    var dos = [jugA, jugB];
+    var dos = [String(f[2]).trim(), String(f[6]).trim()];
     for (var k = 0; k < 2; k++) {
       var n = dos[k];
       if (n === "" || n === "BYE" || n === "Jugador A" || n === "Jugador B") continue;
@@ -479,73 +456,71 @@ function leerCuadroRF_(cuadro) {
     }
   }
 
-  for (var c = 0; c < cruces.length; c++) {
-    if (cruces[c].ronda === rondaFinal) {
-      var g = cruces[c].ganador;
-      if (g !== "" && g !== "EMPATE" && g !== "BYE") campeon = g;
-    }
+  for (var c = 0; c < partidas.length; c++) {
+    if (partidas[c].ronda !== rondaFinal) continue;
+    var g = partidas[c].ganador;
+    if (g !== "" && g !== "BYE") campeon = g;
   }
 
-  return { nombres: nombres, cruces: cruces, partidosPorRonda: partidosPorRonda,
+  return { nombres: nombres, partidas: partidas, porRonda: porRonda,
            rondaFinal: rondaFinal, campeon: campeon };
 }
 
 /** El ranking, calculado aparte para comprobar las formulas. */
 function rankingCalculadoRF_(lectura) {
-  var fichas = {};
+  var fichas = {}, lista = [];
 
   for (var i = 0; i < lectura.nombres.length; i++) {
-    fichas[lectura.nombres[i]] = {
-      nombre: lectura.nombres[i], siembra: i + 1, partidos: 0, ganados: 0, empates: 0,
+    var ficha = {
+      nombre: lectura.nombres[i], siembra: i + 1, partidas: 0, ganadas: 0,
       carambolas: 0, entradas: 0, objetivos: 0, rondaMax: 0
     };
+    fichas[ficha.nombre] = ficha;
+    lista.push(ficha);
   }
 
-  for (var c = 0; c < lectura.cruces.length; c++) {
-    var cr = lectura.cruces[c];
-    var lados = [cr.a, cr.b];
+  for (var c = 0; c < lectura.partidas.length; c++) {
+    var pa = lectura.partidas[c];
+    var lados = [pa.a, pa.b];
     for (var k = 0; k < 2; k++) {
       var lado = lados[k];
       var j = fichas[lado.nombre];
       if (!j) continue;
-      if (cr.ronda > j.rondaMax) j.rondaMax = cr.ronda;
-      if (!cr.jugado) continue;
-      j.partidos++;
+      if (pa.ronda > j.rondaMax) j.rondaMax = pa.ronda;
+      if (!pa.jugada) continue;
+      j.partidas++;
       j.carambolas += Number(lado.car) || 0;
       j.entradas   += Number(lado.ent) || 0;
       if (esNumeroRF_(lado.obj)) j.objetivos += Number(lado.obj);
-      if (cr.ganador === lado.nombre) j.ganados++;
-      else if (cr.ganador === "EMPATE") j.empates++;
+      if (pa.ganador === lado.nombre) j.ganadas++;
     }
   }
 
-  var lista = [];
-  for (var nom in fichas) {
-    var j = fichas[nom];
-    var perdio = (j.partidos - j.ganados - j.empates) > 0;
+  for (var q = 0; q < lista.length; q++) {
+    var p = lista[q];
+    var perdio = p.ganadas < p.partidas;     // sin empates, una derrota y fuera
 
-    if (j.nombre === lectura.campeon) {
-      j.etiqueta = "CAMPEÓN";
-      j.orden = lectura.rondaFinal + 1;
+    if (p.nombre === lectura.campeon) {
+      p.etiqueta = "CAMPEÓN";
+      p.orden = lectura.rondaFinal + 1;
     } else if (perdio) {
-      j.etiqueta = (j.rondaMax === lectura.rondaFinal)
+      p.etiqueta = (p.rondaMax === lectura.rondaFinal)
         ? "SUBCAMPEÓN"
-        : nombreRondaFinal_(lectura.partidosPorRonda[j.rondaMax], j.rondaMax);
-      j.orden = j.rondaMax;
+        : nombreRondaFinal_(lectura.porRonda[p.rondaMax], p.rondaMax);
+      p.orden = p.rondaMax;
     } else {
-      j.etiqueta = "EN JUEGO";
-      j.orden = j.rondaMax + 0.5;
+      p.etiqueta = "EN JUEGO";
+      p.orden = p.rondaMax + 0.5;
     }
 
-    j.rendimiento = (j.objetivos > 0) ? (j.carambolas / j.objetivos) : 0;
-    j.promedio    = (j.entradas  > 0) ? (j.carambolas / j.entradas)  : 0;
-    lista.push(j);
+    p.porcentaje = (p.objetivos > 0) ? (p.carambolas / p.objetivos) : 0;
+    p.promedio   = (p.entradas  > 0) ? (p.carambolas / p.entradas)  : 0;
   }
 
   lista.sort(function (a, b) {
-    if (b.orden !== a.orden)             return b.orden - a.orden;
-    if (b.rendimiento !== a.rendimiento) return b.rendimiento - a.rendimiento;
-    if (b.promedio !== a.promedio)       return b.promedio - a.promedio;
+    if (b.orden !== a.orden)           return b.orden - a.orden;
+    if (b.porcentaje !== a.porcentaje) return b.porcentaje - a.porcentaje;
+    if (b.promedio !== a.promedio)     return b.promedio - a.promedio;
     return a.siembra - b.siembra;
   });
   return lista;
@@ -570,12 +545,12 @@ function nombreRondaFinal_(partidos, numero) {
 function FormatoRankingFinal_(wsR, total, filaPie, lineasPie) {
   var ultima = total + 2;
 
-  // --- Fila 1: los rotulos ---
-  wsR.getRange("A1:D1").merge()
+  // --- Fila 1: los tres rotulos ---
+  wsR.getRange("A1:C1").merge()
     .setBackground(rgbToHex(217, 217, 217)).setFontColor(rgbToHex(64, 64, 64));
-  wsR.getRange("E1:H1").merge()
+  wsR.getRange("D1:F1").merge()
     .setBackground(rgbToHex(56, 118, 29)).setFontColor("#FFFFFF");
-  wsR.getRange("I1:L1").merge()
+  wsR.getRange("G1:I1").merge()
     .setBackground(rgbToHex(191, 144, 0)).setFontColor("#FFFFFF");
   wsR.getRange(1, 1, 1, RF_ANCHO)
     .setFontWeight("bold").setFontSize(10)
@@ -594,15 +569,12 @@ function FormatoRankingFinal_(wsR, total, filaPie, lineasPie) {
     "Puesto final del torneo.",
     "",
     "Categoría en la que está inscrito, según «Base de Datos».",
-    "Carambolas que tiene que hacer para ganar una partida.\nPrimera y Segunda no juegan a lo mismo.",
-    "La última ronda que jugó. La perdió ahí, salvo el campeón.",
-    "La misma ronda, en número. Es la que lee la web.",
-    "1er criterio de desempate.\nCarambolas hechas ÷ carambolas que debía hacer.\n17 de 17 (100%) vale más que 18 de 20 (90%).",
+    "La última ronda que jugó. La perdió ahí, salvo el campeón.\nEn la eliminación no hay empates: quien pierde una, queda fuera.",
+    "1er criterio de desempate.\nCarambolas que hizo ÷ carambolas que debía hacer.\n17 de 17 (100%) vale más que 18 de 20 (90%).",
     "2º criterio de desempate: carambolas ÷ entradas.\nEs el promedio de billar de toda la eliminación.",
-    "INFORMATIVO. Partidas jugadas de verdad.\nLos BYE no cuentan: nadie tiró una bola.",
-    "INFORMATIVO. Partidas ganadas.",
-    "INFORMATIVO. Carambolas hechas en toda la eliminación.",
-    "INFORMATIVO. Entradas jugadas en toda la eliminación."
+    "Partidas que jugó de verdad.\nLos BYE no cuentan: nadie tiró una bola.",
+    "Carambolas hechas en toda la eliminación.",
+    "Entradas jugadas en toda la eliminación."
   ];
   for (var i = 0; i < notas.length; i++) {
     if (notas[i] !== "") wsR.getRange(2, i + 1).setNote(notas[i]);
@@ -611,39 +583,34 @@ function FormatoRankingFinal_(wsR, total, filaPie, lineasPie) {
   if (total > 0) {
     wsR.getRange(3, 1, total, RF_ANCHO)
       .setHorizontalAlignment("center").setVerticalAlignment("middle");
-    wsR.getRange(3, 2, total, 2).setHorizontalAlignment("left");
-    wsR.getRange(3, 2, total, 1).setFontWeight("bold");
-    wsR.getRange(3, 5, total, 1).setHorizontalAlignment("left");
+    wsR.getRange(3, 2, total, 3).setHorizontalAlignment("left");
 
     wsR.getRange(3, 1, total, 1).setNumberFormat("0");
-    wsR.getRange(3, 4, total, 1).setNumberFormat("0");
-    wsR.getRange(3, 6, total, 1).setNumberFormat("0");
-    wsR.getRange(3, 7, total, 1).setNumberFormat("0.0%");
-    wsR.getRange(3, 8, total, 1).setNumberFormat("0.000");
-    wsR.getRange(3, 9, total, 4).setNumberFormat("0");
+    wsR.getRange(3, 5, total, 1).setNumberFormat("0.0%");
+    wsR.getRange(3, 6, total, 1).setNumberFormat("0.000");
+    wsR.getRange(3, 7, total, 3).setNumberFormat("0");
 
-    wsR.getRange(3, 5, total, 4).setBackground(rgbToHex(226, 239, 218));
-    wsR.getRange(3, 7, total, 1).setFontWeight("bold");
-    wsR.getRange(3, 9, total, 4)
+    wsR.getRange(3, 2, total, 1).setFontWeight("bold");
+    wsR.getRange(3, 4, total, 3).setBackground(rgbToHex(226, 239, 218));
+    wsR.getRange(3, 5, total, 1).setFontWeight("bold");
+    wsR.getRange(3, 7, total, 3)
       .setBackground(rgbToHex(252, 245, 226))
       .setFontColor(rgbToHex(89, 89, 89))
       .setFontStyle("italic");
 
     // El podio NO se puede pintar fila a fila: las filas cambian de
-    // dueno solas cuando cambia el ranking. Va con formato condicional,
-    // que mira el numero de la columna A.
+    // dueno solas cuando cambia el ranking. Va con formato condicional.
     var zona = [wsR.getRange(3, 1, total, RF_ANCHO)];
-    var reglas = [
+    wsR.setConditionalFormatRules([
       reglaPodioRF_("=$A3=1", rgbToHex(255, 217, 102), zona),
       reglaPodioRF_("=$A3=2", rgbToHex(217, 217, 217), zona),
       reglaPodioRF_("=$A3=3", rgbToHex(237, 187, 138), zona),
       SpreadsheetApp.newConditionalFormatRule()
-        .whenFormulaSatisfied('=($G3<>"")*($G3>=1)')
+        .whenFormulaSatisfied('=($E3<>"")*($E3>=1)')
         .setFontColor(rgbToHex(0, 97, 0)).setBold(true)
-        .setRanges([wsR.getRange(3, 7, total, 1)])
+        .setRanges([wsR.getRange(3, 5, total, 1)])
         .build()
-    ];
-    wsR.setConditionalFormatRules(reglas);
+    ]);
 
     wsR.getRange(1, 1, ultima, RF_ANCHO)
       .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
@@ -661,7 +628,7 @@ function FormatoRankingFinal_(wsR, total, filaPie, lineasPie) {
   wsR.getRange(filaPie, 1, lineasPie, RF_ANCHO)
     .setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
 
-  var anchos = [75, 235, 110, 85, 165, 95, 110, 100, 85, 85, 105, 90];
+  var anchos = [75, 240, 115, 170, 125, 100, 90, 105, 90];
   for (var a = 0; a < anchos.length; a++) wsR.setColumnWidth(a + 1, anchos[a]);
 
   wsR.setFrozenRows(2);

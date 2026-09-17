@@ -268,7 +268,7 @@ function TablaRankingGrupos({
                   <Fragment key={`${r.ranking}-${r.player}`}>
                   {abreBloque != null && (
                     <tr className="border-t border-border-light">
-                      <td colSpan={11} className="p-0">
+                      <td colSpan={9} className="p-0">
                         {/* El texto va pegado a la izquierda aunque se
                             deslice la tabla, como las columnas fijas. */}
                         <div className="sticky left-0 w-fit px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-text-muted/70 whitespace-nowrap">
@@ -461,22 +461,22 @@ function TablaRankingFinal({
                   <th className={`${stickyName} py-1.5 text-center text-text-muted/70`}>
                     Quién es
                   </th>
-                  <th className="py-1.5" colSpan={2} />
+                  <th className="py-1.5" />
                   <th
                     className={`${SEP} px-2 py-1.5 text-center text-emerald-400 bg-emerald/[0.08] whitespace-nowrap`}
                     colSpan={3}
                     title="Estas tres columnas, en este orden, son las que deciden el puesto."
                   >
-                    <span className="sm:hidden">Decide el orden</span>
-                    <span className="hidden sm:inline">Esto decide el orden</span>
+                    <span className="sm:hidden">Decide el puesto</span>
+                    <span className="hidden sm:inline">Así se decide el puesto</span>
                   </th>
                   <th
                     className={`${SEP} px-2 py-1.5 text-center text-amber-400 bg-amber-400/[0.08] whitespace-nowrap`}
-                    colSpan={4}
-                    title="Datos de interés que NO influyen en el puesto."
+                    colSpan={3}
+                    title="Cómo jugó. Estos números NO influyen en el puesto."
                   >
                     <span className="sm:hidden">No ordena</span>
-                    <span className="hidden sm:inline">Solo informativo · no ordena</span>
+                    <span className="hidden sm:inline">Cómo jugó · no ordena</span>
                   </th>
                 </tr>
               )}
@@ -488,21 +488,19 @@ function TablaRankingFinal({
 
                 {detalle ? (
                   <>
-                    <th className="px-2 py-3 text-center" title="Carambolas que tiene que hacer para ganar una partida">
-                      Obj
-                    </th>
                     <th className={`${SEP} px-3 py-3 text-left`}>Hasta dónde llegó</th>
                     <th
                       className="px-2 py-3 text-center"
-                      title="Carambolas hechas ÷ carambolas que debía hacer. 17 de 17 (100 %) rinde más que 18 de 20 (90 %)."
+                      title="Carambolas que hizo ÷ carambolas que debía hacer. 17 de 17 (100 %) rinde más que 18 de 20 (90 %)."
                     >
-                      Rendim.
+                      % objetivo
                     </th>
-                    <th className="px-2 py-3 text-center" title="3er criterio: carambolas ÷ entradas de toda la eliminación">
+                    <th className="px-2 py-3 text-center" title="Carambolas ÷ entradas de toda la eliminación">
                       Prom
                     </th>
-                    <th className={`${SEP} px-2 py-3 text-center`} title="Partidas jugadas. Los BYE no cuentan.">PJ</th>
-                    <th className="px-2 py-3 text-center" title="Partidas ganadas">PG</th>
+                    <th className={`${SEP} px-2 py-3 text-center`} title="Partidas jugadas. Los BYE no cuentan.">
+                      Partidas
+                    </th>
                     <th className="px-2 py-3 text-center" title="Carambolas hechas en toda la eliminación">Car</th>
                     <th className="px-2 py-3 text-center" title="Entradas jugadas en toda la eliminación">Ent</th>
                   </>
@@ -532,7 +530,7 @@ function TablaRankingFinal({
                   <Fragment key={`${r.ranking}-${r.player}`}>
                   {abreBloque != null && i > 1 && (
                     <tr className="border-t border-border-light">
-                      <td colSpan={11} className="p-0">
+                      <td colSpan={9} className="p-0">
                         <div className="sticky left-0 w-fit px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-text-muted/70 whitespace-nowrap">
                           {abreBloque.toUpperCase() === 'EN JUEGO'
                             ? 'Siguen en carrera'
@@ -556,9 +554,6 @@ function TablaRankingFinal({
 
                     {detalle ? (
                       <>
-                        <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">
-                          {r.target ?? EMPTY}
-                        </td>
                         <td className={`${SEP} px-3 py-3 whitespace-nowrap`}>
                           <EtapaBadge etiqueta={r.reachedLabel || ''} />
                         </td>
@@ -576,9 +571,6 @@ function TablaRankingFinal({
                         </td>
                         <td className={`${SEP} px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums`}>
                           {r.matches ?? EMPTY}
-                        </td>
-                        <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
-                          {r.won ?? EMPTY}
                         </td>
                         <td className="px-2 py-3 text-center font-mono text-text-muted/70 italic tabular-nums">
                           {r.carambolas ?? EMPTY}
@@ -614,11 +606,12 @@ function TablaRankingFinal({
 
       {detalle && (
         <div className="bg-bg-header px-4 py-2.5 border-t border-border-light text-[11px] text-text-muted leading-relaxed">
-          Todo sale del cuadro de eliminación; la fase de grupos no cuenta aquí. Orden:{' '}
+          Todo sale del cuadro de eliminación; la fase de grupos no cuenta aquí. El puesto lo
+          decide:{' '}
           <strong className="text-text-primary font-semibold">hasta dónde llegó</strong> →{' '}
-          <strong className="text-text-primary font-semibold">rendimiento</strong> → promedio.
-          El rendimiento son las carambolas que hizo entre las que debía hacer, y es lo que iguala
-          a las dos categorías: Primera juega a 20 y Segunda a 17, así que{' '}
+          <strong className="text-text-primary font-semibold">% de su objetivo</strong> → promedio.
+          El % son las carambolas que hizo entre las que debía hacer, y es lo que iguala a las dos
+          categorías: Primera juega a 20 y Segunda a 17, así que{' '}
           <strong className="text-text-primary font-semibold">17 de 17 (100 %) rinde más que 18 de 20 (90 %)</strong>,
           aunque sean menos carambolas.
         </div>

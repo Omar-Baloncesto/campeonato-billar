@@ -482,9 +482,8 @@ function mapaColumnas(encabezados: string[]) {
  *   · el viejo, tres columnas:
  *       Ranking | Jugador | Ronda Alcanzada
  *   · el nuevo, con lo que explica el orden y una fila de rótulos:
- *       Ranking | Jugador | Categoría | Objetivo | Hasta dónde llegó |
- *       Ronda Alcanzada | Rendimiento | Promedio |
- *       Partidos | Ganados | Carambolas | Entradas
+ *       Ranking | Jugador | Categoría | Hasta dónde llegó |
+ *       % de su objetivo | Promedio | Partidas | Carambolas | Entradas
  */
 export function parseRankingFinal(rows: string[][]): RankingFinalRow[] {
   const filaEnc = buscaFilaEncabezados(rows);
@@ -495,11 +494,10 @@ export function parseRankingFinal(rows: string[][]): RankingFinalRow[] {
   const cJug = idx('Jugador');
   const cRonda = idx('Ronda Alcanzada', 'Ronda');
   const cCat = idx('Categoría', 'Categoria');
-  const cObj = idx('Objetivo');
   const cHasta = idx('Hasta dónde llegó', 'Hasta donde llego');
-  const cRend = idx('Rendimiento');
-  const cPJ = idx('Partidos');
-  const cPG = idx('Ganados');
+  // «Rendimiento» era como se llamaba antes lo mismo.
+  const cRend = idx('% de su objetivo', '% de su objetivo', 'Rendimiento');
+  const cPJ = idx('Partidas', 'Partidos');
   const cCar = idx('Carambolas');
   const cEnt = idx('Entradas');
   const cProm = idx('Promedio');
@@ -516,11 +514,9 @@ export function parseRankingFinal(rows: string[][]): RankingFinalRow[] {
       player,
       roundReached: num(cell(fila, cRonda)),
       category: cell(fila, cCat),
-      target: numOrNull(cell(fila, cObj)),
       reachedLabel: cell(fila, cHasta),
       performance: pctOrNull(cell(fila, cRend)),
       matches: numOrNull(cell(fila, cPJ)),
-      won: numOrNull(cell(fila, cPG)),
       carambolas: numOrNull(cell(fila, cCar)),
       entries: numOrNull(cell(fila, cEnt)),
       average: numOrNull(cell(fila, cProm)),

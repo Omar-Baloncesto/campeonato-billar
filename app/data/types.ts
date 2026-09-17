@@ -135,13 +135,11 @@ export interface RankingFinalRow {
   roundReached: number;
   /** Lo que trae la hoja nueva. En la vieja, de tres columnas, no viene. */
   category?: string;
-  target?: number | null;
   /** "CAMPEÓN", "SUBCAMPEÓN", "Semifinal"… tal cual lo escribe el Sheet. */
   reachedLabel?: string;
   /** Carambolas hechas ÷ carambolas que debía hacer. 1 = cumplió. */
   performance?: number | null;
   matches?: number | null;
-  won?: number | null;
   carambolas?: number | null;
   entries?: number | null;
   average?: number | null;

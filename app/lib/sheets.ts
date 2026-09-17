@@ -227,7 +227,12 @@ const SENAS: Record<string, (rows: string[][]) => boolean> = {
   GRUPOS: rows => buscaTexto(rows, /^GRUPO\s+\d+$/i, 400) && tieneEncabezados(rows, ['total pts']),
   'Eliminación Simple': rows => tieneEncabezados(rows, ['ronda', 'ganador']),
   RankingGrupos: rows => tieneEncabezados(rows, ['ranking', 'promedio']),
-  RankingFinal: rows => tieneEncabezados(rows, ['ranking', 'ronda alcanzada']),
+  // La hoja nueva ya no trae «Ronda Alcanzada»: dice «Hasta dónde llegó».
+  // Se aceptan las dos para que dé igual el orden en que se actualicen
+  // el Sheet y la web.
+  RankingFinal: rows =>
+    tieneEncabezados(rows, ['ranking', 'hasta donde llego']) ||
+    tieneEncabezados(rows, ['ranking', 'ronda alcanzada']),
 };
 
 /** ¿Existe una fila que contenga TODAS estas etiquetas de encabezado? */
