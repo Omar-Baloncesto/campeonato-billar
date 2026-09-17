@@ -144,6 +144,12 @@ export interface RankingGroupRow {
   entries: number;
   average: number;
   points: number;
+  /* Columnas que explican el orden. Opcionales: la hoja puede venir
+   * con el formato viejo, de siete columnas, y entonces no están. */
+  group?: number | null;
+  groupOrder?: number | null;
+  pointsPerMatch?: number | null;
+  advantagePerMatch?: number | null;
 }
 
 export interface FixtureMatch {

@@ -372,7 +372,7 @@ export async function fetchRankingFinal(): Promise<RankingFinalRow[]> {
 }
 
 export async function fetchRankingGroups(): Promise<RankingGroupRow[]> {
-  return parseRankingGroups(await fetchSheet(SHEETS.rankingGroups, 'A1:G300'));
+  return parseRankingGroups(await fetchSheet(SHEETS.rankingGroups, 'A1:N300'));
 }
 
 export async function fetchFixture(): Promise<FixtureMatch[]> {

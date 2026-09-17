@@ -449,19 +449,79 @@ export function parseRankingFinal(rows: string[][]): RankingFinalRow[] {
     }));
 }
 
+/**
+ * RankingGrupos.
+ *
+ * La hoja existe en dos formatos y los dos tienen que leerse, porque el
+ * Sheet puede ir por delante o por detrás de la web:
+ *
+ *   · el viejo, siete columnas fijas:
+ *       Ranking | Jugador | Categoría | Carambolas | Entradas | Promedio | Puntos
+ *   · el nuevo, con las columnas que explican el orden y una fila de
+ *     rótulos encima:
+ *       Ranking | Jugador | Categoría | Grupo | Puesto | Puntos |
+ *       Pts x Partido | Ventaja x Partido | Carambolas | Entradas | Promedio
+ *
+ * Por eso no se leen posiciones fijas: se busca la fila de encabezados y
+ * cada columna por su nombre.
+ */
 export function parseRankingGroups(rows: string[][]): RankingGroupRow[] {
-  return rows
-    .slice(1)
-    .filter(r => cell(r, 0) && cell(r, 1))
-    .map(r => ({
-      ranking: num(cell(r, 0)),
-      player: cell(r, 1),
-      categoryOrCity: cell(r, 2),
-      carambolas: num(cell(r, 3)),
-      entries: num(cell(r, 4)),
-      average: num(cell(r, 5)),
-      points: num(cell(r, 6)),
-    }));
+  // La fila de encabezados es la primera que trae "Ranking" y "Jugador".
+  let filaEnc = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const celdas = rows[i].map(c => normalizeKey(c));
+    if (celdas.includes('ranking') && celdas.includes('jugador')) { filaEnc = i; break; }
+  }
+  if (filaEnc < 0) return [];
+
+  const col: Record<string, number> = {};
+  rows[filaEnc].forEach((c, i) => {
+    const k = normalizeKey(c);
+    if (k && !(k in col)) col[k] = i;
+  });
+
+  const idx = (...nombres: string[]) => {
+    for (const n of nombres) {
+      const k = normalizeKey(n);
+      if (k in col) return col[k];
+    }
+    return -1;
+  };
+
+  const cRank = idx('Ranking');
+  const cJug  = idx('Jugador');
+  const cCat  = idx('Categoría', 'Categoria', 'Ciudad');
+  const cCar  = idx('Carambolas');
+  const cEnt  = idx('Entradas');
+  const cProm = idx('Promedio');
+  const cPts  = idx('Puntos');
+  const cGrup = idx('Grupo');
+  const cPues = idx('Puesto');
+  const cPxP  = idx('Pts x Partido', 'Pts x Part.');
+  const cVxP  = idx('Ventaja x Partido', 'Ventaja x Part.');
+
+  const out: RankingGroupRow[] = [];
+  for (let r = filaEnc + 1; r < rows.length; r++) {
+    const fila = rows[r];
+    const ranking = numOrNull(cell(fila, cRank));
+    const player = cell(fila, cJug);
+    if (ranking === null || !player) continue;
+
+    out.push({
+      ranking,
+      player,
+      categoryOrCity: cell(fila, cCat),
+      carambolas: num(cell(fila, cCar)),
+      entries: num(cell(fila, cEnt)),
+      average: num(cell(fila, cProm)),
+      points: num(cell(fila, cPts)),
+      group: numOrNull(cell(fila, cGrup)),
+      groupOrder: numOrNull(cell(fila, cPues)),
+      pointsPerMatch: numOrNull(cell(fila, cPxP)),
+      advantagePerMatch: numOrNull(cell(fila, cVxP)),
+    });
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */

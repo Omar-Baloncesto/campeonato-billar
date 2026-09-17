@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { getCityColor } from '../lib/constants';
 import FilterPills from '../components/FilterPills';
 import EmptyState from '../components/EmptyState';
-import { fmtAvg, EMPTY } from '../lib/format';
+import { fmtAvg, EMPTY, fmtSigned } from '../lib/format';
 import { shortRoundName } from '../lib/rounds';
 import type { RankingFinalRow, RankingGroupRow, Player } from '../data/types';
 
@@ -31,6 +31,9 @@ export default function RankingClient({
   players: Player[];
 }) {
   const [tab, setTab] = useState(rankingFinal.length > 0 ? 'final' : 'groups');
+  // La hoja nueva trae las columnas que explican el orden; la vieja no.
+  const detalleOrden = rankingGroups.some(r => r.groupOrder != null);
+
 
   const byName = useMemo(() => {
     const m = new Map<string, Player>();
@@ -125,6 +128,7 @@ export default function RankingClient({
                 </h3>
                 <p className="text-[11px] text-text-muted mt-1">
                   {rankingGroups.length} jugadores · ordenados como se siembra la eliminación
+                  {detalleOrden && <> · primero los 1.º de cada grupo, luego los 2.º…</>}
                 </p>
               </div>
               <div className="overflow-x-auto scrollbar-hide">
@@ -136,10 +140,23 @@ export default function RankingClient({
                       <th className="px-3 py-3 text-left hidden sm:table-cell">Categoría</th>
                       <th className="px-3 py-3 text-left hidden lg:table-cell">Club</th>
                       <th className="px-2 py-3 text-center" title="Grupo">Gr</th>
+                      {detalleOrden && (
+                        <th className="px-2 py-3 text-center" title="Puesto dentro del grupo">Pos</th>
+                      )}
                       <th className="px-2 py-3 text-center" title="Carambolas a favor">Car</th>
                       <th className="px-2 py-3 text-center hidden sm:table-cell" title="Entradas">Ent</th>
                       <th className="px-2 py-3 text-center" title="Carambolas por entrada">Prom</th>
                       <th className="px-2 py-3 text-center">Pts</th>
+                      {detalleOrden && (
+                        <>
+                          <th className="px-2 py-3 text-center hidden md:table-cell" title="Puntos ÷ partidos del grupo">
+                            Pts/P
+                          </th>
+                          <th className="px-2 py-3 text-center hidden md:table-cell" title="Ventaja ÷ partidos del grupo">
+                            Vent/P
+                          </th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -163,11 +180,26 @@ export default function RankingClient({
                               <span className="text-xs text-text-muted">{city || EMPTY}</span>
                             </div>
                           </td>
-                          <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">{p?.group ?? EMPTY}</td>
+                          <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">{r.group ?? p?.group ?? EMPTY}</td>
+                          {detalleOrden && (
+                            <td className="px-2 py-3 text-center font-mono text-text-muted tabular-nums">
+                              {r.groupOrder ? `${r.groupOrder}º` : EMPTY}
+                            </td>
+                          )}
                           <td className="px-2 py-3 text-center font-mono text-emerald-400 tabular-nums">{r.carambolas}</td>
                           <td className="px-2 py-3 text-center font-mono text-text-muted hidden sm:table-cell tabular-nums">{r.entries}</td>
                           <td className="px-2 py-3 text-center font-mono text-text-primary tabular-nums">{fmtAvg(r.average)}</td>
                           <td className="px-2 py-3 text-center font-mono font-bold text-text-primary tabular-nums">{r.points}</td>
+                          {detalleOrden && (
+                            <>
+                              <td className="px-2 py-3 text-center font-mono text-text-muted/80 italic tabular-nums hidden md:table-cell">
+                                {r.pointsPerMatch != null ? fmtAvg(r.pointsPerMatch) : EMPTY}
+                              </td>
+                              <td className="px-2 py-3 text-center font-mono text-text-muted/80 italic tabular-nums hidden md:table-cell">
+                                {r.advantagePerMatch != null ? fmtSigned(r.advantagePerMatch) : EMPTY}
+                              </td>
+                            </>
+                          )}
                         </tr>
                       );
                     })}
