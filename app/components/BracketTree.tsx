@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { EliminationMatch } from '../data/types';
-import { fmtInt, fmtPct, EMPTY } from '../lib/format';
+import { fmtInt, fmtPct } from '../lib/format';
 
 /* ==================================================================
  *  Cuadro de eliminación, para cualquier número de rondas.
@@ -97,16 +97,16 @@ function Slot({
       }}
     >
       <span
-        title={name || undefined}
+        title={name || 'Por definir'}
         className={`flex-1 text-[11px] truncate ${
-          isBye
+          isBye || name.trim() === ''
             ? 'text-text-muted/40 italic'
             : isWinner
               ? 'text-text-primary font-bold'
               : 'text-text-muted'
         }`}
       >
-        {name || EMPTY}
+        {name.trim() === '' ? 'Por definir' : name}
       </span>
       {showPct && (
         <span className={`font-mono text-[9px] w-10 text-right ${isWinner ? 'text-emerald-400' : 'text-text-muted/60'}`}>

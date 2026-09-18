@@ -383,8 +383,18 @@ export function parseElimination(rows: string[][], targets?: Map<string, number>
     const match = numOrNull(cell(row, 1));
     if (round === null || match === null || round < 1) continue;
 
+    // OJO: NO se descartan las filas sin jugador.
+    //
+    // En cuartos, semifinal y final los nombres todavía no existen: son
+    // fórmulas que se llenan cuando termina la ronda anterior. Si se
+    // saltan esas filas, el cuadro se corta por donde va el torneo y en
+    // el calendario desaparecen las fechas de las rondas que faltan,
+    // que son justo las que la gente quiere mirar.
+    //
+    // Se leen igual, con el nombre vacío, y quien las pinta enseña
+    // «Por definir». Además así el nombre de cada ronda se saca del
+    // total de cruces de verdad, no de los que ya tienen jugador.
     const playerA = cell(row, 2);
-    if (!playerA) continue;
     const playerBRaw = cell(row, 6);
     const isBye = playerBRaw.toUpperCase() === 'BYE' || playerA.toUpperCase() === 'BYE';
 

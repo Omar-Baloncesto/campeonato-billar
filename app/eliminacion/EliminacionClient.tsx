@@ -34,8 +34,16 @@ function PlayerSlot({
       }`}
     >
       <div className="flex-1 min-w-0">
-        <div className={`text-xs font-semibold truncate ${isWinner ? 'text-text-primary' : 'text-text-muted'}`}>
-          {name}
+        <div
+          className={`text-xs truncate ${
+            name.trim() === ''
+              ? 'text-text-muted/40 italic font-normal'
+              : isWinner
+                ? 'text-text-primary font-semibold'
+                : 'text-text-muted font-semibold'
+          }`}
+        >
+          {name.trim() === '' ? 'Por definir' : name}
         </div>
         {target !== null && (
           <div className="text-[9px] text-text-muted/60 tabular-nums">objetivo {target}</div>
@@ -66,6 +74,7 @@ function MatchBox({ match, showPct }: { match: EliminationMatch; showPct: boolea
   const winnerA = match.winner !== '' && match.winner === match.playerA;
   const winnerB = match.winner !== '' && match.winner === match.playerB;
   const pending = match.status === 'pending';
+  const porDefinir = match.playerA.trim() === '' || match.playerB.trim() === '';
 
   const decidedByHandicap =
     showPct &&
@@ -107,7 +116,11 @@ function MatchBox({ match, showPct }: { match: EliminationMatch; showPct: boolea
         </p>
       )}
       {pending && (
-        <p className="text-[10px] text-text-muted/50 mt-2 px-1">Pendiente de disputar.</p>
+        <p className="text-[10px] text-text-muted/50 mt-2 px-1">
+          {porDefinir
+            ? 'Los jugadores salen solos cuando termine la ronda anterior.'
+            : 'Pendiente de disputar.'}
+        </p>
       )}
     </div>
   );

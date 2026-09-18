@@ -775,6 +775,41 @@ actualizan solas.
 Probado en 1340 px y 390 px con el cuadro de 22 terminado, y con la hoja vieja
 de 3 columnas: 5 columnas, sin rótulos, sin bandas, sin errores.
 
+### C16 · El cuadro se cortaba por donde iba el torneo
+
+En CALENDARIO → Programación → Eliminación solo salían las fechas hasta octavos,
+y en ELIMINACIÓN DIRECTA lo mismo. Faltaban cuartos, semifinal y final.
+
+La culpa era de una línea de `parseElimination`:
+
+```ts
+const playerA = cell(row, 2);
+if (!playerA) continue;      // <- se comía las rondas sin jugadores
+```
+
+En cuartos, semifinal y final los nombres **todavía no existen**: son fórmulas
+que se llenan cuando termina la ronda anterior. Al descartar esas filas, el
+cuadro se cortaba justo por donde iba el torneo, y desaparecían del calendario
+las fechas de las rondas que la gente quiere mirar (la final era 21 de las 21
+partidas de esa noche… y no aparecía).
+
+Tenía además un efecto de segundo orden: el nombre de cada ronda sale de contar
+sus cruces, y contaba solo los que ya tenían jugador. Una ronda medio llena se
+habría llamado «Ronda 3» en vez de «Cuartos de final».
+
+Ahora se leen todas las filas con número de ronda y de partido, con el nombre
+vacío, y quien las pinta enseña **«Por definir»**:
+
+- `MatchCard` del calendario ya lo hacía (y ya traía el aviso «los jugadores
+  salen solos cuando termine la ronda anterior»).
+- `PlayerSlot` de la página de Eliminación y `Slot` de `BracketTree`, añadido.
+
+Comprobado con el cuadro real de Omar a medias (32 plazas, 10 BYE, rondas 3 a 5
+sin jugadores): el calendario pasa de **14 a 21 partidas** de eliminación y
+enseña las cinco horas, de las 5:00 p. m. a las 11:00 p. m.; la página de
+Eliminación pasa de 3 a **5 rondas** con sus cinco filtros, y el cuadro se dibuja
+entero hasta la final. Sin errores de consola.
+
 ---
 
 ## E · Copia de seguridad
